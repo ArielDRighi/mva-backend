@@ -13,7 +13,7 @@ export class User {
 
   @Column({ length: 50, unique: true })
   @Index('idx_usuarios_username')
-  username: string;
+  nombre: string;
 
   @Column({ length: 100, unique: true })
   @Index('idx_usuarios_email')

@@ -2,34 +2,34 @@ import { IsString, IsEmail, IsOptional, IsDate } from 'class-validator';
 
 export class UpdateClientDto {
   @IsString()
-  @IsOptional()  // Opcional, solo se actualizará si se pasa
+  @IsOptional() // Opcional, solo se actualizará si se pasa
   nombre?: string;
 
   @IsEmail()
-  @IsOptional()  // Opcional
+  @IsOptional() // Opcional
   email?: string;
 
   @IsString()
-  @IsOptional()  // Opcional
+  @IsOptional() // Opcional
   cuit?: string;
 
   @IsString()
-  @IsOptional()  // Opcional
+  @IsOptional() // Opcional
   direccion?: string;
 
   @IsString()
-  @IsOptional()  // Opcional
+  @IsOptional() // Opcional
   telefono?: string;
 
   @IsString()
-  @IsOptional()  // Opcional
+  @IsOptional() // Opcional
   contacto_principal?: string;
 
   @IsDate()
-  @IsOptional()  // Opcional
+  @IsOptional() // Opcional
   fecha_registro?: Date;
 
   @IsString()
-  @IsOptional()  // Opcional
+  @IsOptional() // Opcional
   estado?: string;
 }

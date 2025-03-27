@@ -1,32 +1,35 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity({ name: 'cliente' })
+@Entity({ name: 'clientes' }) // ✅ CORRECTO: nombre plural como en la DB
 export class Cliente {
-    @PrimaryGeneratedColumn()
-    clienteId: number;
+  @PrimaryGeneratedColumn({ name: 'cliente_id' })
+  clienteId: number;
 
-    @Column()
-    nombre: string;
+  @Column({ name: 'nombre_empresa' })
+  nombre: string;
 
-    @Column()
-    email: string;
+  @Column({ name: 'email' })
+  email: string;
 
-    @Column()
-    cuit: string;
+  @Column({ name: 'cuit' })
+  cuit: string;
 
-    @Column()
-    direccion: string;
+  @Column({ name: 'direccion' })
+  direccion: string;
 
-    @Column()
-    telefono: string;
+  @Column({ name: 'telefono' })
+  telefono: string;
 
-    @Column()
-    contacto_principal: string;
+  @Column({ name: 'contacto_principal' })
+  contacto_principal: string;
 
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })  // Fecha de registro
-    fecha_registro: Date;
+  @Column({
+    name: 'fecha_registro',
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
+  fecha_registro: Date;
 
-    @Column()
-    estado: string;
-
+  @Column({ name: 'estado', default: 'ACTIVO' })
+  estado: string;
 }

@@ -1,5 +1,11 @@
 import { Type } from 'class-transformer';
-import { IsString, IsEmail, IsNotEmpty, IsDate, IsOptional } from 'class-validator';
+import {
+  IsString,
+  IsEmail,
+  IsNotEmpty,
+  IsDate,
+  IsOptional,
+} from 'class-validator';
 
 export class CreateClientDto {
   @IsString()
@@ -28,7 +34,7 @@ export class CreateClientDto {
 
   @IsDate()
   @IsOptional()
-  @Type(() => Date) 
+  @Type(() => Date)
   fecha_registro?: Date;
 
   @IsString()
