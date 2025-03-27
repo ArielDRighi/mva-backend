@@ -20,7 +20,7 @@ export class UpdateUserDto {
     message:
       'El nombre de usuario solo puede contener letras, números, puntos, guiones y guiones bajos',
   })
-  username?: string;
+  nombre?: string;
 
   @IsOptional()
   @IsEmail({}, { message: 'Formato de correo electrónico inválido' })

@@ -30,8 +30,8 @@ export class UsersService {
     return user;
   }
 
-  async findByUsername(username: string): Promise<User | null> {
-    return this.usersRepository.findOne({ where: { username } });
+  async findByUsername(nombre: string): Promise<User | null> {
+    return this.usersRepository.findOne({ where: { nombre } });
   }
 
   async findByEmail(email: string): Promise<User | null> {
@@ -40,7 +40,7 @@ export class UsersService {
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     // Verificar si el username ya existe
-    const existingUsername = await this.findByUsername(createUserDto.username);
+    const existingUsername = await this.findByUsername(createUserDto.nombre);
     if (existingUsername) {
       throw new ConflictException('El nombre de usuario ya está en uso');
     }
@@ -58,7 +58,7 @@ export class UsersService {
     // Crear el nuevo usuario
     const newUser = this.usersRepository.create({
       empleadoId: createUserDto.empleadoId,
-      username: createUserDto.username,
+      nombre: createUserDto.nombre,
       email: createUserDto.email,
       password: passwordHash,
       estado: 'ACTIVO',
@@ -73,10 +73,8 @@ export class UsersService {
     const user = await this.findById(id);
 
     // Verificar si el username ya está en uso por otro usuario
-    if (updateUserDto.username && updateUserDto.username !== user.username) {
-      const existingUsername = await this.findByUsername(
-        updateUserDto.username,
-      );
+    if (updateUserDto.nombre && updateUserDto.nombre !== user.nombre) {
+      const existingUsername = await this.findByUsername(updateUserDto.nombre);
       if (existingUsername) {
         throw new ConflictException('El nombre de usuario ya está en uso');
       }

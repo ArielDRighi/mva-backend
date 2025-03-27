@@ -37,7 +37,7 @@ export class AuthService {
     // Crear payload para el token JWT
     const payload = {
       sub: user.id,
-      username: user.username,
+      nombre: user.nombre,
       email: user.email,
       roles: user.roles || [],
     };
@@ -47,7 +47,7 @@ export class AuthService {
       access_token: this.jwtService.sign(payload),
       user: {
         id: user.id,
-        username: user.username,
+        nombre: user.nombre,
         email: user.email,
         empleadoId: user.empleadoId,
         estado: user.estado,

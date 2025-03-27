@@ -21,7 +21,7 @@ export class CreateUserDto {
     message:
       'El nombre de usuario solo puede contener letras, números, puntos, guiones, guiones bajos y espacios',
   })
-  username: string;
+  nombre: string;
 
   @IsEmail({}, { message: 'Formato de correo electrónico inválido' })
   @IsNotEmpty({ message: 'El correo electrónico es requerido' })

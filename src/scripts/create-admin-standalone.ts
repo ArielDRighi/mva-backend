@@ -27,13 +27,13 @@ async function createAdminUser() {
 
     // Usar SQL directo en lugar de repositorios TypeORM para evitar problemas de metadatos
     // Primero verificamos si el usuario admin ya existe
-    const checkAdminQuery = `SELECT * FROM usuarios WHERE username = 'admin' OR email = 'admin@mva.com'`;
-    const existingAdmin: Array<{ username: string; email: string }> =
+    const checkAdminQuery = `SELECT * FROM usuarios WHERE nombre = 'admin' OR email = 'admin@mva.com'`;
+    const existingAdmin: Array<{ nombre: string; email: string }> =
       await dataSource.query(checkAdminQuery);
 
     if (existingAdmin && existingAdmin.length > 0) {
       console.log('¡Usuario administrador ya existe!');
-      console.log(`Username: ${existingAdmin[0].username}`);
+      console.log(`Nombre: ${existingAdmin[0].nombre}`);
       console.log(`Email: ${existingAdmin[0].email}`);
       await dataSource.destroy();
       return;
@@ -45,14 +45,14 @@ async function createAdminUser() {
 
     // Insertar el usuario admin directamente con SQL
     const insertAdminQuery = `
-      INSERT INTO usuarios (username, email, password_hash, estado, roles, empleado_id)
+      INSERT INTO usuarios (nombre, email, password_hash, estado, roles, empleado_id)
       VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING usuario_id, username, email, estado
+      RETURNING usuario_id, nombre, email, estado
     `;
 
     interface AdminUser {
       usuario_id: string;
-      username: string;
+      nombre: string;
       email: string;
       estado: string;
     }
@@ -70,7 +70,7 @@ async function createAdminUser() {
 
     console.log('¡Usuario administrador creado exitosamente!');
     console.log('-------------------------------------');
-    console.log('Username: admin');
+    console.log('nombre: admin');
     console.log('Password: admin123');
     console.log('Email: admin@mva.com');
     console.log('Roles: ADMIN');
