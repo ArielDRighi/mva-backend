@@ -7,16 +7,24 @@ import {
   Delete,
   Put,
   ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { ClientService } from './client.service';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { Cliente } from './entities/client.entity';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../roles/guards/roles.guard';
+import { Roles } from '../roles/decorators/roles.decorator';
+import { Role } from '../roles/enums/role.enum';
 
 @Controller('clients')
+@UseGuards(JwtAuthGuard) // Protege todos los endpoints del controlador
 export class ClientController {
   constructor(private readonly clientService: ClientService) {}
 
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR) // Solo admin y supervisor pueden crear
   @Post()
   create(@Body() createClientDto: CreateClientDto) {
     return this.clientService.create(createClientDto);
@@ -27,24 +35,27 @@ export class ClientController {
     return this.clientService.findAll();
   }
 
-  @Get(':id') // El parámetro :id será el clientId
+  @Get(':id')
   async findOne(
     @Param('id', ParseIntPipe) clienteId: number,
   ): Promise<Cliente> {
     return this.clientService.findOneClient(clienteId);
   }
 
-  @Put(':id') // El parámetro :id será el clientId
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR) // Solo admin y supervisor pueden actualizar
+  @Put(':id')
   async update(
-    @Param('id', ParseIntPipe) clienteId: number, // ✅ CORRECTO: con ParseIntPipe
+    @Param('id', ParseIntPipe) clienteId: number,
     @Body() updateClientDto: UpdateClientDto,
   ): Promise<Cliente> {
     return this.clientService.updateClient(clienteId, updateClientDto);
   }
 
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN) // Solo admin puede eliminar
   @Delete(':id')
   async delete(@Param('id', ParseIntPipe) clienteId: number): Promise<void> {
-    // ✅ CORRECTO
     return this.clientService.deleteClient(clienteId);
   }
 }
