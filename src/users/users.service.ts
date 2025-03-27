@@ -9,6 +9,7 @@ import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
+import { Role } from '../roles/enums/role.enum';
 
 @Injectable()
 export class UsersService {
@@ -61,6 +62,8 @@ export class UsersService {
       email: createUserDto.email,
       password: passwordHash,
       estado: 'ACTIVO',
+      // Asegúrate de que los roles se asignen correctamente
+      roles: createUserDto.roles || [Role.OPERARIO], // Rol por defecto
     });
 
     return this.usersRepository.save(newUser);

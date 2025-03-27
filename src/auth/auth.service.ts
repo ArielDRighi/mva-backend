@@ -39,6 +39,7 @@ export class AuthService {
       sub: user.id,
       username: user.username,
       email: user.email,
+      roles: user.roles || [],
     };
 
     // Retornar token y datos del usuario
@@ -50,6 +51,7 @@ export class AuthService {
         email: user.email,
         empleadoId: user.empleadoId,
         estado: user.estado,
+        roles: user.roles || [],
       },
     };
   }
