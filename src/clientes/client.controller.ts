@@ -2,9 +2,9 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Put, ParseIntPipe } 
 import { ClientService } from './client.service';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
-import { Client } from './entities/client.entity';
+import { Cliente } from './entities/client.entity';
 
-@Controller('clients')
+@Controller('clientes')
 export class ClientController {
   constructor(private readonly clientService: ClientService) {}
 
@@ -14,25 +14,25 @@ export class ClientController {
   }
 
   @Get()
-  async findAll(): Promise<Client[]> {
+  async findAll(): Promise<Cliente[]> {
     return this.clientService.findAll();
   }
 
   @Get(':id')  // El parámetro :id será el clientId
-  async findOne(@Param('id', ParseIntPipe) clientId: number): Promise<Client> {
-    return this.clientService.findOneClient(clientId);
+  async findOne(@Param('id', ParseIntPipe) clienteId: number): Promise<Cliente> {
+    return this.clientService.findOneClient(clienteId);
   }
 
   @Put(':id')  // El parámetro :id será el clientId
   async update(
-    @Param('id') clientId: number,
+    @Param('id') clienteId: number,
     @Body() updateClientDto: UpdateClientDto,
-  ): Promise<Client> {
-    return this.clientService.updateClient(clientId, updateClientDto);
+  ): Promise<Cliente> {
+    return this.clientService.updateClient(clienteId, updateClientDto);
   }
 
   @Delete(':id')
-  async delete(@Param('id') clientId: number): Promise<void> {
-    return this.clientService.deleteClient(clientId);
+  async delete(@Param('id') clienteId: number): Promise<void> {
+    return this.clientService.deleteClient(clienteId);
   }
 }

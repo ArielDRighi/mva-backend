@@ -1,12 +1,12 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity({ name: 'client' })
-export class Client {
+@Entity({ name: 'cliente' })
+export class Cliente {
     @PrimaryGeneratedColumn()
-    clientId: number;
+    clienteId: number;
 
     @Column()
-    name: string;
+    nombre: string;
 
     @Column()
     email: string;
@@ -15,18 +15,18 @@ export class Client {
     cuit: string;
 
     @Column()
-    address: string;
+    direccion: string;
 
     @Column()
-    phone: string;
+    telefono: string;
 
     @Column()
-    mainContact: string;
+    contacto_principal: string;
 
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })  // Fecha de registro
-  registrationDate: Date;
+    fecha_registro: Date;
 
     @Column()
-    status: string;
+    estado: string;
 
 }

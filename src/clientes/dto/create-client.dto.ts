@@ -4,7 +4,7 @@ import { IsString, IsEmail, IsNotEmpty, IsDate, IsOptional } from 'class-validat
 export class CreateClientDto {
   @IsString()
   @IsNotEmpty()
-  name: string;
+  nombre: string;
 
   @IsEmail()
   @IsNotEmpty()
@@ -16,22 +16,22 @@ export class CreateClientDto {
 
   @IsString()
   @IsNotEmpty()
-  address: string;
+  direccion: string;
 
   @IsString()
   @IsNotEmpty()
-  phone: string;
+  telefono: string;
 
   @IsString()
   @IsNotEmpty()
-  mainContact: string;
+  contacto_principal: string;
 
   @IsDate()
   @IsOptional()
   @Type(() => Date) 
-  registrationDate?: Date;
+  fecha_registro?: Date;
 
   @IsString()
   @IsNotEmpty()
-  status: string;
+  estado: string;
 }

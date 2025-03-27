@@ -3,7 +3,7 @@ import { IsString, IsEmail, IsOptional, IsDate } from 'class-validator';
 export class UpdateClientDto {
   @IsString()
   @IsOptional()  // Opcional, solo se actualizará si se pasa
-  name?: string;
+  nombre?: string;
 
   @IsEmail()
   @IsOptional()  // Opcional
@@ -15,21 +15,21 @@ export class UpdateClientDto {
 
   @IsString()
   @IsOptional()  // Opcional
-  address?: string;
+  direccion?: string;
 
   @IsString()
   @IsOptional()  // Opcional
-  phone?: string;
+  telefono?: string;
 
   @IsString()
   @IsOptional()  // Opcional
-  mainContact?: string;
+  contacto_principal?: string;
 
   @IsDate()
   @IsOptional()  // Opcional
-  registrationDate?: Date;
+  fecha_registro?: Date;
 
   @IsString()
   @IsOptional()  // Opcional
-  status?: string;
+  estado?: string;
 }
