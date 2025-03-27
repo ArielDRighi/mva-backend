@@ -1,10 +1,10 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Put } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Put, ParseIntPipe } from '@nestjs/common';
 import { ClientService } from './client.service';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { Client } from './entities/client.entity';
 
-@Controller('client')
+@Controller('clients')
 export class ClientController {
   constructor(private readonly clientService: ClientService) {}
 
@@ -19,7 +19,7 @@ export class ClientController {
   }
 
   @Get(':id')  // El parámetro :id será el clientId
-  async findOne(@Param('id') clientId: number): Promise<Client> {
+  async findOne(@Param('id', ParseIntPipe) clientId: number): Promise<Client> {
     return this.clientService.findOneClient(clientId);
   }
 
