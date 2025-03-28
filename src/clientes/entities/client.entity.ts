@@ -1,4 +1,5 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { CondicionesContractuales } from 'src/condiciones Contractuales/entities/contractualConditions.entity';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity({ name: 'clientes' }) // ✅ CORRECTO: nombre plural como en la DB
 export class Cliente {
@@ -32,4 +33,7 @@ export class Cliente {
 
   @Column({ name: 'estado', default: 'ACTIVO' })
   estado: string;
+
+  @OneToMany(() => CondicionesContractuales, (contrato) => contrato.cliente)
+  contratos: CondicionesContractuales[];
 }
