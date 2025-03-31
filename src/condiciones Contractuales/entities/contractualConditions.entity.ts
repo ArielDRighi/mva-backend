@@ -55,7 +55,7 @@ export class CondicionesContractuales {
     nullable: false,
   })
   @Min(0)
-  tarifa: string;
+  tarifa: number;
 
   @Column({
     name: 'periodicidad',
