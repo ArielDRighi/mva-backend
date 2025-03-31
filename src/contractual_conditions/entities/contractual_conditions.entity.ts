@@ -20,7 +20,7 @@ export enum EstadoContrato {
   TERMINADO = 'Terminado',
 }
 
-@Entity({ name: 'condiciones_contractuales' })
+@Entity({ name: 'contractual_conditions' })
 export class CondicionesContractuales {
   @PrimaryGeneratedColumn({ name: 'condicionContractual_id' })
   condicionContractualId: number;

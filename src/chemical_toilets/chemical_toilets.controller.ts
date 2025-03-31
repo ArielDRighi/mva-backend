@@ -10,11 +10,11 @@ import {
   UseGuards,
   ParseIntPipe,
 } from '@nestjs/common';
-import { ChemicalToiletsService } from './chemical-toilets.service';
+import { ChemicalToiletsService } from './chemical_toilets.service';
 import { CreateChemicalToiletDto } from './dto/create-chemical_toilet.dto';
 import { UpdateChemicalToiletDto } from './dto/update-chemical.toilet.dto';
 import { FilterChemicalToiletDto } from './dto/filter-chemical_toilet.dto';
-import { ChemicalToilet } from './entities/chemical-toilet.entity';
+import { ChemicalToilet } from './entities/chemical_toilet.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../roles/guards/roles.guard';
 import { Roles } from '../roles/decorators/roles.decorator';

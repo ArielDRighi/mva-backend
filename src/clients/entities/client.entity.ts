@@ -1,7 +1,7 @@
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { CondicionesContractuales } from '../../contractual_conditions/entities/contractual_conditions.entity';
 
-@Entity({ name: 'clientes' })
+@Entity({ name: 'clients' })
 export class Cliente {
   @PrimaryGeneratedColumn({ name: 'cliente_id' })
   clienteId: number;

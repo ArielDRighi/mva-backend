@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { UpdateToiletMaintenanceDto } from './dto/update-toilet_maintenance.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ToiletMaintenance } from './entities/toilet_maintenance.entity';
-import { ChemicalToilet } from '../chemical_toilets/entities/chemical-toilet.entity';
+import { ChemicalToilet } from '../chemical_toilets/entities/chemical_toilet.entity';
 import { Repository } from 'typeorm';
 import { CreateToiletMaintenanceDto } from './dto/create-toilet_maintenance.dto';
 import { FilterToiletMaintenanceDto } from './dto/filter-toilet_maintenance.dto';

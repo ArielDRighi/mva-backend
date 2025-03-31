@@ -17,7 +17,7 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
-@Controller('condiciones_contractuales')
+@Controller('contractual_conditions')
 @UseGuards(JwtAuthGuard)
 export class ContractualConditionsController {
   constructor(
@@ -29,11 +29,12 @@ export class ContractualConditionsController {
   getAllContractualConditions() {
     try {
       return this.contractualConditionsService.getAllContractualConditions();
-    } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new HttpException(message, HttpStatus.BAD_REQUEST);
     }
   }
-
   @Get('id/:id')
   @HttpCode(HttpStatus.OK)
   getContractualConditionById(
@@ -43,11 +44,12 @@ export class ContractualConditionsController {
       return this.contractualConditionsService.getContractualConditionById(
         contractualConditionId,
       );
-    } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new HttpException(message, HttpStatus.BAD_REQUEST);
     }
   }
-
   @Get('client-name/:clientName')
   @HttpCode(HttpStatus.OK)
   getContractualConditionsByClient(
@@ -57,11 +59,12 @@ export class ContractualConditionsController {
       return this.contractualConditionsService.getContractualConditionsByClient(
         clientId,
       );
-    } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new HttpException(message, HttpStatus.BAD_REQUEST);
     }
   }
-
   @Post('create')
   @HttpCode(HttpStatus.OK)
   createContractualCondition(
@@ -71,11 +74,12 @@ export class ContractualConditionsController {
       return this.contractualConditionsService.createContractualCondition(
         createContractualConditionDto,
       );
-    } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new HttpException(message, HttpStatus.BAD_REQUEST);
     }
   }
-
   @Put('modify/:id')
   @HttpCode(HttpStatus.OK)
   modifyContractualCondition(
@@ -87,18 +91,21 @@ export class ContractualConditionsController {
         modifyContractualConditionDto,
         id,
       );
-    } catch (error) {
-      throw new HttpException(error.message, HttpStatus.CREATED);
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new HttpException(message, HttpStatus.CREATED);
     }
   }
-
   @Delete('delete/:id')
   @HttpCode(HttpStatus.OK)
   deleteContractualCondition(@Param('id', ParseIntPipe) id: number) {
     try {
       return this.contractualConditionsService.deleteContractualCondition(id);
-    } catch (error) {
-      throw new HttpException(error.message, HttpStatus.NO_CONTENT);
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new HttpException(message, HttpStatus.NO_CONTENT);
     }
   }
 }

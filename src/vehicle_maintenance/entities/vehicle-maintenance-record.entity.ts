@@ -7,7 +7,7 @@ import {
 } from 'typeorm';
 import { Vehicle } from '../../vehicles/entities/vehicle.entity';
 
-@Entity({ name: 'mantenimiento_vehiculos' })
+@Entity({ name: 'vehicle-maintenance' })
 export class VehicleMaintenanceRecord {
   @PrimaryGeneratedColumn({ name: 'mantenimiento_id' })
   id: number;

@@ -1,7 +1,7 @@
 import { ToiletMaintenance } from 'src/toilet_maintenance/entities/toilet_maintenance.entity';
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity({ name: 'banos_quimicos' })
+@Entity({ name: 'chemical_toilets' })
 export class ChemicalToilet {
   @PrimaryGeneratedColumn()
   baño_id: number;
