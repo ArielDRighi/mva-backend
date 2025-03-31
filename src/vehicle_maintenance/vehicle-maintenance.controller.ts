@@ -18,7 +18,7 @@ import { RolesGuard } from '../roles/guards/roles.guard';
 import { Roles } from '../roles/decorators/roles.decorator';
 import { Role } from '../roles/enums/role.enum';
 
-@Controller('vehicle-maintenance')
+@Controller('vehicle_maintenance')
 @UseGuards(JwtAuthGuard)
 export class VehicleMaintenanceController {
   constructor(private readonly maintenanceService: VehicleMaintenanceService) {}

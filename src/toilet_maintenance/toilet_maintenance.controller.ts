@@ -20,7 +20,7 @@ import { RolesGuard } from '../roles/guards/roles.guard';
 import { Roles } from '../roles/decorators/roles.decorator';
 import { Role } from '../roles/enums/role.enum';
 
-@Controller('toilet-maintenance')
+@Controller('toilet_maintenance')
 @UseGuards(JwtAuthGuard)
 export class ToiletMaintenanceController {
   constructor(private readonly maintenanceService: ToiletMaintenanceService) {}
