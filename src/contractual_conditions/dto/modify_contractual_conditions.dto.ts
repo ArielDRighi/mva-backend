@@ -24,12 +24,32 @@ export class ModifyCondicionContractualDto {
 
   @IsOptional()
   @IsDate()
-  @Transform(({ value }) => (value ? new Date(value) : null))
+  @Transform(({ value }) => {
+    if (
+      value &&
+      (typeof value === 'string' ||
+        typeof value === 'number' ||
+        value instanceof Date)
+    ) {
+      return new Date(value);
+    }
+    return null;
+  })
   fecha_inicio?: Date;
 
   @IsOptional()
   @IsDate()
-  @Transform(({ value }) => (value ? new Date(value) : null))
+  @Transform(({ value }) => {
+    if (
+      value &&
+      (typeof value === 'string' ||
+        typeof value === 'number' ||
+        value instanceof Date)
+    ) {
+      return new Date(value);
+    }
+    return null;
+  })
   fecha_fin?: Date;
 
   @IsOptional()

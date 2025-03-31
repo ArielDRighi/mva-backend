@@ -12,8 +12,8 @@ import {
   Query,
 } from '@nestjs/common';
 import { VehiclesService } from './vehicles.service';
-import { CreateVehicleDto } from './dto/create-vehicle.dto';
-import { UpdateVehicleDto } from './dto/update-vehicle.dto';
+import { CreateVehicleDto } from './dto/create_vehicle.dto';
+import { UpdateVehicleDto } from './dto/update_vehicle.dto';
 import { Vehicle } from './entities/vehicle.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../roles/guards/roles.guard';

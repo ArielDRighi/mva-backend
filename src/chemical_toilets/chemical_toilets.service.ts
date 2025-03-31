@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { CreateChemicalToiletDto } from './/dto/create-chemical_toilet.dto';
-import { UpdateChemicalToiletDto } from './dto/update-chemical.toilet.dto';
-import { FilterChemicalToiletDto } from './dto/filter-chemical_toilet.dto';
+import { CreateChemicalToiletDto } from './dto/create_chemical_toilet.dto';
+import { UpdateChemicalToiletDto } from './dto/update_chemical.toilet.dto';
+import { FilterChemicalToiletDto } from './dto/filter_chemical_toilet.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ChemicalToilet } from './entities/chemical_toilet.entity';
 import { Repository } from 'typeorm';

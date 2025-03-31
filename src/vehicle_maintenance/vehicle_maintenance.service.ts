@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThanOrEqual } from 'typeorm';
-import { VehicleMaintenanceRecord } from './entities/vehicle-maintenance-record.entity';
-import { CreateMaintenanceDto } from './dto/create-maintenance.dto';
-import { UpdateMaintenanceDto } from './dto/update-maintenance.dto';
+import { VehicleMaintenanceRecord } from './entities/vehicle_maintenance_record.entity';
+import { CreateMaintenanceDto } from './dto/create_maintenance.dto';
+import { UpdateMaintenanceDto } from './dto/update_maintenance.dto';
 import { VehiclesService } from '../vehicles/vehicles.service';
 
 @Injectable()

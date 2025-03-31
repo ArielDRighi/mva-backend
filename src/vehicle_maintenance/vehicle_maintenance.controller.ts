@@ -9,10 +9,10 @@ import {
   ParseIntPipe,
   UseGuards,
 } from '@nestjs/common';
-import { VehicleMaintenanceService } from './vehicle-maintenance.service';
-import { CreateMaintenanceDto } from './dto/create-maintenance.dto';
-import { UpdateMaintenanceDto } from './dto/update-maintenance.dto';
-import { VehicleMaintenanceRecord } from './entities/vehicle-maintenance-record.entity';
+import { VehicleMaintenanceService } from './vehicle_maintenance.service';
+import { CreateMaintenanceDto } from './dto/create_maintenance.dto';
+import { UpdateMaintenanceDto } from './dto/update_maintenance.dto';
+import { VehicleMaintenanceRecord } from './entities/vehicle_maintenance_record.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../roles/guards/roles.guard';
 import { Roles } from '../roles/decorators/roles.decorator';

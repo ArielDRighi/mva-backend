@@ -11,9 +11,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ToiletMaintenanceService } from './toilet_maintenance.service';
-import { CreateToiletMaintenanceDto } from './dto/create-toilet_maintenance.dto';
-import { UpdateToiletMaintenanceDto } from './dto/update-toilet_maintenance.dto';
-import { FilterToiletMaintenanceDto } from './dto/filter-toilet_maintenance.dto';
+import { CreateToiletMaintenanceDto } from './dto/create_toilet_maintenance.dto';
+import { UpdateToiletMaintenanceDto } from './dto/update_toilet_maintenance.dto';
+import { FilterToiletMaintenanceDto } from './dto/filter_toilet_maintenance.dto';
 import { ToiletMaintenance } from './entities/toilet_maintenance.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../roles/guards/roles.guard';

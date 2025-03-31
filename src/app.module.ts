@@ -11,7 +11,7 @@ import { ClientsModule } from './clients/clients.module';
 import { ChemicalToiletsModule } from './chemical_toilets/chemical_toilets.module';
 import { ToiletMaintenanceModule } from './toilet_maintenance/toilet_maintenance.module';
 import { VehiclesModule } from './vehicles/vehicles.module';
-import { VehicleMaintenanceModule } from './vehicle_maintenance/vehicle-maintenance.module';
+import { VehicleMaintenanceModule } from './vehicle_maintenance/vehicle_maintenance.module';
 
 @Module({
   imports: [

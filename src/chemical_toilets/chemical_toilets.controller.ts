@@ -11,9 +11,9 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { ChemicalToiletsService } from './chemical_toilets.service';
-import { CreateChemicalToiletDto } from './dto/create-chemical_toilet.dto';
-import { UpdateChemicalToiletDto } from './dto/update-chemical.toilet.dto';
-import { FilterChemicalToiletDto } from './dto/filter-chemical_toilet.dto';
+import { CreateChemicalToiletDto } from './dto/create_chemical_toilet.dto';
+import { UpdateChemicalToiletDto } from './dto/update_chemical.toilet.dto';
+import { FilterChemicalToiletDto } from './dto/filter_chemical_toilet.dto';
 import { ChemicalToilet } from './entities/chemical_toilet.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../roles/guards/roles.guard';

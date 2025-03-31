@@ -1,5 +1,5 @@
-import { ModifyCondicionContractualDto } from './dto/modify-contractual_conditions.dto';
-import { CreateContractualConditionDto } from './dto/create-contractual_conditions.dto';
+import { ModifyCondicionContractualDto } from './dto/modify_contractual_conditions.dto';
+import { CreateContractualConditionDto } from './dto/create_contractual_conditions.dto';
 import { ContractualConditionsService } from './contractual_conditions.service';
 import {
   Body,

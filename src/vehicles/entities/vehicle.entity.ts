@@ -1,5 +1,5 @@
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
-import { VehicleMaintenanceRecord } from '../../vehicle_maintenance/entities/vehicle-maintenance-record.entity';
+import { VehicleMaintenanceRecord } from '../../vehicle_maintenance/entities/vehicle_maintenance_record.entity';
 
 @Entity({ name: 'vehicles' })
 export class Vehicle {

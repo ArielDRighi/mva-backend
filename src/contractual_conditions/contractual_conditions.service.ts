@@ -5,8 +5,8 @@ import {
   EstadoContrato,
 } from './entities/contractual_conditions.entity';
 import { Repository } from 'typeorm';
-import { CreateContractualConditionDto } from './dto/create-contractual_conditions.dto';
-import { ModifyCondicionContractualDto } from './dto/modify-contractual_conditions.dto';
+import { CreateContractualConditionDto } from './dto/create_contractual_conditions.dto';
+import { ModifyCondicionContractualDto } from './dto/modify_contractual_conditions.dto';
 import { Cliente } from 'src/clients/entities/client.entity';
 
 @Injectable()
