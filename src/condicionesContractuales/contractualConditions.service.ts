@@ -39,6 +39,7 @@ export class ContractualConditionsService {
         `An error ocurred, Contractual Condition with ID: ${contractualConditionId} not found`,
       );
     }
+    return contractualCondition;
   }
 
   async getContractualConditionsByClient(clientId: number) {
@@ -57,6 +58,7 @@ export class ContractualConditionsService {
         `The client with ID: ${clientId} not have contractual Conditions`,
       );
     }
+    return contractualConditions;
   }
 
   async createContractualCondition(

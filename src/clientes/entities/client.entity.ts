@@ -1,4 +1,4 @@
-import { CondicionesContractuales } from 'src/condiciones Contractuales/entities/contractualConditions.entity';
+import { CondicionesContractuales } from 'src/condicionesContractuales/entities/contractualConditions.entity';
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity({ name: 'clientes' }) // ✅ CORRECTO: nombre plural como en la DB

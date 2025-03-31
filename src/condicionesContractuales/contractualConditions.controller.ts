@@ -18,7 +18,7 @@ import {
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 @Controller('condiciones_contractuales')
-// @UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard)
 export class ContractualConditionsController {
   constructor(
     private readonly contractualConditionsService: ContractualConditionsService,
