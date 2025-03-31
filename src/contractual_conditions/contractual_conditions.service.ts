@@ -131,7 +131,7 @@ export class ContractualConditionsService {
         `Contractual Condition with ID: ${id} not found`,
       );
     }
-    await this.contractualConditionsRepository.delete(contractualCondition);
+    await this.contractualConditionsRepository.delete(id);
     return `Contractual Condition with ID ${id} has been deleted`;
   }
 }
