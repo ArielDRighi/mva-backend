@@ -8,7 +8,8 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
 import { ClientModule } from './clientes/client.module';
-import { ContractualConditionsModule } from './condicionesContractuales/contractualConditions.module';
+import { BañosQuimicosModule } from './baños_quimicos/baños_quimicos.module';
+import { MantenimientoBañosModule } from './mantenimiento_baños/mantenimiento_baños.module';
 
 @Module({
   imports: [
@@ -23,7 +24,8 @@ import { ContractualConditionsModule } from './condicionesContractuales/contract
     UsersModule,
     RolesModule,
     ClientModule,
-    ContractualConditionsModule,
+    BañosQuimicosModule,
+    MantenimientoBañosModule,
   ],
   controllers: [AppController],
   providers: [AppService],
