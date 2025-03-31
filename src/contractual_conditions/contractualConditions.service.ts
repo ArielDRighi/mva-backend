@@ -50,15 +50,15 @@ export class ContractualConditionsService {
       throw new NotFoundException(`Client with ID: ${clientId} not found`);
     }
     const contractualConditions =
-      await this.contractualConditionsRepository.findOne({
+      await this.contractualConditionsRepository.find({
         where: { cliente: client },
       });
-    if (!contractualConditions) {
+    if (!contractualConditions || contractualConditions.length === 0) {
       throw new NotFoundException(
         `The client with ID: ${clientId} not have contractual Conditions`,
       );
     }
-    return contractualConditions;
+    return contractualConditions; // Retornar el resultado
   }
 
   async createContractualCondition(
