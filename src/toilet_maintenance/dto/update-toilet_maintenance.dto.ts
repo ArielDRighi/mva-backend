@@ -6,7 +6,7 @@ import {
   IsDateString,
 } from 'class-validator';
 
-export class UpdateMantenimientoBañoDto {
+export class UpdateToiletMaintenanceDto {
   @IsOptional()
   @IsDateString()
   fecha_mantenimiento?: Date;

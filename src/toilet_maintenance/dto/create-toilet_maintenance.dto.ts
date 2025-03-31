@@ -1,6 +1,6 @@
 import { IsString, IsNumber, IsDateString } from 'class-validator';
 
-export class CreateMantenimientoBañoDto {
+export class CreateToiletMaintenanceDto {
   @IsDateString()
   fecha_mantenimiento: Date;
 

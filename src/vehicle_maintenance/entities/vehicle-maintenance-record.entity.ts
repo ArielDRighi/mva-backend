@@ -5,7 +5,7 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { Vehicle } from './vehicle.entity';
+import { Vehicle } from '../../vehicles/entities/vehicle.entity';
 
 @Entity({ name: 'mantenimiento_vehiculos' })
 export class VehicleMaintenanceRecord {

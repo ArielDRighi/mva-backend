@@ -1,8 +1,8 @@
-import { MantenimientoBaño } from 'src/mantenimiento_baños/entities/mantenimiento_baño.entity';
+import { ToiletMaintenance } from 'src/toilet_maintenance/entities/toilet_maintenance.entity';
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity({ name: 'banos_quimicos' })
-export class BañosQuimico {
+export class ChemicalToilet {
   @PrimaryGeneratedColumn()
   baño_id: number;
 
@@ -18,9 +18,9 @@ export class BañosQuimico {
   @Column()
   estado: string;
 
-  @OneToMany(() => MantenimientoBaño, (mantenimiento) => mantenimiento.baño, {
+  @OneToMany(() => ToiletMaintenance, (maintenance) => maintenance.toilet, {
     cascade: true,
     onDelete: 'CASCADE',
   })
-  mantenimientos: MantenimientoBaño[];
+  maintenances: ToiletMaintenance[];
 }

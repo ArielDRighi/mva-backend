@@ -1,6 +1,6 @@
 import { IsString, IsDateString } from 'class-validator';
 
-export class CreateBañosQuimicoDto {
+export class CreateChemicalToiletDto {
   @IsString()
   codigo_interno: string;
 

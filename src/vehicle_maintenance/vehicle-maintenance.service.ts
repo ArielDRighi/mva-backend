@@ -4,7 +4,7 @@ import { Repository, MoreThanOrEqual } from 'typeorm';
 import { VehicleMaintenanceRecord } from './entities/vehicle-maintenance-record.entity';
 import { CreateMaintenanceDto } from './dto/create-maintenance.dto';
 import { UpdateMaintenanceDto } from './dto/update-maintenance.dto';
-import { VehiclesService } from './vehicles.service';
+import { VehiclesService } from '../vehicles/vehicles.service';
 
 @Injectable()
 export class VehicleMaintenanceService {

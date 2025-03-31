@@ -7,9 +7,11 @@ import { ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
-import { ClientModule } from './clientes/client.module';
-import { BañosQuimicosModule } from './baños_quimicos/baños_quimicos.module';
-import { MantenimientoBañosModule } from './mantenimiento_baños/mantenimiento_baños.module';
+import { ClientsModule } from './clients/clients.module';
+import { ChemicalToiletsModule } from './chemical_toilets/chemical-toilets.module';
+import { ToiletMaintenanceModule } from './toilet_maintenance/toilet_maintenance.module';
+import { VehiclesModule } from './vehicles/vehicles.module';
+import { VehicleMaintenanceModule } from './vehicle_maintenance/vehicle-maintenance.module';
 
 @Module({
   imports: [
@@ -23,9 +25,11 @@ import { MantenimientoBañosModule } from './mantenimiento_baños/mantenimiento_
     AuthModule,
     UsersModule,
     RolesModule,
-    ClientModule,
-    BañosQuimicosModule,
-    MantenimientoBañosModule,
+    ClientsModule,
+    ChemicalToiletsModule,
+    ToiletMaintenanceModule,
+    VehiclesModule,
+    VehicleMaintenanceModule,
   ],
   controllers: [AppController],
   providers: [AppService],

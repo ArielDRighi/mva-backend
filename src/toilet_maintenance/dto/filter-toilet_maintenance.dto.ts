@@ -1,8 +1,10 @@
-import { IsOptional, IsString, IsNumber, IsDateString } from 'class-validator';
+import { IsOptional, IsString, IsInt, IsDateString } from 'class-validator';
+import { Type } from 'class-transformer';
 
-export class FilterMantenimientoBañoDto {
+export class FilterToiletMaintenanceDto {
   @IsOptional()
-  @IsNumber()
+  @IsInt()
+  @Type(() => Number) // Convierte automáticamente el string a número
   baño_id?: number;
 
   @IsOptional()

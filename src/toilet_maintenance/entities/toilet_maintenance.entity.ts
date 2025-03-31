@@ -1,9 +1,9 @@
-import { BañosQuimico } from 'src/baños_quimicos/entities/baños_quimico.entity';
+import { ChemicalToilet } from '../../chemical_toilets/entities/chemical-toilet.entity';
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity({ name: 'mantenimiento_baños' })
-export class MantenimientoBaño {
-  @PrimaryGeneratedColumn()
+export class ToiletMaintenance {
+  @PrimaryGeneratedColumn({ name: 'mantenimiento_id' })
   mantenimiento_id: number;
 
   @Column({
@@ -22,9 +22,9 @@ export class MantenimientoBaño {
   @Column()
   tecnico_responsable: string;
 
-  @Column()
+  @Column({ type: 'numeric', precision: 10, scale: 2 })
   costo: number;
 
-  @ManyToOne(() => BañosQuimico, (baño) => baño.mantenimientos)
-  baño: BañosQuimico;
+  @ManyToOne(() => ChemicalToilet, (toilet) => toilet.maintenances)
+  toilet: ChemicalToilet;
 }

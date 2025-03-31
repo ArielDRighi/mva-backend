@@ -1,5 +1,5 @@
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
-import { VehicleMaintenanceRecord } from './vehicle-maintenance-record.entity';
+import { VehicleMaintenanceRecord } from '../../vehicle_maintenance/entities/vehicle-maintenance-record.entity';
 
 @Entity({ name: 'vehiculos' })
 export class Vehicle {
@@ -26,7 +26,7 @@ export class Vehicle {
 
   @OneToMany(
     () => VehicleMaintenanceRecord,
-    (maintenanceRecord: VehicleMaintenanceRecord) => maintenanceRecord.vehicle,
+    (maintenanceRecord) => maintenanceRecord.vehicle,
   )
   maintenanceRecords: VehicleMaintenanceRecord[];
 }
