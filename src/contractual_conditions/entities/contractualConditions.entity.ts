@@ -1,5 +1,5 @@
 import { IsEnum, IsNotEmpty, IsOptional, Length, Min } from 'class-validator';
-import { Cliente } from 'src/clientes/entities/client.entity';
+import { Cliente } from 'src/clients/entities/client.entity';
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 export enum TipoContrato {
@@ -20,7 +20,7 @@ export enum EstadoContrato {
   TERMINADO = 'Terminado',
 }
 
-@Entity({ name: 'Condiciones Contractuales' })
+@Entity({ name: 'condiciones_contractuales' })
 export class CondicionesContractuales {
   @PrimaryGeneratedColumn({ name: 'condicionContractual_id' })
   condicionContractualId: number;

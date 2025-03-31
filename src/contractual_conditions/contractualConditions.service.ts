@@ -7,7 +7,7 @@ import {
 import { Repository } from 'typeorm';
 import { CreateContractualConditionDto } from './dto/create-contractualConditions.dto';
 import { ModifyCondicionContractualDto } from './dto/modify-contractualConditions.dto';
-import { Cliente } from 'src/clientes/entities/client.entity';
+import { Cliente } from 'src/clients/entities/client.entity';
 
 @Injectable()
 export class ContractualConditionsService {
