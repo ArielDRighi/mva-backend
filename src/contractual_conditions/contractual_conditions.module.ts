@@ -1,8 +1,8 @@
-import { ContractualConditionsService } from './contractualConditions.service';
+import { ContractualConditionsService } from './contractual_conditions.service';
 import { Module } from '@nestjs/common';
-import { ContractualConditionsController } from './contractualConditions.controller';
+import { ContractualConditionsController } from './contractual_conditions.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { CondicionesContractuales } from './entities/contractualConditions.entity';
+import { CondicionesContractuales } from './entities/contractual_conditions.entity';
 import { Cliente } from 'src/clients/entities/client.entity';
 
 @Module({

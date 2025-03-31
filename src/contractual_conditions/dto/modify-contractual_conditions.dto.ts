@@ -11,7 +11,7 @@ import {
   EstadoContrato,
   Periodicidad,
   TipoContrato,
-} from '../entities/contractualConditions.entity';
+} from '../entities/contractual_conditions.entity';
 
 export class ModifyCondicionContractualDto {
   @IsOptional()

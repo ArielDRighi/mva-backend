@@ -3,10 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import {
   CondicionesContractuales,
   EstadoContrato,
-} from './entities/contractualConditions.entity';
+} from './entities/contractual_conditions.entity';
 import { Repository } from 'typeorm';
-import { CreateContractualConditionDto } from './dto/create-contractualConditions.dto';
-import { ModifyCondicionContractualDto } from './dto/modify-contractualConditions.dto';
+import { CreateContractualConditionDto } from './dto/create-contractual_conditions.dto';
+import { ModifyCondicionContractualDto } from './dto/modify-contractual_conditions.dto';
 import { Cliente } from 'src/clients/entities/client.entity';
 
 @Injectable()

@@ -1,6 +1,6 @@
-import { ModifyCondicionContractualDto } from './dto/modify-contractualConditions.dto';
-import { CreateContractualConditionDto } from './dto/create-contractualConditions.dto';
-import { ContractualConditionsService } from './contractualConditions.service';
+import { ModifyCondicionContractualDto } from './dto/modify-contractual_conditions.dto';
+import { CreateContractualConditionDto } from './dto/create-contractual_conditions.dto';
+import { ContractualConditionsService } from './contractual_conditions.service';
 import {
   Body,
   Controller,
