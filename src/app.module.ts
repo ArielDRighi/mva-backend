@@ -8,6 +8,8 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
 import { ClientModule } from './clientes/client.module';
+import { BañosQuimicosModule } from './baños_quimicos/baños_quimicos.module';
+import { MantenimientoBañosModule } from './mantenimiento_baños/mantenimiento_baños.module';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { ClientModule } from './clientes/client.module';
     UsersModule,
     RolesModule,
     ClientModule,
+    BañosQuimicosModule,
+    MantenimientoBañosModule,
   ],
   controllers: [AppController],
   providers: [AppService],
