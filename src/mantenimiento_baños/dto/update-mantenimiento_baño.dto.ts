@@ -1,4 +1,10 @@
-import { IsString, IsNotEmpty, IsNumber, IsOptional, IsDateString } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsDateString,
+} from 'class-validator';
 
 export class UpdateMantenimientoBañoDto {
   @IsOptional()
@@ -26,5 +32,5 @@ export class UpdateMantenimientoBañoDto {
 
   @IsOptional()
   @IsNumber()
-  baño_id?: number; 
+  baño_id?: number;
 }

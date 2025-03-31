@@ -17,6 +17,5 @@ export class CreateMantenimientoBañoDto {
   costo: number;
 
   @IsNumber()
-  baño_id: number; 
+  baño_id: number;
 }
-

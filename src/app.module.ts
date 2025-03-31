@@ -8,7 +8,6 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
 import { ClientModule } from './clientes/client.module';
-import { BañosPortatilesModule } from './baños_portatiles/baños_portatiles.module';
 import { BañosQuimicosModule } from './baños_quimicos/baños_quimicos.module';
 import { MantenimientoBañosModule } from './mantenimiento_baños/mantenimiento_baños.module';
 
@@ -25,7 +24,6 @@ import { MantenimientoBañosModule } from './mantenimiento_baños/mantenimiento_
     UsersModule,
     RolesModule,
     ClientModule,
-    BañosPortatilesModule,
     BañosQuimicosModule,
     MantenimientoBañosModule,
   ],
