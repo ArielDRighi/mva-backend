@@ -5,6 +5,7 @@ import { FilterChemicalToiletDto } from './dto/filter_chemical_toilet.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ChemicalToilet } from './entities/chemical_toilet.entity';
 import { Repository } from 'typeorm';
+import { PaginatedResponse } from './interfaces/response_chemical_toilet.interface';
 
 @Injectable()
 export class ChemicalToiletsService {
@@ -23,15 +24,43 @@ export class ChemicalToiletsService {
     return await this.chemicalToiletRepository.save(newToilet);
   }
 
-  async findAll(): Promise<ChemicalToilet[]> {
-    return await this.chemicalToiletRepository.find();
+  async findAll(
+    page: number,
+    limit: number,
+  ): Promise<PaginatedResponse<ChemicalToilet>> {
+    const skip = (page - 1) * limit;
+
+    const [items, totalItems] = await Promise.all([
+      this.chemicalToiletRepository.find({
+        skip,
+        take: limit,
+        order: { baño_id: 'ASC' },
+      }),
+      this.chemicalToiletRepository.count(),
+    ]);
+
+    const totalPages = Math.ceil(totalItems / limit);
+
+    return {
+      items,
+      meta: {
+        totalItems,
+        itemsPerPage: limit,
+        totalPages,
+        currentPage: page,
+      },
+    };
   }
 
   async findAllWithFilters(
     filterDto: FilterChemicalToiletDto,
-  ): Promise<ChemicalToilet[]> {
+    page: number,
+    limit: number,
+  ): Promise<PaginatedResponse<ChemicalToilet>> {
+    const skip = (page - 1) * limit;
     const query = this.chemicalToiletRepository.createQueryBuilder('toilet');
 
+    // Aplicar filtros
     if (filterDto.estado) {
       query.andWhere('toilet.estado = :estado', { estado: filterDto.estado });
     }
@@ -60,9 +89,24 @@ export class ChemicalToiletsService {
       });
     }
 
-    return await query.getMany();
-  }
+    const totalItems = await query.getCount();
 
+    query.orderBy('toilet.baño_id', 'ASC').skip(skip).take(limit);
+
+    const items = await query.getMany();
+
+    const totalPages = Math.ceil(totalItems / limit);
+
+    return {
+      items,
+      meta: {
+        totalItems,
+        itemsPerPage: limit,
+        totalPages,
+        currentPage: page,
+      },
+    };
+  }
   async findById(id: number): Promise<ChemicalToilet> {
     const toilet = await this.chemicalToiletRepository.findOne({
       where: { baño_id: id },
