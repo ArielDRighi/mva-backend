@@ -4,8 +4,8 @@ import {
   ConflictException,
   Logger,
 } from '@nestjs/common';
-import { CreateClientDto } from './dto/create-client.dto';
-import { UpdateClientDto } from './dto/update-client.dto';
+import { CreateClientDto } from './dto/create_client.dto';
+import { UpdateClientDto } from './dto/update_client.dto';
 import { Cliente } from './entities/client.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';

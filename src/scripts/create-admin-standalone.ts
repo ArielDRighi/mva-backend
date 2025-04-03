@@ -27,7 +27,7 @@ async function createAdminUser() {
 
     // Usar SQL directo en lugar de repositorios TypeORM para evitar problemas de metadatos
     // Primero verificamos si el usuario admin ya existe
-    const checkAdminQuery = `SELECT * FROM usuarios WHERE nombre = 'admin' OR email = 'admin@mva.com'`;
+    const checkAdminQuery = `SELECT * FROM users WHERE nombre = 'admin' OR email = 'admin@mva.com'`;
     const existingAdmin: Array<{ nombre: string; email: string }> =
       await dataSource.query(checkAdminQuery);
 
@@ -45,7 +45,7 @@ async function createAdminUser() {
 
     // Insertar el usuario admin directamente con SQL
     const insertAdminQuery = `
-      INSERT INTO usuarios (nombre, email, password_hash, estado, roles, empleado_id)
+      INSERT INTO users (nombre, email, password_hash, estado, roles, empleado_id)
       VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING usuario_id, nombre, email, estado
     `;

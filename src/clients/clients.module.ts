@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { ClientService } from './client.service';
-import { ClientController } from './client.controller';
+import { ClientService } from './clients.service';
+import { ClientController } from './clients.controller';
 import { Cliente } from './entities/client.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RolesModule } from '../roles/roles.module';
@@ -11,4 +11,4 @@ import { RolesModule } from '../roles/roles.module';
   providers: [ClientService],
   exports: [ClientService],
 })
-export class ClientModule {}
+export class ClientsModule {}
