@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -32,8 +33,11 @@ export class UsersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Get()
-  findAll(): Promise<User[]> {
-    return this.usersService.findAll();
+  findAll(
+    @Query() paginationQuery: { limit?: number; offset?: number },
+  ): Promise<{ data: User[]; total: number }> {
+    const { limit = 10, offset = 0 } = paginationQuery;
+    return this.usersService.findAll(limit, offset);
   }
 
   @UseGuards(JwtAuthGuard)

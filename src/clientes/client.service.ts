@@ -35,12 +35,45 @@ export class ClientService {
     return this.clientRepository.save(client);
   }
 
-  async findAll(): Promise<Cliente[]> {
-    this.logger.log('Recuperando todos los clientes');
-    return this.clientRepository.find(); // Recupera todos los clientes
+  async findAll(
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{
+    items: Cliente[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    this.logger.log(`Recuperando clientes - página: ${page}, límite: ${limit}`);
+
+    // Validaciones básicas
+    const _page = page < 1 ? 1 : page;
+    const _limit = limit < 1 ? 10 : limit > 100 ? 100 : limit;
+
+    // Calcular el skip (cuántos registros saltar)
+    const skip = (_page - 1) * _limit;
+
+    // Ejecutar consulta con paginación
+    const [items, total] = await this.clientRepository.findAndCount({
+      skip: skip,
+      take: _limit,
+      order: { clienteId: 'ASC' }, // Puedes cambiar el orden según necesites
+    });
+
+    // Calcular total de páginas
+    const totalPages = Math.ceil(total / _limit);
+
+    return {
+      items,
+      total,
+      page: _page,
+      limit: _limit,
+      totalPages,
+    };
   }
 
-  async findOneClient(clienteId: number): Promise<Cliente> {
+  async findOne(clienteId: number): Promise<Cliente> {
     this.logger.log(`Buscando cliente con id: ${clienteId}`);
     const client = await this.clientRepository.findOne({
       where: { clienteId },
@@ -72,7 +105,7 @@ export class ClientService {
     return this.clientRepository.save(client); // Guardar los cambios en la base de datos
   }
 
-  async deleteClient(clienteId: number): Promise<void> {
+  async remove(clienteId: number): Promise<void> {
     this.logger.log(`Eliminando cliente con id: ${clienteId}`);
     const client = await this.clientRepository.findOne({
       where: { clienteId },
@@ -87,5 +120,28 @@ export class ClientService {
 
     // O Alternativa: Usar remove para entidades completas
     // await this.clientRepository.remove(client);
+  }
+
+  async search(term: string): Promise<Cliente[]> {
+    this.logger.log(`Buscando clientes con término: ${term}`);
+
+    // Si el término está vacío, devolver una lista vacía
+    if (!term || term.trim() === '') {
+      return [];
+    }
+
+    // Usar el QueryBuilder para hacer una búsqueda más flexible
+    const clientes = await this.clientRepository
+      .createQueryBuilder('cliente')
+      .where('cliente.nombre LIKE :term', { term: `%${term}%` })
+      .orWhere('cliente.cuit LIKE :term', { term: `%${term}%` })
+      .orWhere('cliente.email LIKE :term', { term: `%${term}%` })
+      .orWhere('cliente.telefono LIKE :term', { term: `%${term}%` })
+      // Puedes agregar más campos según tu modelo
+      .orderBy('cliente.nombre', 'ASC')
+      .take(20) // Limitar resultados para evitar sobrecarga
+      .getMany();
+
+    return clientes;
   }
 }

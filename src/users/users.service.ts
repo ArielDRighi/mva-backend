@@ -18,8 +18,17 @@ export class UsersService {
     private usersRepository: Repository<User>,
   ) {}
 
-  async findAll(): Promise<User[]> {
-    return this.usersRepository.find();
+  async findAll(
+    limit = 10,
+    offset = 0,
+  ): Promise<{ data: User[]; total: number }> {
+    const [data, total] = await this.usersRepository.findAndCount({
+      take: limit,
+      skip: offset,
+      order: { id: 'ASC' }, // Puedes ajustar el orden según tus preferencias
+    });
+
+    return { data, total };
   }
 
   async findById(id: number): Promise<User> {

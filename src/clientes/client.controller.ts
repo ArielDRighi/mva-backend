@@ -8,6 +8,10 @@ import {
   Put,
   ParseIntPipe,
   UseGuards,
+  Query,
+  DefaultValuePipe,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { ClientService } from './client.service';
 import { CreateClientDto } from './dto/create-client.dto';
@@ -26,20 +30,30 @@ export class ClientController {
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR) // Solo admin y supervisor pueden crear
   @Post()
+  @HttpCode(HttpStatus.CREATED)
   create(@Body() createClientDto: CreateClientDto) {
     return this.clientService.create(createClientDto);
   }
 
   @Get()
-  async findAll(): Promise<Cliente[]> {
-    return this.clientService.findAll();
+  async findAll(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number = 10,
+  ): Promise<{
+    items: Cliente[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    return this.clientService.findAll(page, limit);
   }
 
   @Get(':id')
   async findOne(
     @Param('id', ParseIntPipe) clienteId: number,
   ): Promise<Cliente> {
-    return this.clientService.findOneClient(clienteId);
+    return this.clientService.findOne(clienteId);
   }
 
   @UseGuards(RolesGuard)
@@ -55,7 +69,15 @@ export class ClientController {
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN) // Solo admin puede eliminar
   @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
   async delete(@Param('id', ParseIntPipe) clienteId: number): Promise<void> {
-    return this.clientService.deleteClient(clienteId);
+    return this.clientService.remove(clienteId);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @Get('search')
+  async search(@Query('term') term: string): Promise<Cliente[]> {
+    return this.clientService.search(term);
   }
 }
