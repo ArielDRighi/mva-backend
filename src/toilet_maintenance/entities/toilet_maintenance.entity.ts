@@ -1,5 +1,5 @@
 import { ChemicalToilet } from '../../chemical_toilets/entities/chemical_toilet.entity';
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity({ name: 'toilet_maintenance' })
 export class ToiletMaintenance {
@@ -26,5 +26,6 @@ export class ToiletMaintenance {
   costo: number;
 
   @ManyToOne(() => ChemicalToilet, (toilet) => toilet.maintenances)
+  @JoinColumn({ name: 'baño_id' })
   toilet: ChemicalToilet;
 }

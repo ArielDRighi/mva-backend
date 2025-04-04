@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
   ParseIntPipe,
+  HttpCode,
 } from '@nestjs/common';
 import { ChemicalToiletsService } from './chemical_toilets.service';
 import { CreateChemicalToiletDto } from './dto/create_chemical_toilet.dto';
@@ -19,6 +20,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../roles/guards/roles.guard';
 import { Roles } from '../roles/decorators/roles.decorator';
 import { Role } from '../roles/enums/role.enum';
+import { AssignToClientDto } from './dto/assign_to_client.dto';
 
 @Controller('chemical_toilets')
 @UseGuards(JwtAuthGuard)
@@ -53,6 +55,14 @@ export class ChemicalToiletsController {
     @Param('id', ParseIntPipe) id: number,
   ): Promise<ChemicalToilet> {
     return this.chemicalToiletsService.findById(id);
+  }
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Post('assign')  
+  async assignToClient(
+    @Body() assignToClientDto: AssignToClientDto,
+  ) {
+    return this.chemicalToiletsService.assignToClient(assignToClientDto);
   }
 
   @UseGuards(RolesGuard)

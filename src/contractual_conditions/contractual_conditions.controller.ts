@@ -16,12 +16,15 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { ToiletMaintenanceService } from 'src/toilet_maintenance/toilet_maintenance.service';
+import { CreateToiletMaintenanceDto } from 'src/toilet_maintenance/dto/create_toilet_maintenance.dto';
 
 @Controller('contractual_conditions')
 @UseGuards(JwtAuthGuard)
 export class ContractualConditionsController {
   constructor(
     private readonly contractualConditionsService: ContractualConditionsService,
+    private readonly toiletMaintenanceService: ToiletMaintenanceService,
   ) {}
 
   @Get()
@@ -35,6 +38,22 @@ export class ContractualConditionsController {
       throw new HttpException(message, HttpStatus.BAD_REQUEST);
     }
   }
+  @Post('schedule-maintenance/:contractId')
+  @HttpCode(HttpStatus.OK)
+  async scheduleMaintenanceForContract(
+    @Param('contractId', ParseIntPipe) contractId: number,
+    @Body() createMaintenanceDto: CreateToiletMaintenanceDto,  // Añadir el DTO de mantenimiento aquí
+  ) {
+    try {
+      // Pasamos el DTO de mantenimiento y el contractId
+      const maintenances = await this.toiletMaintenanceService.createOrScheduleMaintenance(createMaintenanceDto, contractId);
+      return { message: 'Mantenimientos programados correctamente', maintenances };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new HttpException(message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
   @Get('id/:id')
   @HttpCode(HttpStatus.OK)
   getContractualConditionById(

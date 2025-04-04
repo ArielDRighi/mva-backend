@@ -5,12 +5,16 @@ import { FilterChemicalToiletDto } from './dto/filter_chemical_toilet.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ChemicalToilet } from './entities/chemical_toilet.entity';
 import { Repository } from 'typeorm';
+import { Cliente } from 'src/clients/entities/client.entity';
+import { AssignToClientDto } from './dto/assign_to_client.dto';
 
 @Injectable()
 export class ChemicalToiletsService {
   constructor(
     @InjectRepository(ChemicalToilet)
     private chemicalToiletRepository: Repository<ChemicalToilet>,
+    @InjectRepository(Cliente)
+    private clientRepository: Repository<Cliente>,
   ) {}
 
   // Método para crear un baño químico
@@ -73,6 +77,35 @@ export class ChemicalToiletsService {
     }
 
     return toilet;
+  }
+  async assignToClient(
+    assignToClientDto: AssignToClientDto,
+  ): Promise<ChemicalToilet> {
+    const { clienteId, bañoId } = assignToClientDto;
+
+    // Buscar al cliente
+    const client = await this.clientRepository.findOne({
+      where: { clienteId },
+    });
+
+    if (!client) {
+      throw new NotFoundException(`Cliente con ID ${clienteId} no encontrado`);
+    }
+
+    // Buscar el baño químico
+    const toilet = await this.chemicalToiletRepository.findOne({
+      where: { baño_id: bañoId },
+    });
+
+    if (!toilet) {
+      throw new NotFoundException(`Baño químico con ID ${bañoId} no encontrado`);
+    }
+
+    // Asignar el baño al cliente
+    toilet.cliente = client;
+
+    // Guardar el baño actualizado
+    return await this.chemicalToiletRepository.save(toilet);
   }
 
   async update(
