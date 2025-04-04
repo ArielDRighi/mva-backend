@@ -25,14 +25,15 @@ import { Role } from '../roles/enums/role.enum';
 export class ToiletMaintenanceController {
   constructor(private readonly maintenanceService: ToiletMaintenanceService) {}
 
-  // Endpoint para crear un nuevo mantenimiento de baño
+  // Endpoint para crear un nuevo mantenimiento de baño o programar mantenimientos por contrato
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Post()
-  async create(
+  async createOrSchedule(
     @Body() createMaintenanceDto: CreateToiletMaintenanceDto,
-  ): Promise<ToiletMaintenance> {
-    return this.maintenanceService.create(createMaintenanceDto);
+    @Query('contractId') contractId?: number, // Este parámetro es opcional y solo se usa si estamos programando mantenimientos según contrato
+  ): Promise<ToiletMaintenance | ToiletMaintenance[]> {
+    return this.maintenanceService.createOrScheduleMaintenance(createMaintenanceDto, contractId);
   }
 
   @Get()
@@ -82,3 +83,4 @@ export class ToiletMaintenanceController {
     return this.maintenanceService.delete(maintenanceId);
   }
 }
+

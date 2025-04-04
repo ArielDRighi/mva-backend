@@ -6,6 +6,8 @@ import { ChemicalToilet } from '../chemical_toilets/entities/chemical_toilet.ent
 import { Repository } from 'typeorm';
 import { CreateToiletMaintenanceDto } from './dto/create_toilet_maintenance.dto';
 import { FilterToiletMaintenanceDto } from './dto/filter_toilet_maintenance.dto';
+import { ContractualConditionsService } from 'src/contractual_conditions/contractual_conditions.service';
+import { Periodicidad } from 'src/contractual_conditions/entities/contractual_conditions.entity';
 
 @Injectable()
 export class ToiletMaintenanceService {
@@ -14,6 +16,7 @@ export class ToiletMaintenanceService {
     private maintenanceRepository: Repository<ToiletMaintenance>,
     @InjectRepository(ChemicalToilet)
     private toiletsRepository: Repository<ChemicalToilet>,
+    private contractualConditionsService: ContractualConditionsService,
   ) {}
 
   // Método para crear un nuevo mantenimiento de baño
@@ -98,6 +101,93 @@ export class ToiletMaintenanceService {
     // Guardamos el mantenimiento actualizado en la base de datos
     return await this.maintenanceRepository.save(maintenance);
   }
+  // Función para calcular el próximo mantenimiento basado en la periodicidad
+  calculateNextMaintenance(fechaInicio: Date, periodicidad: Periodicidad): Date {
+    const nextMaintenance = new Date(fechaInicio);
+
+    switch (periodicidad) {
+      case Periodicidad.DIARIA:
+        nextMaintenance.setDate(nextMaintenance.getDate() + 1);
+        break;
+      case Periodicidad.SEMANAL:
+        nextMaintenance.setDate(nextMaintenance.getDate() + 7);
+        break;
+      case Periodicidad.MENSUAL:
+        nextMaintenance.setMonth(nextMaintenance.getMonth() + 1);
+        break;
+      case Periodicidad.ANUAL:
+        nextMaintenance.setFullYear(nextMaintenance.getFullYear() + 1);
+        break;
+    }
+
+    return nextMaintenance;
+  }
+
+  // Método para programar el mantenimiento según las condiciones contractuales
+  async createOrScheduleMaintenance(createMaintenanceDto: CreateToiletMaintenanceDto, contractId?: number): Promise<ToiletMaintenance | ToiletMaintenance[]> {
+    // Si contractId es proporcionado, es un caso de mantenimiento programado según contrato
+    if (contractId) {
+      // Obtenemos las condiciones contractuales del cliente
+      const contractualConditions = await this.contractualConditionsService.getContractualConditionById(contractId);
+      
+      if (!contractualConditions) {
+        throw new NotFoundException(`No se encontraron condiciones contractuales para el contrato ID ${contractId}`);
+      }
+  
+      // Calculamos la próxima fecha de mantenimiento según la periodicidad
+      const nextMaintenanceDate = this.calculateNextMaintenance(
+        contractualConditions.fecha_inicio,
+        contractualConditions.periodicidad,
+      );
+  
+      // Obtenemos todos los baños relacionados con el cliente
+      const toilets = await this.toiletsRepository.find({
+        where: { cliente: contractualConditions.cliente },
+      });
+  
+      const maintenances: ToiletMaintenance[] = [];
+  
+      // Creamos el mantenimiento para cada baño
+      for (const toilet of toilets) {
+        const maintenance = this.maintenanceRepository.create({
+          tipo_mantenimiento: createMaintenanceDto.tipo_mantenimiento || 'Preventivo', // Usamos el valor del DTO o el valor por defecto
+          descripcion: createMaintenanceDto.descripcion || 'Mantenimiento programado según contrato', // Usamos el valor del DTO o el valor por defecto
+          tecnico_responsable: createMaintenanceDto.tecnico_responsable || 'Técnico asignado', // Usamos el valor del DTO o el valor por defecto
+          costo: createMaintenanceDto.costo || 50, // Usamos el valor del DTO o el valor por defecto
+          fecha_mantenimiento: nextMaintenanceDate,
+          toilet,
+        });
+  
+        // Guardamos el mantenimiento programado en la base de datos
+        const savedMaintenance = await this.maintenanceRepository.save(maintenance);
+        maintenances.push(savedMaintenance);
+      }
+  
+      return maintenances; // Retorna un array de mantenimientos
+    } else {
+      // Si no se proporciona contractId, es un caso de crear un mantenimiento individual
+      // Verificamos si el baño existe
+      const toilet = await this.toiletsRepository.findOne({
+        where: { baño_id: createMaintenanceDto.baño_id },
+      });
+  
+      if (!toilet) {
+        throw new NotFoundException(
+          `Baño con ID ${createMaintenanceDto.baño_id} no encontrado`,
+        );
+      }
+  
+      // Creamos el nuevo objeto de mantenimiento
+      const maintenance = this.maintenanceRepository.create({
+        ...createMaintenanceDto,
+        toilet, // Relacionamos el baño con el mantenimiento
+      });
+  
+      // Guardamos el mantenimiento en la base de datos
+      return await this.maintenanceRepository.save(maintenance); // Retorna un único mantenimiento
+    }
+  }
+  
 
   async delete(mantenimiento_id: number): Promise<void> {
     // Verificamos si el mantenimiento existe

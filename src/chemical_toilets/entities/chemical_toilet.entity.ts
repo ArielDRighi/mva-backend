@@ -1,5 +1,6 @@
+import { Cliente } from 'src/clients/entities/client.entity';
 import { ToiletMaintenance } from 'src/toilet_maintenance/entities/toilet_maintenance.entity';
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity({ name: 'chemical_toilets' })
 export class ChemicalToilet {
@@ -17,6 +18,10 @@ export class ChemicalToilet {
 
   @Column()
   estado: string;
+
+  @ManyToOne(()=>Cliente, (cliente) => cliente.toilets,)
+  @JoinColumn({ name: 'cliente_id' })
+  cliente: Cliente
 
   @OneToMany(() => ToiletMaintenance, (maintenance) => maintenance.toilet, {
     cascade: true,

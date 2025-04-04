@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsDateString } from 'class-validator';
+import { IsString, IsNumber, IsDateString, IsNotEmpty } from 'class-validator';
 
 export class CreateToiletMaintenanceDto {
   @IsDateString()
@@ -17,5 +17,6 @@ export class CreateToiletMaintenanceDto {
   costo: number;
 
   @IsNumber()
+  @IsNotEmpty()
   baño_id: number;
 }
