@@ -54,6 +54,12 @@ export class Service {
   @Column({ name: 'cantidad_banos', default: 1 })
   cantidadBanos: number;
 
+  @Column({ name: 'cantidad_empleados', default: 1 })
+  cantidadEmpleados: number;
+
+  @Column({ name: 'cantidad_vehiculos', default: 1 })
+  cantidadVehiculos: number;
+
   @Column({ name: 'ubicacion', type: 'text' })
   ubicacion: string;
 

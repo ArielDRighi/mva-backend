@@ -1,7 +1,5 @@
 import { Type } from 'class-transformer';
 import {
-  ArrayMinSize,
-  IsArray,
   IsBoolean,
   IsDateString,
   IsEnum,
@@ -45,6 +43,17 @@ export class CreateServiceDto {
   @Min(1, { message: 'La cantidad de baños debe ser al menos 1' })
   cantidadBanos: number;
 
+  // Nuevos campos para cantidad de recursos
+  @IsOptional()
+  @IsNumber()
+  @Min(1, { message: 'La cantidad de empleados debe ser al menos 1' })
+  cantidadEmpleados: number = 1; // Valor por defecto: 1
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1, { message: 'La cantidad de vehículos debe ser al menos 1' })
+  cantidadVehiculos: number = 1; // Valor por defecto: 1
+
   @IsString()
   @IsNotEmpty({ message: 'La ubicación del servicio es requerida' })
   ubicacion: string;
@@ -72,8 +81,6 @@ export class ResourceAssignmentDto {
   vehiculoId?: number;
 
   @IsOptional()
-  @IsArray()
-  @ArrayMinSize(0)
   @IsNumber({}, { each: true })
   banosIds?: number[];
 }

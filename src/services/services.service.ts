@@ -49,33 +49,33 @@ export class ServicesService {
     // Verificar que el cliente existe
     await this.clientsService.findOneClient(createServiceDto.clienteId);
 
-    // Crear el servicio con los datos del DTO
-    const newService = new Service();
-    newService.clienteId = createServiceDto.clienteId;
-    newService.fechaProgramada = new Date(createServiceDto.fechaProgramada);
-
-    // Use default values instead of undefined
-    newService.fechaInicio = createServiceDto.fechaInicio
+    // Crear el servicio
+    const service = new Service();
+    service.clienteId = createServiceDto.clienteId;
+    service.fechaProgramada = new Date(createServiceDto.fechaProgramada);
+    service.fechaInicio = createServiceDto.fechaInicio
       ? new Date(createServiceDto.fechaInicio)
-      : null; // Set to null when not provided
-
-    newService.fechaFin = createServiceDto.fechaFin
+      : null;
+    service.fechaFin = createServiceDto.fechaFin
       ? new Date(createServiceDto.fechaFin)
-      : null; // Set to null when not provided
-
-    newService.tipoServicio = createServiceDto.tipoServicio;
-    newService.estado =
-      createServiceDto.estado || ServiceState.PENDIENTE_RECURSOS;
-    newService.cantidadBanos = createServiceDto.cantidadBanos;
-    newService.ubicacion = createServiceDto.ubicacion;
-    newService.notas = createServiceDto.notas || '';
-    newService.asignacionAutomatica = createServiceDto.asignacionAutomatica;
+      : null;
+    service.tipoServicio = createServiceDto.tipoServicio;
+    service.estado = createServiceDto.estado || ServiceState.PENDIENTE_RECURSOS;
+    service.cantidadBanos = createServiceDto.cantidadBanos;
+    service.cantidadEmpleados = createServiceDto.cantidadEmpleados || 1;
+    service.cantidadVehiculos = createServiceDto.cantidadVehiculos || 1;
+    service.ubicacion = createServiceDto.ubicacion;
+    service.notas = createServiceDto.notas || '';
+    service.asignacionAutomatica =
+      createServiceDto.asignacionAutomatica !== undefined
+        ? createServiceDto.asignacionAutomatica
+        : true;
 
     // Guardar el servicio para obtener el ID
-    const savedService = await this.serviceRepository.save(newService);
+    const savedService = await this.serviceRepository.save(service);
 
     // Asignar recursos (automáticos o manuales)
-    if (createServiceDto.asignacionAutomatica) {
+    if (savedService.asignacionAutomatica) {
       await this.assignResourcesAutomatically(savedService);
     } else if (createServiceDto.asignacionesManual?.length) {
       await this.assignResourcesManually(
@@ -85,9 +85,10 @@ export class ServicesService {
     }
 
     // Actualizar estado del servicio
-    if (savedService.asignaciones?.length > 0) {
-      savedService.estado = ServiceState.PROGRAMADO;
-      await this.serviceRepository.save(savedService);
+    const updatedService = await this.findOne(savedService.id);
+    if (updatedService.asignaciones?.length > 0) {
+      updatedService.estado = ServiceState.PROGRAMADO;
+      await this.serviceRepository.save(updatedService);
     }
 
     // Retornar el servicio completo con sus asignaciones
@@ -291,25 +292,25 @@ export class ServicesService {
 
   private async assignResourcesAutomatically(service: Service): Promise<void> {
     try {
-      // 1. Asignar empleados disponibles (al menos 1)
+      // 1. Asignar empleados disponibles (según cantidadEmpleados)
       const availableEmployees = await this.findAvailableEmployees(
         service.fechaProgramada,
       );
 
-      if (availableEmployees.length === 0) {
+      if (availableEmployees.length < service.cantidadEmpleados) {
         throw new BadRequestException(
-          'No hay empleados disponibles para la fecha programada',
+          `No hay suficientes empleados disponibles. Se requieren ${service.cantidadEmpleados}, pero solo hay ${availableEmployees.length}`,
         );
       }
 
-      // 2. Asignar vehículo disponible (1)
+      // 2. Asignar vehículos disponibles (según cantidadVehiculos)
       const availableVehicles = await this.findAvailableVehicles(
         service.fechaProgramada,
       );
 
-      if (availableVehicles.length === 0) {
+      if (availableVehicles.length < service.cantidadVehiculos) {
         throw new BadRequestException(
-          'No hay vehículos disponibles para la fecha programada',
+          `No hay suficientes vehículos disponibles. Se requieren ${service.cantidadVehiculos}, pero solo hay ${availableVehicles.length}`,
         );
       }
 
@@ -325,28 +326,57 @@ export class ServicesService {
         );
       }
 
-      // 4. Crear las asignaciones - Usamos el primer empleado y vehículo disponibles
-      const selectedEmployee = availableEmployees[0];
-      const selectedVehicle = availableVehicles[0];
-
-      // Cambiar estados de los recursos seleccionados
-      await this.updateResourceState(selectedEmployee, ResourceState.ASIGNADO);
-      await this.updateVehicleState(selectedVehicle, ResourceState.ASIGNADO);
-
-      // Crear asignaciones para cada baño necesario
+      // 4. Crear las asignaciones
       const assignments: ResourceAssignment[] = [];
 
-      // Para el primer baño creamos la asignación con empleado y vehículo
+      // Seleccionar los empleados y vehículos necesarios
+      const selectedEmployees = availableEmployees.slice(
+        0,
+        service.cantidadEmpleados,
+      );
+      const selectedVehicles = availableVehicles.slice(
+        0,
+        service.cantidadVehiculos,
+      );
+
+      // Cambiar estados de todos los recursos seleccionados
+      for (const employee of selectedEmployees) {
+        await this.updateResourceState(employee, ResourceState.ASIGNADO);
+      }
+
+      for (const vehicle of selectedVehicles) {
+        await this.updateVehicleState(vehicle, ResourceState.ASIGNADO);
+      }
+
+      // Crear asignación principal con el primer empleado, vehículo y baño
       const firstAssignment = new ResourceAssignment();
       firstAssignment.servicio = service;
-      firstAssignment.empleado = selectedEmployee;
-      firstAssignment.vehiculo = selectedVehicle;
+      firstAssignment.empleado = selectedEmployees[0];
+      firstAssignment.vehiculo = selectedVehicles[0];
       firstAssignment.bano = availableToilets[0];
 
       assignments.push(firstAssignment);
       await this.updateToiletState(availableToilets[0], ResourceState.ASIGNADO);
 
-      // Para el resto de baños solo asignamos el baño
+      // Crear asignaciones adicionales para empleados si hay más de uno
+      for (let i = 1; i < selectedEmployees.length; i++) {
+        const empAssignment = new ResourceAssignment();
+        empAssignment.servicio = service;
+        empAssignment.empleado = selectedEmployees[i];
+
+        assignments.push(empAssignment);
+      }
+
+      // Crear asignaciones adicionales para vehículos si hay más de uno
+      for (let i = 1; i < selectedVehicles.length; i++) {
+        const vehAssignment = new ResourceAssignment();
+        vehAssignment.servicio = service;
+        vehAssignment.vehiculo = selectedVehicles[i];
+
+        assignments.push(vehAssignment);
+      }
+
+      // Para el resto de baños crear asignaciones individuales
       for (let i = 1; i < service.cantidadBanos; i++) {
         const toiletAssignment = new ResourceAssignment();
         toiletAssignment.servicio = service;

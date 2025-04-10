@@ -13,7 +13,7 @@ export class Cliente {
   @Column({ name: 'email' })
   email: string;
 
-  @Column({ name: 'cuit' })
+  @Column({ name: 'cuit', unique: true })
   cuit: string;
 
   @Column({ name: 'direccion' })

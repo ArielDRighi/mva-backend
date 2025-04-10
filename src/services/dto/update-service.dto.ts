@@ -45,6 +45,16 @@ export class UpdateServiceDto {
   cantidadBanos?: number;
 
   @IsOptional()
+  @IsNumber()
+  @Min(1, { message: 'La cantidad de empleados debe ser al menos 1' })
+  cantidadEmpleados?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1, { message: 'La cantidad de vehículos debe ser al menos 1' })
+  cantidadVehiculos?: number;
+
+  @IsOptional()
   @IsString()
   ubicacion?: string;
 
