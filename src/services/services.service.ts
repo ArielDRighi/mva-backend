@@ -190,7 +190,7 @@ export class ServicesService {
     // Crear una copia para trabajar con ella
     const updatedService = { ...service };
 
-    // MODIFICAR ESTA PARTE - Asegurar que la fecha siempre sea un objeto Date válido
+    // Asegurar que la fecha siempre sea un objeto Date válido
     let fechaProgramada: Date;
     if (updateServiceDto.fechaProgramada) {
       fechaProgramada = new Date(updateServiceDto.fechaProgramada);
@@ -215,10 +215,11 @@ export class ServicesService {
       service.estado === ServiceState.COMPLETADO ||
       service.estado === ServiceState.CANCELADO
     ) {
-      // Código existente para estados que no permiten actualización...
+      throw new BadRequestException(
+        `No se pueden actualizar recursos para un servicio en estado ${service.estado}`,
+      );
     }
 
-    // Si el servicio está en un estado que permite actualización completa
     // Determinar si necesitamos reasignar recursos
     const needsResourceReassignment =
       (updateServiceDto.asignacionAutomatica !== undefined &&
@@ -231,65 +232,100 @@ export class ServicesService {
       (updateServiceDto.cantidadVehiculos !== undefined &&
         updateServiceDto.cantidadVehiculos !== service.cantidadVehiculos);
 
-    // Actualizar propiedades del servicio con los valores del DTO sin guardar aún
-    Object.assign(updatedService, updateServiceDto);
-
-    // IMPORTANTE: Si se requiere asignación automática y hay cambio en recursos,
-    // verificar disponibilidad antes de liberar los recursos actuales
+    // Si se requiere asignación automática y hay cambio en recursos,
+    // verificar disponibilidad INCREMENTAL antes de liberar los recursos actuales
     if (needsResourceReassignment && updatedService.asignacionAutomatica) {
       try {
-        // Verificar disponibilidad de empleados - PASAR fechaProgramada explícitamente
-        const availableEmployees =
-          await this.findAvailableEmployees(fechaProgramada);
-        if (availableEmployees.length < updatedService.cantidadEmpleados) {
-          throw new BadRequestException(
-            `No hay suficientes empleados disponibles. Se requieren ${updatedService.cantidadEmpleados}, pero solo hay ${availableEmployees.length}`,
-          );
-        }
+        // Contar recursos ACTUALES del servicio para cada tipo
+        const currentEmployees =
+          service.asignaciones
+            ?.filter((a) => a.empleado)
+            .map((a) => a.empleado) || [];
 
-        // Verificar disponibilidad de vehículos - PASAR fechaProgramada explícitamente
-        const availableVehicles =
-          await this.findAvailableVehicles(fechaProgramada);
-        if (availableVehicles.length < updatedService.cantidadVehiculos) {
-          throw new BadRequestException(
-            `No hay suficientes vehículos disponibles. Se requieren ${updatedService.cantidadVehiculos}, pero solo hay ${availableVehicles.length}`,
-          );
-        }
+        const currentVehicles =
+          service.asignaciones
+            ?.filter((a) => a.vehiculo)
+            .map((a) => a.vehiculo) || [];
 
-        // Verificar disponibilidad de baños
-        const availableToilets = await this.toiletsRepository.find({
-          where: {
-            estado: ResourceState.DISPONIBLE,
-          },
-        });
-        const busyToiletIds = await this.getBusyResourceIds(
-          'bano_id',
-          fechaProgramada, // <-- usar la variable validada
-          service.id, // Excluir el servicio actual
-        );
-        const reallyAvailableToilets = availableToilets.filter(
-          (toilet) => !busyToiletIds.includes(toilet.baño_id),
-        );
+        const currentToilets =
+          service.asignaciones?.filter((a) => a.bano).map((a) => a.bano) || [];
 
-        for (const toilet of reallyAvailableToilets) {
-          const hasMaintenace =
-            await this.toiletMaintenanceService.hasScheduledMaintenance(
-              toilet.baño_id,
-              updatedService.fechaProgramada,
-            );
-          if (hasMaintenace) {
-            reallyAvailableToilets.splice(
-              reallyAvailableToilets.indexOf(toilet),
-              1,
+        // Verificar disponibilidad de empleados ADICIONALES si son necesarios
+        const employeesNeeded =
+          updatedService.cantidadEmpleados - currentEmployees.length;
+        if (employeesNeeded > 0) {
+          const availableEmployees =
+            await this.findAvailableEmployees(fechaProgramada);
+          if (availableEmployees.length < employeesNeeded) {
+            throw new BadRequestException(
+              `No hay suficientes empleados disponibles. Se necesitan ${employeesNeeded} adicionales, pero solo hay ${availableEmployees.length}`,
             );
           }
-        }
-
-        if (reallyAvailableToilets.length < updatedService.cantidadBanos) {
-          throw new BadRequestException(
-            `No hay suficientes baños disponibles. Se requieren ${updatedService.cantidadBanos}, pero solo hay ${reallyAvailableToilets.length}`,
+          this.logger.log(
+            `Verificados ${availableEmployees.length} empleados disponibles, se necesitan ${employeesNeeded} adicionales`,
           );
         }
+
+        // Verificar disponibilidad de vehículos ADICIONALES si son necesarios
+        const vehiclesNeeded =
+          updatedService.cantidadVehiculos - currentVehicles.length;
+        if (vehiclesNeeded > 0) {
+          const availableVehicles =
+            await this.findAvailableVehicles(fechaProgramada);
+          if (availableVehicles.length < vehiclesNeeded) {
+            throw new BadRequestException(
+              `No hay suficientes vehículos disponibles. Se necesitan ${vehiclesNeeded} adicionales, pero solo hay ${availableVehicles.length}`,
+            );
+          }
+          this.logger.log(
+            `Verificados ${availableVehicles.length} vehículos disponibles, se necesitan ${vehiclesNeeded} adicionales`,
+          );
+        }
+
+        // Verificar disponibilidad de baños ADICIONALES si son necesarios
+        const toiletsNeeded =
+          updatedService.cantidadBanos - currentToilets.length;
+        if (toiletsNeeded > 0) {
+          // Obtener baños disponibles que no estén asignados en la fecha
+          const availableToilets = await this.toiletsRepository.find({
+            where: { estado: ResourceState.DISPONIBLE },
+          });
+
+          const busyToiletIds = await this.getBusyResourceIds(
+            'bano_id',
+            fechaProgramada,
+            service.id,
+          );
+
+          const reallyAvailableToilets = availableToilets.filter(
+            (toilet) => !busyToiletIds.includes(toilet.baño_id),
+          );
+
+          // Filtrar por mantenimientos programados
+          const filteredToilets: ChemicalToilet[] = [];
+          for (const toilet of reallyAvailableToilets) {
+            const hasMaintenance =
+              await this.toiletMaintenanceService.hasScheduledMaintenance(
+                toilet.baño_id,
+                fechaProgramada,
+              );
+
+            if (!hasMaintenance) {
+              filteredToilets.push(toilet);
+            }
+          }
+
+          if (filteredToilets.length < toiletsNeeded) {
+            throw new BadRequestException(
+              `No hay suficientes baños disponibles. Se necesitan ${toiletsNeeded} adicionales, pero solo hay ${filteredToilets.length}`,
+            );
+          }
+          this.logger.log(
+            `Verificados ${filteredToilets.length} baños disponibles, se necesitan ${toiletsNeeded} adicionales`,
+          );
+        }
+
+        // Si necesitamos reducir la cantidad de recursos, aún podemos hacerlo sin verificar disponibilidad
       } catch (error) {
         // Si hay error en la verificación, rechazar la actualización
         if (error instanceof BadRequestException) {
@@ -311,15 +347,22 @@ export class ServicesService {
       : [];
 
     // Liberar recursos existentes si es necesario
-    if (needsResourceReassignment && service.asignaciones?.length) {
-      await this.releaseAssignedResources(service);
+    if (needsResourceReassignment) {
+      // Si cambiamos el modo de asignación, liberamos todos los recursos
+      if (
+        updateServiceDto.asignacionAutomatica !== undefined &&
+        updateServiceDto.asignacionAutomatica !== service.asignacionAutomatica
+      ) {
+        await this.releaseAssignedResources(service);
 
-      // Eliminar asignaciones anteriores explícitamente
-      if (assignmentIds.length > 0) {
-        await this.assignmentRepository.delete(assignmentIds);
-        // Limpiar las asignaciones en la entidad en memoria también
-        service.asignaciones = [];
+        // Eliminar asignaciones anteriores explícitamente
+        if (assignmentIds.length > 0) {
+          await this.assignmentRepository.delete(assignmentIds);
+          // Limpiar las asignaciones en la entidad en memoria también
+          service.asignaciones = [];
+        }
       }
+      // Si sólo cambiamos cantidades, manejarlo en assignResourcesAutomatically
     }
 
     // Actualizar propiedades del servicio con los valores del DTO
@@ -337,7 +380,7 @@ export class ServicesService {
         try {
           // Actualizar la fecha antes de asignar recursos automáticamente
           savedService.fechaProgramada = fechaProgramada;
-          await this.assignResourcesAutomatically(savedService);
+          await this.assignResourcesAutomatically(savedService, true); // true = modo incremental
 
           // Si la asignación fue exitosa, cambiar el estado a PROGRAMADO
           if (savedService.estado === ServiceState.PENDIENTE_RECURSOS) {
@@ -364,8 +407,6 @@ export class ServicesService {
         }
       }
     }
-
-    // Resto del código existente...
 
     // Recargar el servicio completo
     return await this.findOne(savedService.id);
@@ -418,113 +459,239 @@ export class ServicesService {
     return this.serviceRepository.save(service);
   }
 
-  private async assignResourcesAutomatically(service: Service): Promise<void> {
+  private async assignResourcesAutomatically(
+    service: Service,
+    incremental: boolean = false,
+  ): Promise<void> {
     try {
-      // 1. Asignar empleados disponibles (según cantidadEmpleados)
-      const availableEmployees = await this.findAvailableEmployees(
-        service.fechaProgramada,
-      );
+      // Si tenemos modo incremental, verificamos los recursos existentes
+      let currentEmployees: Empleado[] = [];
+      let currentVehicles: Vehicle[] = [];
+      let currentToilets: ChemicalToilet[] = [];
+      let assignments: ResourceAssignment[] = [];
 
-      if (availableEmployees.length < service.cantidadEmpleados) {
-        throw new BadRequestException(
-          `No hay suficientes empleados disponibles. Se requieren ${service.cantidadEmpleados}, pero solo hay ${availableEmployees.length}`,
-        );
+      if (incremental && service.asignaciones?.length) {
+        // Recolectar recursos actuales
+        currentEmployees = service.asignaciones
+          .filter((a) => a.empleado)
+          .map((a) => a.empleado)
+          .filter((emp): emp is Empleado => emp !== null);
+
+        currentVehicles = service.asignaciones
+          .filter((a) => a.vehiculo)
+          .map((a) => a.vehiculo)
+          .filter((veh): veh is Vehicle => veh !== null);
+
+        currentToilets = service.asignaciones
+          .filter((a) => a.bano)
+          .map((a) => a.bano)
+          .filter((toilet): toilet is ChemicalToilet => toilet !== null);
+
+        // Realizar ajustes para liberar recursos o mantenerlos
+        let employeesToKeep: Empleado[] = [];
+        let vehiclesToKeep: Vehicle[] = [];
+        let toiletsToKeep: ChemicalToilet[] = [];
+
+        // Si necesitamos menos empleados que los que ya hay, liberar algunos
+        if (currentEmployees.length > service.cantidadEmpleados) {
+          // Mantener solo los primeros N empleados
+          employeesToKeep = currentEmployees.slice(
+            0,
+            service.cantidadEmpleados,
+          );
+
+          // Liberar el resto
+          const employeesToRelease = currentEmployees.slice(
+            service.cantidadEmpleados,
+          );
+          for (const employee of employeesToRelease) {
+            await this.updateResourceState(employee, ResourceState.DISPONIBLE);
+          }
+        } else {
+          // Mantener todos los actuales
+          employeesToKeep = [...currentEmployees];
+        }
+
+        // Similar para vehículos
+        if (currentVehicles.length > service.cantidadVehiculos) {
+          vehiclesToKeep = currentVehicles.slice(0, service.cantidadVehiculos);
+
+          const vehiclesToRelease = currentVehicles.slice(
+            service.cantidadVehiculos,
+          );
+          for (const vehicle of vehiclesToRelease) {
+            await this.updateVehicleState(vehicle, ResourceState.DISPONIBLE);
+          }
+        } else {
+          vehiclesToKeep = [...currentVehicles];
+        }
+
+        // Y para baños
+        if (currentToilets.length > service.cantidadBanos) {
+          toiletsToKeep = currentToilets.slice(0, service.cantidadBanos);
+
+          const toiletsToRelease = currentToilets.slice(service.cantidadBanos);
+          for (const toilet of toiletsToRelease) {
+            await this.updateToiletState(toilet, ResourceState.DISPONIBLE);
+          }
+        } else {
+          toiletsToKeep = [...currentToilets];
+        }
+
+        // Eliminar asignaciones, ahora que sabemos cuáles recursos se mantendrán
+        const assignmentsToKeep = service.asignaciones.filter((assignment) => {
+          if (
+            assignment.empleado &&
+            !employeesToKeep.includes(assignment.empleado)
+          ) {
+            return false;
+          }
+          if (
+            assignment.vehiculo &&
+            !vehiclesToKeep.includes(assignment.vehiculo)
+          ) {
+            return false;
+          }
+          if (assignment.bano && !toiletsToKeep.includes(assignment.bano)) {
+            return false;
+          }
+          return true;
+        });
+
+        // Eliminar las asignaciones que no se mantendrán
+        const assignmentsToDelete = service.asignaciones
+          .filter((a) => !assignmentsToKeep.includes(a))
+          .map((a) => a.id);
+
+        if (assignmentsToDelete.length > 0) {
+          await this.assignmentRepository.delete(assignmentsToDelete);
+        }
+
+        // Usar las asignaciones que se mantienen como base
+        assignments = assignmentsToKeep;
+
+        // Actualizar las variables para continuar con la asignación de recursos adicionales
+        currentEmployees = employeesToKeep;
+        currentVehicles = vehiclesToKeep;
+        currentToilets = toiletsToKeep;
       }
 
-      // 2. Asignar vehículos disponibles (según cantidadVehiculos)
-      const availableVehicles = await this.findAvailableVehicles(
-        service.fechaProgramada,
-      );
-
-      if (availableVehicles.length < service.cantidadVehiculos) {
-        throw new BadRequestException(
-          `No hay suficientes vehículos disponibles. Se requieren ${service.cantidadVehiculos}, pero solo hay ${availableVehicles.length}`,
-        );
-      }
-
-      // 3. Asignar baños químicos disponibles (según cantidadBanos)
-      const availableToilets = await this.findAvailableToilets(
-        service.fechaProgramada,
-        service.cantidadBanos,
-      );
-
-      if (availableToilets.length < service.cantidadBanos) {
-        throw new BadRequestException(
-          `No hay suficientes baños disponibles. Se requieren ${service.cantidadBanos}, pero solo hay ${availableToilets.length}`,
-        );
-      }
-
-      // 4. Crear las asignaciones
-      const assignments: ResourceAssignment[] = [];
-
-      // Seleccionar los empleados y vehículos necesarios
-      const selectedEmployees = availableEmployees.slice(
+      // Calcular recursos adicionales necesarios
+      const additionalEmployees = Math.max(
         0,
-        service.cantidadEmpleados,
+        service.cantidadEmpleados - currentEmployees.length,
       );
-      const selectedVehicles = availableVehicles.slice(
+      const additionalVehicles = Math.max(
         0,
-        service.cantidadVehiculos,
+        service.cantidadVehiculos - currentVehicles.length,
+      );
+      const additionalToilets = Math.max(
+        0,
+        service.cantidadBanos - currentToilets.length,
       );
 
-      // Cambiar estados de todos los recursos seleccionados
-      for (const employee of selectedEmployees) {
+      // Obtener recursos adicionales si es necesario
+      let newEmployees: Empleado[] = [];
+      let newVehicles: Vehicle[] = [];
+      let newToilets: ChemicalToilet[] = [];
+
+      if (additionalEmployees > 0) {
+        const availableEmployees = await this.findAvailableEmployees(
+          service.fechaProgramada,
+        );
+        if (availableEmployees.length < additionalEmployees) {
+          throw new BadRequestException(
+            `No hay suficientes empleados disponibles. Se necesitan ${additionalEmployees} adicionales, pero solo hay ${availableEmployees.length}`,
+          );
+        }
+        newEmployees = availableEmployees.slice(0, additionalEmployees);
+      }
+
+      if (additionalVehicles > 0) {
+        const availableVehicles = await this.findAvailableVehicles(
+          service.fechaProgramada,
+        );
+        if (availableVehicles.length < additionalVehicles) {
+          throw new BadRequestException(
+            `No hay suficientes vehículos disponibles. Se necesitan ${additionalVehicles} adicionales, pero solo hay ${availableVehicles.length}`,
+          );
+        }
+        newVehicles = availableVehicles.slice(0, additionalVehicles);
+      }
+
+      if (additionalToilets > 0) {
+        newToilets = await this.findAvailableToilets(
+          service.fechaProgramada,
+          additionalToilets,
+        );
+      }
+
+      // Cambiar estados de los nuevos recursos
+      for (const employee of newEmployees) {
         await this.updateResourceState(employee, ResourceState.ASIGNADO);
-        // Actualizar explícitamente el objeto en memoria también
         employee.estado = ResourceState.ASIGNADO.toString();
       }
 
-      for (const vehicle of selectedVehicles) {
+      for (const vehicle of newVehicles) {
         await this.updateVehicleState(vehicle, ResourceState.ASIGNADO);
-        // Actualizar explícitamente el objeto en memoria también
         vehicle.estado = ResourceState.ASIGNADO.toString();
       }
 
-      // Crear asignación principal con el primer empleado, vehículo y baño
-      const firstAssignment = new ResourceAssignment();
-      firstAssignment.servicio = service;
-      firstAssignment.empleado = selectedEmployees[0];
-      firstAssignment.vehiculo = selectedVehicles[0];
-      firstAssignment.bano = availableToilets[0];
+      // Crear nuevas asignaciones para los recursos adicionales
 
-      assignments.push(firstAssignment);
-      await this.updateToiletState(availableToilets[0], ResourceState.ASIGNADO);
-      availableToilets[0].estado = ResourceState.ASIGNADO.toString();
-
-      // Crear asignaciones adicionales para empleados si hay más de uno
-      for (let i = 1; i < selectedEmployees.length; i++) {
+      // Para nuevos empleados
+      for (const employee of newEmployees) {
         const empAssignment = new ResourceAssignment();
         empAssignment.servicio = service;
-        empAssignment.empleado = selectedEmployees[i];
+        empAssignment.empleado = employee;
+
+        // Si podemos asignar también un vehículo libre, lo hacemos
+        if (newVehicles.length > 0) {
+          const vehicle = newVehicles.shift();
+          empAssignment.vehiculo = vehicle || null;
+        }
+
+        // Si podemos asignar también un baño libre, lo hacemos
+        if (newToilets.length > 0) {
+          const toilet = newToilets.shift();
+          if (toilet) {
+            empAssignment.bano = toilet;
+            await this.updateToiletState(
+              empAssignment.bano,
+              ResourceState.ASIGNADO,
+            );
+            empAssignment.bano.estado = ResourceState.ASIGNADO.toString();
+          }
+        }
 
         assignments.push(empAssignment);
       }
 
-      // Crear asignaciones adicionales para vehículos si hay más de uno
-      for (let i = 1; i < selectedVehicles.length; i++) {
+      // Para vehículos adicionales que quedaron sin asignar
+      for (const vehicle of newVehicles) {
         const vehAssignment = new ResourceAssignment();
         vehAssignment.servicio = service;
-        vehAssignment.vehiculo = selectedVehicles[i];
+        vehAssignment.vehiculo = vehicle;
 
         assignments.push(vehAssignment);
       }
 
-      // Para el resto de baños crear asignaciones individuales
-      for (let i = 1; i < service.cantidadBanos; i++) {
+      // Para baños adicionales que quedaron sin asignar
+      for (const toilet of newToilets) {
         const toiletAssignment = new ResourceAssignment();
         toiletAssignment.servicio = service;
-        toiletAssignment.bano = availableToilets[i];
+        toiletAssignment.bano = toilet;
+
+        await this.updateToiletState(toilet, ResourceState.ASIGNADO);
+        toilet.estado = ResourceState.ASIGNADO.toString();
 
         assignments.push(toiletAssignment);
-        await this.updateToiletState(
-          availableToilets[i],
-          ResourceState.ASIGNADO,
-        );
-        availableToilets[i].estado = ResourceState.ASIGNADO.toString();
       }
 
       // Guardar todas las asignaciones
-      await this.assignmentRepository.save(assignments);
+      if (assignments.length > 0) {
+        await this.assignmentRepository.save(assignments);
+      }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Error desconocido';
