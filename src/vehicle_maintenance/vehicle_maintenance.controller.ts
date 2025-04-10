@@ -8,6 +8,7 @@ import {
   Put,
   ParseIntPipe,
   UseGuards,
+  Patch,
 } from '@nestjs/common';
 import { VehicleMaintenanceService } from './vehicle_maintenance.service';
 import { CreateMaintenanceDto } from './dto/create_maintenance.dto';
@@ -71,5 +72,14 @@ export class VehicleMaintenanceController {
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
     return this.maintenanceService.remove(id);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Patch(':id/complete')
+  completeMaintenace(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<VehicleMaintenanceRecord> {
+    return this.maintenanceService.completeMaintenace(id);
   }
 }

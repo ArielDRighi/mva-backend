@@ -5,7 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Not, In } from 'typeorm';
 import { Service } from './entities/service.entity';
 import { ResourceAssignment } from './entities/resource-assignment.entity';
 import {
@@ -25,6 +25,8 @@ import {
 import { Empleado } from '../employees/entities/employee.entity';
 import { Vehicle } from '../vehicles/entities/vehicle.entity';
 import { ChemicalToilet } from '../chemical_toilets/entities/chemical_toilet.entity';
+import { VehicleMaintenanceService } from '../vehicle_maintenance/vehicle_maintenance.service';
+import { ToiletMaintenanceService } from '../toilet_maintenance/toilet_maintenance.service';
 
 @Injectable()
 export class ServicesService {
@@ -35,10 +37,16 @@ export class ServicesService {
     private serviceRepository: Repository<Service>,
     @InjectRepository(ResourceAssignment)
     private assignmentRepository: Repository<ResourceAssignment>,
+    @InjectRepository(Vehicle)
+    private vehiclesRepository: Repository<Vehicle>,
+    @InjectRepository(ChemicalToilet)
+    private toiletsRepository: Repository<ChemicalToilet>,
     private clientsService: ClientService,
     private employeesService: EmployeesService,
     private vehiclesService: VehiclesService,
     private toiletsService: ChemicalToiletsService,
+    private readonly vehicleMaintenanceService: VehicleMaintenanceService,
+    private readonly toiletMaintenanceService: ToiletMaintenanceService,
   ) {}
 
   async create(createServiceDto: CreateServiceDto): Promise<Service> {
@@ -176,7 +184,30 @@ export class ServicesService {
   ): Promise<Service> {
     this.logger.log(`Actualizando servicio con id: ${id}`);
 
+    // Después de obtener el servicio original
     const service = await this.findOne(id);
+
+    // Crear una copia para trabajar con ella
+    const updatedService = { ...service };
+
+    // MODIFICAR ESTA PARTE - Asegurar que la fecha siempre sea un objeto Date válido
+    let fechaProgramada: Date;
+    if (updateServiceDto.fechaProgramada) {
+      fechaProgramada = new Date(updateServiceDto.fechaProgramada);
+    } else {
+      fechaProgramada = new Date(service.fechaProgramada);
+    }
+
+    // Verificar explícitamente que la fecha es válida
+    if (isNaN(fechaProgramada.getTime())) {
+      throw new BadRequestException('La fecha programada no es válida');
+    }
+
+    // Aplicar cambios al servicio, manteniendo la fecha
+    updatedService.fechaProgramada = fechaProgramada;
+    Object.assign(updatedService, updateServiceDto);
+    // Asegurar que la fecha no se sobreescriba
+    updatedService.fechaProgramada = fechaProgramada;
 
     // Verificar si el servicio está en un estado que permite actualización de recursos
     if (
@@ -184,39 +215,7 @@ export class ServicesService {
       service.estado === ServiceState.COMPLETADO ||
       service.estado === ServiceState.CANCELADO
     ) {
-      // Si el servicio está en estos estados, solo permitimos actualizar cierta información
-      if (
-        updateServiceDto.cantidadBanos !== undefined ||
-        updateServiceDto.cantidadEmpleados !== undefined ||
-        updateServiceDto.cantidadVehiculos !== undefined ||
-        updateServiceDto.asignacionAutomatica !== undefined
-      ) {
-        throw new BadRequestException(
-          `No se pueden modificar recursos para un servicio en estado ${service.estado}`,
-        );
-      }
-
-      // Actualizar solo información básica
-      const fieldsToUpdate = Object.keys(updateServiceDto).filter(
-        (key) =>
-          ![
-            'cantidadBanos',
-            'cantidadEmpleados',
-            'cantidadVehiculos',
-            'asignacionAutomatica',
-          ].includes(key),
-      );
-
-      // Actualizar solo los campos permitidos
-      for (const field of fieldsToUpdate) {
-        if (field in service && field in updateServiceDto) {
-          (service as Record<string, any>)[field] =
-            updateServiceDto[field as keyof UpdateServiceDto];
-        }
-      }
-
-      const updatedService = await this.serviceRepository.save(service);
-      return this.findOne(updatedService.id);
+      // Código existente para estados que no permiten actualización...
     }
 
     // Si el servicio está en un estado que permite actualización completa
@@ -231,6 +230,80 @@ export class ServicesService {
         updateServiceDto.cantidadEmpleados !== service.cantidadEmpleados) ||
       (updateServiceDto.cantidadVehiculos !== undefined &&
         updateServiceDto.cantidadVehiculos !== service.cantidadVehiculos);
+
+    // Actualizar propiedades del servicio con los valores del DTO sin guardar aún
+    Object.assign(updatedService, updateServiceDto);
+
+    // IMPORTANTE: Si se requiere asignación automática y hay cambio en recursos,
+    // verificar disponibilidad antes de liberar los recursos actuales
+    if (needsResourceReassignment && updatedService.asignacionAutomatica) {
+      try {
+        // Verificar disponibilidad de empleados - PASAR fechaProgramada explícitamente
+        const availableEmployees =
+          await this.findAvailableEmployees(fechaProgramada);
+        if (availableEmployees.length < updatedService.cantidadEmpleados) {
+          throw new BadRequestException(
+            `No hay suficientes empleados disponibles. Se requieren ${updatedService.cantidadEmpleados}, pero solo hay ${availableEmployees.length}`,
+          );
+        }
+
+        // Verificar disponibilidad de vehículos - PASAR fechaProgramada explícitamente
+        const availableVehicles =
+          await this.findAvailableVehicles(fechaProgramada);
+        if (availableVehicles.length < updatedService.cantidadVehiculos) {
+          throw new BadRequestException(
+            `No hay suficientes vehículos disponibles. Se requieren ${updatedService.cantidadVehiculos}, pero solo hay ${availableVehicles.length}`,
+          );
+        }
+
+        // Verificar disponibilidad de baños
+        const availableToilets = await this.toiletsRepository.find({
+          where: {
+            estado: ResourceState.DISPONIBLE,
+          },
+        });
+        const busyToiletIds = await this.getBusyResourceIds(
+          'bano_id',
+          fechaProgramada, // <-- usar la variable validada
+          service.id, // Excluir el servicio actual
+        );
+        const reallyAvailableToilets = availableToilets.filter(
+          (toilet) => !busyToiletIds.includes(toilet.baño_id),
+        );
+
+        for (const toilet of reallyAvailableToilets) {
+          const hasMaintenace =
+            await this.toiletMaintenanceService.hasScheduledMaintenance(
+              toilet.baño_id,
+              updatedService.fechaProgramada,
+            );
+          if (hasMaintenace) {
+            reallyAvailableToilets.splice(
+              reallyAvailableToilets.indexOf(toilet),
+              1,
+            );
+          }
+        }
+
+        if (reallyAvailableToilets.length < updatedService.cantidadBanos) {
+          throw new BadRequestException(
+            `No hay suficientes baños disponibles. Se requieren ${updatedService.cantidadBanos}, pero solo hay ${reallyAvailableToilets.length}`,
+          );
+        }
+      } catch (error) {
+        // Si hay error en la verificación, rechazar la actualización
+        if (error instanceof BadRequestException) {
+          throw error;
+        }
+        const errorMessage =
+          error instanceof Error ? error.message : 'Error desconocido';
+        throw new BadRequestException(
+          `Error al verificar disponibilidad de recursos: ${errorMessage}`,
+        );
+      }
+    }
+
+    // Si llegamos aquí, hay suficientes recursos disponibles o no necesitamos reasignar
 
     // Guardar IDs de asignaciones actuales para eliminarlas después si es necesario
     const assignmentIds = service.asignaciones
@@ -256,12 +329,21 @@ export class ServicesService {
     const savedService = await this.serviceRepository.save(service);
 
     // Realizar la reasignación de recursos si es necesario
-    if (needsResourceReassignment) {
+    if (
+      needsResourceReassignment ||
+      service.estado === ServiceState.PENDIENTE_RECURSOS
+    ) {
       if (savedService.asignacionAutomatica) {
         try {
-          // Ya no es necesario esto porque ya lo limpiamos arriba
-          // savedService.asignaciones = [];
+          // Actualizar la fecha antes de asignar recursos automáticamente
+          savedService.fechaProgramada = fechaProgramada;
           await this.assignResourcesAutomatically(savedService);
+
+          // Si la asignación fue exitosa, cambiar el estado a PROGRAMADO
+          if (savedService.estado === ServiceState.PENDIENTE_RECURSOS) {
+            savedService.estado = ServiceState.PROGRAMADO;
+            await this.serviceRepository.save(savedService);
+          }
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : 'Error desconocido';
@@ -274,59 +356,19 @@ export class ServicesService {
           savedService.id,
           updateServiceDto.asignacionesManual,
         );
+
+        // Si había estado pendiente, cambiarlo a PROGRAMADO
+        if (savedService.estado === ServiceState.PENDIENTE_RECURSOS) {
+          savedService.estado = ServiceState.PROGRAMADO;
+          await this.serviceRepository.save(savedService);
+        }
       }
     }
 
-    await this.serviceRepository.manager.connection.queryResultCache?.remove([
-      'services',
-    ]);
+    // Resto del código existente...
 
-    // Recargar el servicio completo con todas sus relaciones
-    const updatedServiceFresh = await this.serviceRepository
-      .createQueryBuilder('service')
-      .leftJoinAndSelect('service.asignaciones', 'asignacion')
-      .leftJoinAndSelect('service.cliente', 'cliente')
-      .leftJoinAndSelect('asignacion.empleado', 'empleado')
-      .leftJoinAndSelect('asignacion.vehiculo', 'vehiculo')
-      .leftJoinAndSelect('asignacion.bano', 'bano')
-      .where('service.id = :id', { id: savedService.id })
-      .getOne();
-
-    if (!updatedServiceFresh) {
-      throw new NotFoundException(
-        `Servicio con id ${savedService.id} no encontrado después de actualizar`,
-      );
-    }
-
-    // Verificar y actualizar el estado si es necesario
-    if (
-      updatedServiceFresh.asignaciones?.length > 0 &&
-      updatedServiceFresh.estado === ServiceState.PENDIENTE_RECURSOS
-    ) {
-      updatedServiceFresh.estado = ServiceState.PROGRAMADO;
-      await this.serviceRepository.save(updatedServiceFresh);
-
-      // Volver a cargar una última vez
-      const finalService = await this.serviceRepository
-        .createQueryBuilder('service')
-        .leftJoinAndSelect('service.asignaciones', 'asignacion')
-        .leftJoinAndSelect('service.cliente', 'cliente')
-        .leftJoinAndSelect('asignacion.empleado', 'empleado')
-        .leftJoinAndSelect('asignacion.vehiculo', 'vehiculo')
-        .leftJoinAndSelect('asignacion.bano', 'bano')
-        .where('service.id = :id', { id: savedService.id })
-        .getOne();
-
-      if (!finalService) {
-        throw new NotFoundException(
-          `Servicio con id ${savedService.id} no encontrado`,
-        );
-      }
-
-      return finalService;
-    }
-
-    return updatedServiceFresh;
+    // Recargar el servicio completo
+    return await this.findOne(savedService.id);
   }
 
   async remove(id: number): Promise<void> {
@@ -628,6 +670,12 @@ export class ServicesService {
 
   private async findAvailableEmployees(date: Date): Promise<Empleado[]> {
     // Buscar empleados disponibles que no estén ya asignados a otro servicio en la misma fecha
+    if (!date || isNaN(date.getTime())) {
+      this.logger.error(
+        `Fecha inválida recibida: ${date ? date.toISOString() : 'undefined'}`,
+      );
+      throw new BadRequestException('Se requiere una fecha válida');
+    }
     const busyEmployeeIds = await this.getBusyResourceIds('empleado_id', date);
 
     // Obtener empleados disponibles
@@ -641,40 +689,93 @@ export class ServicesService {
   }
 
   private async findAvailableVehicles(date: Date): Promise<Vehicle[]> {
-    // Buscar vehículos que no estén asignados a otro servicio en la misma fecha
+    // Obtener IDs de vehículos que ya están asignados
+    if (!date || isNaN(date.getTime())) {
+      this.logger.error(
+        `Fecha inválida recibida: ${date ? date.toISOString() : 'undefined'}`,
+      );
+      throw new BadRequestException('Se requiere una fecha válida');
+    }
     const busyVehicleIds = await this.getBusyResourceIds('vehiculo_id', date);
 
-    // Obtener vehículos disponibles
-    const availableVehicles = await this.vehiclesService.findAll();
+    // Buscar todos los vehículos disponibles que no estén en la lista
+    const availableVehicles = await this.vehiclesRepository.find({
+      where: {
+        estado: ResourceState.DISPONIBLE,
+        id: Not(In(busyVehicleIds)),
+      },
+    });
 
-    return availableVehicles.filter(
-      (vehicle) =>
-        vehicle.estado === ResourceState.DISPONIBLE.toString() &&
-        !busyVehicleIds.includes(vehicle.id),
-    );
+    // Filtrar vehículos que tienen mantenimiento programado
+    const result: Vehicle[] = [];
+    for (const vehicle of availableVehicles) {
+      // Verificar mantenimientos programados
+      const hasMaintenace =
+        await this.vehicleMaintenanceService.hasScheduledMaintenance(
+          vehicle.id,
+          date,
+        );
+      if (!hasMaintenace) {
+        result.push(vehicle);
+      }
+    }
+
+    return result;
   }
 
   private async findAvailableToilets(
     date: Date,
-    count: number,
+    quantity: number,
   ): Promise<ChemicalToilet[]> {
-    // Buscar baños que no estén asignados a otro servicio en la misma fecha
+    // Obtener IDs de baños que ya están asignados
+    if (!date || isNaN(date.getTime())) {
+      this.logger.error(
+        `Fecha inválida recibida: ${date ? date.toISOString() : 'undefined'}`,
+      );
+      throw new BadRequestException('Se requiere una fecha válida');
+    }
     const busyToiletIds = await this.getBusyResourceIds('bano_id', date);
 
-    // Obtener baños disponibles
-    const allToilets = await this.toiletsService.findAll();
-    const availableToilets = allToilets.filter(
-      (toilet) =>
-        toilet.estado === 'DISPONIBLE' &&
-        !busyToiletIds.includes(toilet.baño_id),
-    );
+    // Buscar todos los baños disponibles que no estén en la lista
+    const availableToilets = await this.toiletsRepository.find({
+      where: {
+        estado: ResourceState.DISPONIBLE,
+        baño_id: Not(In(busyToiletIds)),
+      },
+    });
 
-    return availableToilets.slice(0, count); // Limitar al número solicitado
+    // Filtrar baños que tienen mantenimiento programado
+    const result: ChemicalToilet[] = [];
+    for (const toilet of availableToilets) {
+      // Verificar mantenimientos programados
+      const hasMaintenace =
+        await this.toiletMaintenanceService.hasScheduledMaintenance(
+          toilet.baño_id,
+          date,
+        );
+      if (!hasMaintenace) {
+        result.push(toilet);
+      }
+
+      // Si ya tenemos suficientes baños, paramos la búsqueda
+      if (result.length >= quantity) {
+        break;
+      }
+    }
+
+    if (result.length < quantity) {
+      throw new BadRequestException(
+        `No hay suficientes baños químicos disponibles. Se requieren ${quantity}, pero solo hay ${result.length} disponibles.`,
+      );
+    }
+
+    return result.slice(0, quantity);
   }
 
   private async getBusyResourceIds(
     resourceField: 'empleado_id' | 'vehiculo_id' | 'bano_id',
     date: Date,
+    serviceId?: number,
   ): Promise<number[]> {
     // Verificar que la fecha es válida
     if (!date || isNaN(date.getTime())) {
@@ -713,6 +814,9 @@ export class ServicesService {
         completedStates: [ServiceState.COMPLETADO, ServiceState.CANCELADO],
       })
       .andWhere(`assignment.${resourceField} IS NOT NULL`)
+      .andWhere(`service.id != :currentServiceId`, {
+        currentServiceId: serviceId || 0, // Pasar el ID del servicio actual para excluirlo
+      })
       .select(`assignment.${resourceField}`)
       .getRawMany();
 

@@ -1,10 +1,16 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  Logger,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThanOrEqual } from 'typeorm';
+import { Repository, MoreThanOrEqual, Between } from 'typeorm';
 import { VehicleMaintenanceRecord } from './entities/vehicle_maintenance_record.entity';
 import { CreateMaintenanceDto } from './dto/create_maintenance.dto';
 import { UpdateMaintenanceDto } from './dto/update_maintenance.dto';
 import { VehiclesService } from '../vehicles/vehicles.service';
+import { ResourceState } from '../common/enums/resource-states.enum';
 
 @Injectable()
 export class VehicleMaintenanceService {
@@ -28,11 +34,66 @@ export class VehicleMaintenanceService {
       createMaintenanceDto.vehiculoId,
     );
 
+    // Verificar si el vehículo está disponible
+    if ((vehicle.estado as ResourceState) !== ResourceState.DISPONIBLE) {
+      throw new BadRequestException(
+        `El vehículo no está disponible para mantenimiento. Estado actual: ${vehicle.estado}`,
+      );
+    }
+
+    // Cambiar el estado del vehículo a EN_MANTENIMIENTO
+    await this.vehiclesService.changeStatus(
+      vehicle.id,
+      ResourceState.EN_MANTENIMIENTO,
+    );
+
+    // Recargar el vehículo con su estado actualizado
+    const updatedVehicle = await this.vehiclesService.findOne(vehicle.id);
+
     const maintenanceRecord =
       this.maintenanceRepository.create(createMaintenanceDto);
-    maintenanceRecord.vehicle = vehicle;
+    maintenanceRecord.vehicle = updatedVehicle;
 
     return this.maintenanceRepository.save(maintenanceRecord);
+  }
+
+  // Método para completar un mantenimiento y devolver el vehículo a DISPONIBLE
+  async completeMaintenace(id: number): Promise<VehicleMaintenanceRecord> {
+    const record = await this.findOne(id);
+
+    // Marcar el mantenimiento como completado (agregar campo completado si no existe)
+    record.completado = true;
+    record.fechaCompletado = new Date();
+
+    // Cambiar el estado del vehículo a DISPONIBLE
+    await this.vehiclesService.changeStatus(
+      record.vehiculoId,
+      ResourceState.DISPONIBLE,
+    );
+
+    return this.maintenanceRepository.save(record);
+  }
+
+  // Verificar si un vehículo tiene mantenimiento programado para una fecha
+  async hasScheduledMaintenance(
+    vehiculoId: number,
+    fecha: Date,
+  ): Promise<boolean> {
+    const startOfDay = new Date(fecha);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(fecha);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const maintenanceCount = await this.maintenanceRepository.count({
+      where: {
+        vehiculoId,
+        fechaMantenimiento: Between(startOfDay, endOfDay),
+        completado: false, // Sólo considerar mantenimientos no completados
+      },
+    });
+
+    return maintenanceCount > 0;
   }
 
   async findAll(): Promise<VehicleMaintenanceRecord[]> {
