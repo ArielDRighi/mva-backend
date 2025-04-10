@@ -178,72 +178,62 @@ export class ServicesService {
 
     const service = await this.findOne(id);
 
-    // Si cambia el cliente, verificar que existe
-    if (
-      updateServiceDto.clienteId &&
-      updateServiceDto.clienteId !== service.clienteId
-    ) {
-      await this.clientsService.findOneClient(updateServiceDto.clienteId);
-    }
-
-    // Convertir fechas si existen
-    if (updateServiceDto.fechaProgramada) {
-      updateServiceDto.fechaProgramada = new Date(
-        updateServiceDto.fechaProgramada,
-      ).toISOString();
-    }
-
-    if (updateServiceDto.fechaInicio) {
-      updateServiceDto.fechaInicio = new Date(
-        updateServiceDto.fechaInicio,
-      ).toISOString();
-    }
-
-    if (updateServiceDto.fechaFin) {
-      updateServiceDto.fechaFin = new Date(
-        updateServiceDto.fechaFin,
-      ).toISOString();
-    }
-
-    // Si el servicio ya tenía recursos asignados y se va a cambiar, liberarlos primero
+    // Si se está cambiando la asignación automática o la cantidad de recursos,
+    // necesitamos liberar los recursos actuales y reasignar
     const needsResourceReassignment =
-      updateServiceDto.asignacionAutomatica !== undefined ||
-      updateServiceDto.asignacionesManual !== undefined;
+      (updateServiceDto.asignacionAutomatica !== undefined &&
+        updateServiceDto.asignacionAutomatica !==
+          service.asignacionAutomatica) ||
+      (updateServiceDto.cantidadBanos !== undefined &&
+        updateServiceDto.cantidadBanos !== service.cantidadBanos) ||
+      (updateServiceDto.cantidadEmpleados !== undefined &&
+        updateServiceDto.cantidadEmpleados !== service.cantidadEmpleados) ||
+      (updateServiceDto.cantidadVehiculos !== undefined &&
+        updateServiceDto.cantidadVehiculos !== service.cantidadVehiculos);
 
+    // Liberar recursos existentes si es necesario
     if (needsResourceReassignment && service.asignaciones?.length) {
       await this.releaseAssignedResources(service);
-      await this.assignmentRepository.remove(service.asignaciones);
     }
 
-    // Actualizar los datos básicos del servicio
+    // Actualizar propiedades del servicio con los valores del DTO
     Object.assign(service, updateServiceDto);
 
-    // Guardar los cambios básicos
-    const updatedService = await this.serviceRepository.save(service);
+    // Guardar cambios básicos primero para asegurar que la fecha programada esté actualizada
+    const savedService = await this.serviceRepository.save(service);
 
-    // Realizar nuevas asignaciones si es necesario
+    // Realizar la reasignación de recursos si es necesario
     if (needsResourceReassignment) {
-      if (updateServiceDto.asignacionAutomatica) {
-        await this.assignResourcesAutomatically(updatedService);
+      if (savedService.asignacionAutomatica) {
+        try {
+          await this.assignResourcesAutomatically(savedService);
+        } catch (error) {
+          // Manejar el error pero seguir adelante, el servicio estará en estado PENDIENTE_RECURSOS
+          const errorMessage =
+            error instanceof Error ? error.message : 'Error desconocido';
+          this.logger.error(`Error al reasignar recursos: ${errorMessage}`);
+          savedService.estado = ServiceState.PENDIENTE_RECURSOS;
+          await this.serviceRepository.save(savedService);
+        }
       } else if (updateServiceDto.asignacionesManual?.length) {
         await this.assignResourcesManually(
-          id,
+          savedService.id,
           updateServiceDto.asignacionesManual,
         );
       }
+    }
 
-      // Actualizar estado del servicio
-      if (updatedService.asignaciones?.length > 0) {
-        updatedService.estado = ServiceState.PROGRAMADO;
-      } else {
-        updatedService.estado = ServiceState.PENDIENTE_RECURSOS;
-      }
-
+    // Actualizar estado si se asignaron recursos con éxito
+    const updatedService = await this.findOne(savedService.id);
+    if (
+      updatedService.asignaciones?.length > 0 &&
+      updatedService.estado === ServiceState.PENDIENTE_RECURSOS
+    ) {
+      updatedService.estado = ServiceState.PROGRAMADO;
       await this.serviceRepository.save(updatedService);
     }
 
-    // Retornar el servicio actualizado con todas sus relaciones
-    return this.findOne(id);
+    return this.findOne(savedService.id);
   }
 
   async remove(id: number): Promise<void> {
@@ -575,6 +565,14 @@ export class ServicesService {
     resourceField: 'empleado_id' | 'vehiculo_id' | 'bano_id',
     date: Date,
   ): Promise<number[]> {
+    // Verificar que la fecha es válida
+    if (!date || isNaN(date.getTime())) {
+      this.logger.error(
+        `Fecha inválida recibida en getBusyResourceIds: ${date ? date.toISOString() : 'undefined'}`,
+      );
+      return [];
+    }
+
     // Obtener recursos ocupados en la fecha indicada
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
@@ -582,6 +580,17 @@ export class ServicesService {
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
 
+    this.logger.debug(
+      `Buscando recursos ocupados entre ${startOfDay.toISOString()} y ${endOfDay.toISOString()}`,
+    );
+
+    // Define a type for the raw results
+    type ResourceIdRecord = Record<
+      'empleado_id' | 'vehiculo_id' | 'bano_id',
+      number
+    >;
+
+    // El resto del método sin cambios
     const busyResources = await this.assignmentRepository
       .createQueryBuilder('assignment')
       .innerJoin('assignment.servicio', 'service')
@@ -596,15 +605,10 @@ export class ServicesService {
       .select(`assignment.${resourceField}`)
       .getRawMany();
 
-    // Type-safe mapping of raw query results
-    return busyResources.map((r: Record<string, number>) => {
-      const value = r[resourceField];
-      if (typeof value === 'number') {
-        return value;
-      }
-      // In case the database returns string IDs, convert them to numbers
-      return parseInt(String(value), 10);
-    });
+    // Extraer los IDs con tipo seguro
+    return busyResources.map(
+      (resource) => (resource as ResourceIdRecord)[resourceField],
+    );
   }
 
   private async updateResourceState(

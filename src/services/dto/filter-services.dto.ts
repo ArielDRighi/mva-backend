@@ -1,8 +1,9 @@
+import { Type } from 'class-transformer';
 import {
-  IsDateString,
   IsEnum,
-  IsNumber,
   IsOptional,
+  IsNumber,
+  IsDateString,
   IsString,
 } from 'class-validator';
 import {
@@ -12,7 +13,8 @@ import {
 
 export class FilterServicesDto {
   @IsOptional()
-  @IsNumber()
+  @Type(() => Number) // ← Convierte el string a número
+  @IsNumber({}, { message: 'El ID del cliente debe ser un número' })
   clienteId?: number;
 
   @IsOptional()
