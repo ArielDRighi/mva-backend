@@ -5,6 +5,7 @@ import { Repository } from 'typeorm';
 import { Claim } from './entities/claim.entity';
 import { CreateClaimDto } from './dto/createClaim.dto';
 import { CreateSatisfacionSurveyDto } from './dto/createSatisfactionSurvey.dto';
+import { AskForServiceDto } from './dto/askForService.dto';
 
 @Injectable()
 export class ClientsPortalService {
@@ -104,5 +105,8 @@ export class ClientsPortalService {
     } catch (error) {
       throw new BadRequestException('Error updating satisfaction survey');
     }
+  }
+  async askForService(formData: AskForServiceDto) {
+    // Enviar email mediante NodeMailer
   }
 }

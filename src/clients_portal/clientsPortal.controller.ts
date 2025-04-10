@@ -17,6 +17,7 @@ import { RolesGuard } from 'src/roles/guards/roles.guard';
 import { Role } from 'src/roles/enums/role.enum';
 import { CreateClaimDto } from './dto/createClaim.dto';
 import { CreateSatisfacionSurveyDto } from './dto/createSatisfactionSurvey.dto';
+import { AskForServiceDto } from './dto/askForService.dto';
 
 @Controller('clients-portal')
 @UseGuards(JwtAuthGuard)
@@ -125,6 +126,40 @@ export class ClientsPortalController {
     } catch (error) {
       throw new HttpException(
         'Error updating claim',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Put('satisfaction_surveys/:id')
+  @HttpCode(HttpStatus.OK)
+  async updateSatisfactionSurvey(
+    @Param('id') id: number,
+    @Body() surveyData: Partial<CreateSatisfacionSurveyDto>,
+  ) {
+    try {
+      return await this.clientsPortalService.updateSatisfactionSurvey(
+        id,
+        surveyData,
+      );
+    } catch (error) {
+      throw new HttpException(
+        'Error updating satisfaction survey',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('ask_for_service')
+  @HttpCode(HttpStatus.OK)
+  async askForServiceForm(@Body() formData: AskForServiceDto) {
+    try {
+      return await this.clientsPortalService.askForService(formData);
+    } catch (error) {
+      throw new HttpException(
+        'Error creating ask for service form',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
