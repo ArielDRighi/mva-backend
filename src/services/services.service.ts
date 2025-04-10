@@ -178,8 +178,49 @@ export class ServicesService {
 
     const service = await this.findOne(id);
 
-    // Si se está cambiando la asignación automática o la cantidad de recursos,
-    // necesitamos liberar los recursos actuales y reasignar
+    // Verificar si el servicio está en un estado que permite actualización de recursos
+    if (
+      service.estado === ServiceState.EN_PROGRESO ||
+      service.estado === ServiceState.COMPLETADO ||
+      service.estado === ServiceState.CANCELADO
+    ) {
+      // Si el servicio está en estos estados, solo permitimos actualizar cierta información
+      if (
+        updateServiceDto.cantidadBanos !== undefined ||
+        updateServiceDto.cantidadEmpleados !== undefined ||
+        updateServiceDto.cantidadVehiculos !== undefined ||
+        updateServiceDto.asignacionAutomatica !== undefined
+      ) {
+        throw new BadRequestException(
+          `No se pueden modificar recursos para un servicio en estado ${service.estado}`,
+        );
+      }
+
+      // Actualizar solo información básica
+      const fieldsToUpdate = Object.keys(updateServiceDto).filter(
+        (key) =>
+          ![
+            'cantidadBanos',
+            'cantidadEmpleados',
+            'cantidadVehiculos',
+            'asignacionAutomatica',
+          ].includes(key),
+      );
+
+      // Actualizar solo los campos permitidos
+      for (const field of fieldsToUpdate) {
+        if (field in service && field in updateServiceDto) {
+          (service as Record<string, any>)[field] =
+            updateServiceDto[field as keyof UpdateServiceDto];
+        }
+      }
+
+      const updatedService = await this.serviceRepository.save(service);
+      return this.findOne(updatedService.id);
+    }
+
+    // Si el servicio está en un estado que permite actualización completa
+    // Determinar si necesitamos reasignar recursos
     const needsResourceReassignment =
       (updateServiceDto.asignacionAutomatica !== undefined &&
         updateServiceDto.asignacionAutomatica !==
@@ -191,24 +232,35 @@ export class ServicesService {
       (updateServiceDto.cantidadVehiculos !== undefined &&
         updateServiceDto.cantidadVehiculos !== service.cantidadVehiculos);
 
+    // Guardar IDs de asignaciones actuales para eliminarlas después si es necesario
+    const assignmentIds = service.asignaciones
+      ? service.asignaciones.map((a) => a.id)
+      : [];
+
     // Liberar recursos existentes si es necesario
     if (needsResourceReassignment && service.asignaciones?.length) {
       await this.releaseAssignedResources(service);
+
+      // Eliminar asignaciones anteriores explícitamente
+      if (assignmentIds.length > 0) {
+        await this.assignmentRepository.delete(assignmentIds);
+      }
     }
 
     // Actualizar propiedades del servicio con los valores del DTO
     Object.assign(service, updateServiceDto);
 
-    // Guardar cambios básicos primero para asegurar que la fecha programada esté actualizada
+    // Guardar cambios básicos primero
     const savedService = await this.serviceRepository.save(service);
 
     // Realizar la reasignación de recursos si es necesario
     if (needsResourceReassignment) {
       if (savedService.asignacionAutomatica) {
         try {
+          // Asegurarnos de que no hay asignaciones previas
+          savedService.asignaciones = [];
           await this.assignResourcesAutomatically(savedService);
         } catch (error) {
-          // Manejar el error pero seguir adelante, el servicio estará en estado PENDIENTE_RECURSOS
           const errorMessage =
             error instanceof Error ? error.message : 'Error desconocido';
           this.logger.error(`Error al reasignar recursos: ${errorMessage}`);
@@ -223,7 +275,7 @@ export class ServicesService {
       }
     }
 
-    // Actualizar estado si se asignaron recursos con éxito
+    // Actualizar estado si se asignaron recursos con éxito y el estado actual es PENDIENTE_RECURSOS
     const updatedService = await this.findOne(savedService.id);
     if (
       updatedService.asignaciones?.length > 0 &&
@@ -233,7 +285,7 @@ export class ServicesService {
       await this.serviceRepository.save(updatedService);
     }
 
-    return this.findOne(savedService.id);
+    return this.findOne(updatedService.id);
   }
 
   async remove(id: number): Promise<void> {
@@ -244,9 +296,12 @@ export class ServicesService {
     // Liberar recursos asignados
     if (service.asignaciones?.length) {
       await this.releaseAssignedResources(service);
+
+      // Eliminar todas las asignaciones de recursos para este servicio
+      await this.assignmentRepository.delete({ servicioId: id });
     }
 
-    // Eliminar el servicio (las asignaciones se eliminarán en cascada)
+    // Eliminar el servicio después de eliminar las asignaciones
     await this.serviceRepository.remove(service);
   }
 
@@ -493,24 +548,33 @@ export class ServicesService {
       });
     }
 
+    this.logger.log(
+      `Liberando ${service.asignaciones.length} recursos para el servicio ${service.id}`,
+    );
+
     // Recorrer todas las asignaciones y liberar cada recurso
     for (const assignment of service.asignaciones) {
       if (assignment.empleado) {
-        await this.updateResourceState(
-          assignment.empleado,
+        this.logger.log(`Liberando empleado ${assignment.empleado.id}`);
+        await this.employeesService.changeStatus(
+          assignment.empleado.id,
           ResourceState.DISPONIBLE,
         );
       }
 
       if (assignment.vehiculo) {
-        await this.updateVehicleState(
-          assignment.vehiculo,
+        this.logger.log(`Liberando vehículo ${assignment.vehiculo.id}`);
+        await this.vehiclesService.changeStatus(
+          assignment.vehiculo.id,
           ResourceState.DISPONIBLE,
         );
       }
 
       if (assignment.bano) {
-        await this.updateToiletState(assignment.bano, ResourceState.DISPONIBLE);
+        this.logger.log(`Liberando baño ${assignment.bano.baño_id}`);
+        await this.toiletsService.update(assignment.bano.baño_id, {
+          estado: ResourceState.DISPONIBLE,
+        });
       }
     }
   }
