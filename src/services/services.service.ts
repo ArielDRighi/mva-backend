@@ -244,6 +244,8 @@ export class ServicesService {
       // Eliminar asignaciones anteriores explícitamente
       if (assignmentIds.length > 0) {
         await this.assignmentRepository.delete(assignmentIds);
+        // Limpiar las asignaciones en la entidad en memoria también
+        service.asignaciones = [];
       }
     }
 
@@ -257,8 +259,8 @@ export class ServicesService {
     if (needsResourceReassignment) {
       if (savedService.asignacionAutomatica) {
         try {
-          // Asegurarnos de que no hay asignaciones previas
-          savedService.asignaciones = [];
+          // Ya no es necesario esto porque ya lo limpiamos arriba
+          // savedService.asignaciones = [];
           await this.assignResourcesAutomatically(savedService);
         } catch (error) {
           const errorMessage =
@@ -275,17 +277,56 @@ export class ServicesService {
       }
     }
 
-    // Actualizar estado si se asignaron recursos con éxito y el estado actual es PENDIENTE_RECURSOS
-    const updatedService = await this.findOne(savedService.id);
-    if (
-      updatedService.asignaciones?.length > 0 &&
-      updatedService.estado === ServiceState.PENDIENTE_RECURSOS
-    ) {
-      updatedService.estado = ServiceState.PROGRAMADO;
-      await this.serviceRepository.save(updatedService);
+    await this.serviceRepository.manager.connection.queryResultCache?.remove([
+      'services',
+    ]);
+
+    // Recargar el servicio completo con todas sus relaciones
+    const updatedServiceFresh = await this.serviceRepository
+      .createQueryBuilder('service')
+      .leftJoinAndSelect('service.asignaciones', 'asignacion')
+      .leftJoinAndSelect('service.cliente', 'cliente')
+      .leftJoinAndSelect('asignacion.empleado', 'empleado')
+      .leftJoinAndSelect('asignacion.vehiculo', 'vehiculo')
+      .leftJoinAndSelect('asignacion.bano', 'bano')
+      .where('service.id = :id', { id: savedService.id })
+      .getOne();
+
+    if (!updatedServiceFresh) {
+      throw new NotFoundException(
+        `Servicio con id ${savedService.id} no encontrado después de actualizar`,
+      );
     }
 
-    return this.findOne(updatedService.id);
+    // Verificar y actualizar el estado si es necesario
+    if (
+      updatedServiceFresh.asignaciones?.length > 0 &&
+      updatedServiceFresh.estado === ServiceState.PENDIENTE_RECURSOS
+    ) {
+      updatedServiceFresh.estado = ServiceState.PROGRAMADO;
+      await this.serviceRepository.save(updatedServiceFresh);
+
+      // Volver a cargar una última vez
+      const finalService = await this.serviceRepository
+        .createQueryBuilder('service')
+        .leftJoinAndSelect('service.asignaciones', 'asignacion')
+        .leftJoinAndSelect('service.cliente', 'cliente')
+        .leftJoinAndSelect('asignacion.empleado', 'empleado')
+        .leftJoinAndSelect('asignacion.vehiculo', 'vehiculo')
+        .leftJoinAndSelect('asignacion.bano', 'bano')
+        .where('service.id = :id', { id: savedService.id })
+        .getOne();
+
+      if (!finalService) {
+        throw new NotFoundException(
+          `Servicio con id ${savedService.id} no encontrado`,
+        );
+      }
+
+      return finalService;
+    }
+
+    return updatedServiceFresh;
   }
 
   async remove(id: number): Promise<void> {
@@ -387,10 +428,14 @@ export class ServicesService {
       // Cambiar estados de todos los recursos seleccionados
       for (const employee of selectedEmployees) {
         await this.updateResourceState(employee, ResourceState.ASIGNADO);
+        // Actualizar explícitamente el objeto en memoria también
+        employee.estado = ResourceState.ASIGNADO.toString();
       }
 
       for (const vehicle of selectedVehicles) {
         await this.updateVehicleState(vehicle, ResourceState.ASIGNADO);
+        // Actualizar explícitamente el objeto en memoria también
+        vehicle.estado = ResourceState.ASIGNADO.toString();
       }
 
       // Crear asignación principal con el primer empleado, vehículo y baño
@@ -402,6 +447,7 @@ export class ServicesService {
 
       assignments.push(firstAssignment);
       await this.updateToiletState(availableToilets[0], ResourceState.ASIGNADO);
+      availableToilets[0].estado = ResourceState.ASIGNADO.toString();
 
       // Crear asignaciones adicionales para empleados si hay más de uno
       for (let i = 1; i < selectedEmployees.length; i++) {
@@ -432,6 +478,7 @@ export class ServicesService {
           availableToilets[i],
           ResourceState.ASIGNADO,
         );
+        availableToilets[i].estado = ResourceState.ASIGNADO.toString();
       }
 
       // Guardar todas las asignaciones
