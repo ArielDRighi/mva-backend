@@ -1129,4 +1129,45 @@ export class ServicesService {
       );
     }
   }
+
+  async findByDateRange(
+    startDate: string,
+    endDate: string,
+  ): Promise<Service[]> {
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
+    this.logger.log(
+      `Buscando servicios entre ${start.toISOString()} y ${end.toISOString()}`,
+    );
+
+    return this.findAll({
+      fechaDesde: start.toISOString(),
+      fechaHasta: end.toISOString(),
+    });
+  }
+
+  async findToday(): Promise<Service[]> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    this.logger.log(`Buscando servicios de hoy: ${today.toISOString()}`);
+
+    return this.findAll({
+      fechaDesde: today.toISOString(),
+      fechaHasta: endOfDay.toISOString(),
+    });
+  }
+
+  async findByStatus(estado: ServiceState): Promise<Service[]> {
+    this.logger.log(`Buscando servicios con estado: ${estado}`);
+
+    return this.findAll({ estado });
+  }
 }

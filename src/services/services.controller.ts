@@ -39,6 +39,31 @@ export class ServicesController {
     return this.servicesService.findAll(filterDto);
   }
 
+  // Agrega estas rutas específicas antes de la ruta con parámetro :id
+  @Get('date-range')
+  findByDateRange(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+  ): Promise<Service[]> {
+    return this.servicesService.findByDateRange(startDate, endDate);
+  }
+
+  @Get('today')
+  findToday(): Promise<Service[]> {
+    return this.servicesService.findToday();
+  }
+
+  @Get('pending')
+  findPending(): Promise<Service[]> {
+    return this.servicesService.findByStatus(ServiceState.PENDIENTE_RECURSOS);
+  }
+
+  @Get('in-progress')
+  findInProgress(): Promise<Service[]> {
+    return this.servicesService.findByStatus(ServiceState.EN_PROGRESO);
+  }
+
+  // Esta ruta debe ir después de las rutas específicas
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number): Promise<Service> {
     return this.servicesService.findOne(id);
