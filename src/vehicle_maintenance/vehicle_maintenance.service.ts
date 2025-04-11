@@ -11,6 +11,7 @@ import { CreateMaintenanceDto } from './dto/create_maintenance.dto';
 import { UpdateMaintenanceDto } from './dto/update_maintenance.dto';
 import { VehiclesService } from '../vehicles/vehicles.service';
 import { ResourceState } from '../common/enums/resource-states.enum';
+import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class VehicleMaintenanceService {
@@ -41,18 +42,27 @@ export class VehicleMaintenanceService {
       );
     }
 
-    // Cambiar el estado del vehículo a EN_MANTENIMIENTO
-    await this.vehiclesService.changeStatus(
-      vehicle.id,
-      ResourceState.EN_MANTENIMIENTO,
-    );
+    // AQUÍ ESTÁ EL CAMBIO CLAVE: Solo cambiar estado si el mantenimiento es para hoy o antes
+    const now = new Date();
+    now.setHours(0, 0, 0, 0); // Inicio del día actual
 
-    // Recargar el vehículo con su estado actualizado
-    const updatedVehicle = await this.vehiclesService.findOne(vehicle.id);
+    const maintenanceDate = new Date(createMaintenanceDto.fechaMantenimiento);
+    maintenanceDate.setHours(0, 0, 0, 0); // Inicio del día de mantenimiento
+
+    if (maintenanceDate <= now) {
+      // El mantenimiento es para hoy o una fecha pasada, cambiar estado inmediatamente
+      await this.vehiclesService.changeStatus(
+        vehicle.id,
+        ResourceState.EN_MANTENIMIENTO,
+      );
+      // Actualizar también el estado en el objeto en memoria
+      vehicle.estado = ResourceState.EN_MANTENIMIENTO.toString();
+    }
+    // Si es para una fecha futura, no cambiar el estado ahora
 
     const maintenanceRecord =
       this.maintenanceRepository.create(createMaintenanceDto);
-    maintenanceRecord.vehicle = updatedVehicle;
+    maintenanceRecord.vehicle = vehicle;
 
     return this.maintenanceRepository.save(maintenanceRecord);
   }
@@ -172,5 +182,41 @@ export class VehicleMaintenanceService {
 
     const maintenanceRecord = await this.findOne(id);
     await this.maintenanceRepository.remove(maintenanceRecord);
+  }
+}
+
+@Injectable()
+export class MaintenanceSchedulerService {
+  constructor(
+    @InjectRepository(VehicleMaintenanceRecord)
+    private vehicleMaintenanceRepository: Repository<VehicleMaintenanceRecord>,
+    private vehiclesService: VehiclesService,
+    // También inyectar dependencias para los baños químicos
+  ) {}
+
+  @Cron('0 0 * * *') // Ejecutar todos los días a medianoche
+  async handleScheduledMaintenances() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Buscar mantenimientos programados para hoy que no estén completados
+    const todaysMaintenances = await this.vehicleMaintenanceRepository.find({
+      where: {
+        fechaMantenimiento: Between(today, tomorrow),
+        completado: false,
+      },
+      relations: ['vehicle'],
+    });
+
+    // Cambiar estado de los vehículos a EN_MANTENIMIENTO
+    for (const maintenance of todaysMaintenances) {
+      await this.vehiclesService.changeStatus(
+        maintenance.vehiculoId,
+        ResourceState.EN_MANTENIMIENTO,
+      );
+    }
   }
 }

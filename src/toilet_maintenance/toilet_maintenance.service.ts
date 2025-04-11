@@ -12,6 +12,7 @@ import { CreateToiletMaintenanceDto } from './dto/create_toilet_maintenance.dto'
 import { FilterToiletMaintenanceDto } from './dto/filter_toilet_maintenance.dto';
 import { ResourceState } from '../common/enums/resource-states.enum';
 import { ChemicalToiletsService } from '../chemical_toilets/chemical_toilets.service';
+import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class ToiletMaintenanceService {
@@ -44,13 +45,23 @@ export class ToiletMaintenanceService {
       );
     }
 
-    // Cambiar el estado del baño a EN_MANTENIMIENTO
-    await this.chemicalToiletsService.update(toilet.baño_id, {
-      estado: ResourceState.EN_MANTENIMIENTO,
-    });
+    // CAMBIO CLAVE: Solo cambiar estado si el mantenimiento es para hoy o antes
+    const now = new Date();
+    now.setHours(0, 0, 0, 0); // Inicio del día actual
 
-    // Actualizar la propiedad estado en el objeto en memoria
-    toilet.estado = ResourceState.EN_MANTENIMIENTO;
+    const maintenanceDate = new Date(createMaintenanceDto.fecha_mantenimiento);
+    maintenanceDate.setHours(0, 0, 0, 0); // Inicio del día de mantenimiento
+
+    if (maintenanceDate <= now) {
+      // El mantenimiento es para hoy o una fecha pasada, cambiar estado inmediatamente
+      await this.chemicalToiletsService.update(toilet.baño_id, {
+        estado: ResourceState.EN_MANTENIMIENTO,
+      });
+
+      // Actualizar también el estado en el objeto en memoria
+      toilet.estado = ResourceState.EN_MANTENIMIENTO;
+    }
+    // Si es para una fecha futura, no cambiar el estado ahora
 
     // Creamos el nuevo objeto de mantenimiento
     const maintenance = this.maintenanceRepository.create({
@@ -70,28 +81,33 @@ export class ToiletMaintenanceService {
     maintenance.completado = true;
     maintenance.fechaCompletado = new Date();
 
-    // Cambiar el estado del baño a DISPONIBLE
-    await this.chemicalToiletsService.update(maintenance.toilet.baño_id, {
-      estado: ResourceState.DISPONIBLE,
-    });
-
-    // AÑADIR ESTAS LÍNEAS: Actualizar el estado del baño en el objeto en memoria también
     if (maintenance.toilet) {
+      // Cambiar el estado del baño a DISPONIBLE
+      await this.chemicalToiletsService.update(maintenance.toilet.baño_id, {
+        estado: ResourceState.DISPONIBLE,
+      });
+
+      // Actualizar el estado del baño en el objeto en memoria también
       maintenance.toilet.estado = ResourceState.DISPONIBLE.toString();
     } else {
-      // Si maintenance.toilet no está cargado, obtener el baño actualizado
-      if (maintenance.toilet) {
-        // Asegurarnos que toilet es del tipo ChemicalToilet y tiene baño_id
-        const toilet = maintenance.toilet as ChemicalToilet;
-        const toiletId = toilet.baño_id;
-        if (toiletId) {
-          const updatedToilet = await this.toiletsRepository.findOne({
-            where: { baño_id: toiletId },
-          });
-          if (updatedToilet) {
-            maintenance.toilet = updatedToilet;
-          }
-        }
+      // Si maintenance.toilet no está cargado, hay que obtener la referencia al baño
+      // Primero necesitamos obtener el ID del baño asociado a este mantenimiento
+      const maintenanceWithToilet = await this.maintenanceRepository.findOne({
+        where: { mantenimiento_id: id },
+        relations: ['toilet'],
+      });
+
+      if (maintenanceWithToilet && maintenanceWithToilet.toilet) {
+        // Ahora sí podemos obtener el ID del baño y actualizarlo
+        await this.chemicalToiletsService.update(
+          maintenanceWithToilet.toilet.baño_id,
+          {
+            estado: ResourceState.DISPONIBLE,
+          },
+        );
+
+        // Y actualizar la referencia en el objeto actual
+        maintenance.toilet = maintenanceWithToilet.toilet;
       }
     }
 
@@ -272,5 +288,41 @@ export class ToiletMaintenanceService {
           new Date(a.fecha_mantenimiento).getTime(),
       )[0],
     };
+  }
+}
+
+@Injectable()
+export class ToiletMaintenanceSchedulerService {
+  constructor(
+    @InjectRepository(ToiletMaintenance)
+    private toiletMaintenanceRepository: Repository<ToiletMaintenance>,
+    private chemicalToiletsService: ChemicalToiletsService,
+  ) {}
+
+  @Cron('0 0 * * *') // Ejecutar todos los días a medianoche
+  async handleScheduledMaintenances() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Buscar mantenimientos programados para hoy que no estén completados
+    const todaysMaintenances = await this.toiletMaintenanceRepository.find({
+      where: {
+        fecha_mantenimiento: Between(today, tomorrow),
+        completado: false,
+      },
+      relations: ['toilet'],
+    });
+
+    // Cambiar estado de los baños a EN_MANTENIMIENTO
+    for (const maintenance of todaysMaintenances) {
+      if (maintenance.toilet) {
+        await this.chemicalToiletsService.update(maintenance.toilet.baño_id, {
+          estado: ResourceState.EN_MANTENIMIENTO,
+        });
+      }
+    }
   }
 }
