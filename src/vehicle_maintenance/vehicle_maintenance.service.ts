@@ -61,15 +61,23 @@ export class VehicleMaintenanceService {
   async completeMaintenace(id: number): Promise<VehicleMaintenanceRecord> {
     const record = await this.findOne(id);
 
-    // Marcar el mantenimiento como completado (agregar campo completado si no existe)
+    // Marcar el mantenimiento como completado
     record.completado = true;
     record.fechaCompletado = new Date();
 
-    // Cambiar el estado del vehículo a DISPONIBLE
+    // Cambiar el estado del vehículo a DISPONIBLE en la base de datos
     await this.vehiclesService.changeStatus(
       record.vehiculoId,
       ResourceState.DISPONIBLE,
     );
+
+    // AÑADIR ESTA LÍNEA: Actualizar el estado del vehículo en el objeto en memoria también
+    if (record.vehicle) {
+      record.vehicle.estado = ResourceState.DISPONIBLE.toString();
+    } else {
+      // Si record.vehicle no está cargado, obtener el vehículo actualizado
+      record.vehicle = await this.vehiclesService.findOne(record.vehiculoId);
+    }
 
     return this.maintenanceRepository.save(record);
   }

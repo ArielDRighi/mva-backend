@@ -5,7 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not, In } from 'typeorm';
+import { Repository, Not, In, IsNull } from 'typeorm';
 import { Service } from './entities/service.entity';
 import { ResourceAssignment } from './entities/resource-assignment.entity';
 import {
@@ -270,16 +270,25 @@ export class ServicesService {
         const vehiclesNeeded =
           updatedService.cantidadVehiculos - currentVehicles.length;
         if (vehiclesNeeded > 0) {
-          const availableVehicles =
-            await this.findAvailableVehicles(fechaProgramada);
+          this.logger.log(
+            `Servicio ${service.id} tiene ${currentVehicles.length} vehículos actuales, necesita ${vehiclesNeeded} más`,
+          );
+
+          const availableVehicles = await this.findAvailableVehicles(
+            fechaProgramada,
+            service.id,
+          );
+
+          this.logger.log(
+            `Vehículos disponibles encontrados: ${availableVehicles.length}. IDs: ${availableVehicles.map((v) => v.id).join(', ')}`,
+          );
+
           if (availableVehicles.length < vehiclesNeeded) {
             throw new BadRequestException(
               `No hay suficientes vehículos disponibles. Se necesitan ${vehiclesNeeded} adicionales, pero solo hay ${availableVehicles.length}`,
             );
           }
-          this.logger.log(
-            `Verificados ${availableVehicles.length} vehículos disponibles, se necesitan ${vehiclesNeeded} adicionales`,
-          );
+          // ...
         }
 
         // Verificar disponibilidad de baños ADICIONALES si son necesarios
@@ -855,7 +864,10 @@ export class ServicesService {
     );
   }
 
-  private async findAvailableVehicles(date: Date): Promise<Vehicle[]> {
+  private async findAvailableVehicles(
+    date: Date,
+    serviceId?: number,
+  ): Promise<Vehicle[]> {
     // Obtener IDs de vehículos que ya están asignados
     if (!date || isNaN(date.getTime())) {
       this.logger.error(
@@ -865,6 +877,8 @@ export class ServicesService {
     }
     const busyVehicleIds = await this.getBusyResourceIds('vehiculo_id', date);
 
+    this.logger.log(`Vehículos ocupados: ${busyVehicleIds.join(', ')}`);
+
     // Buscar todos los vehículos disponibles que no estén en la lista
     const availableVehicles = await this.vehiclesRepository.find({
       where: {
@@ -872,6 +886,10 @@ export class ServicesService {
         id: Not(In(busyVehicleIds)),
       },
     });
+
+    this.logger.log(
+      `Vehículos con estado DISPONIBLE encontrados: ${availableVehicles.map((v) => v.id).join(', ')}`,
+    );
 
     // Filtrar vehículos que tienen mantenimiento programado
     const result: Vehicle[] = [];
@@ -884,6 +902,65 @@ export class ServicesService {
         );
       if (!hasMaintenace) {
         result.push(vehicle);
+      } else {
+        this.logger.log(
+          `Vehículo ${vehicle.id} excluido por tener mantenimiento programado`,
+        );
+      }
+    }
+
+    this.logger.log(
+      `Vehículos disponibles después de filtrar mantenimientos: ${result.map((v) => v.id).join(', ')}`,
+    );
+
+    // También incluir vehículos que estén asignados al servicio actual (si se proporciona serviceId)
+    if (serviceId) {
+      this.logger.log(
+        `Buscando vehículos ya asignados al servicio ${serviceId}`,
+      );
+
+      // MODIFICAR ESTA CONSULTA para asegurar que devuelve resultados
+      const currentServiceAssignments = await this.assignmentRepository.find({
+        where: {
+          servicioId: serviceId,
+          vehiculoId: Not(IsNull()),
+        },
+        relations: ['vehiculo'],
+      });
+
+      this.logger.log(
+        `Encontradas ${currentServiceAssignments.length} asignaciones con vehículos para el servicio ${serviceId}`,
+      );
+
+      // Extraer los vehículos de las asignaciones
+      const assignedVehicles = currentServiceAssignments
+        .map((a) => a.vehiculo)
+        .filter((v): v is Vehicle => v !== null && v !== undefined);
+
+      this.logger.log(
+        `Vehículos ya asignados al servicio: ${assignedVehicles.map((v) => v.id).join(', ')}`,
+      );
+
+      // Verificar que estos vehículos no tengan mantenimientos programados
+      for (const vehicle of assignedVehicles) {
+        const hasMaintenace =
+          await this.vehicleMaintenanceService.hasScheduledMaintenance(
+            vehicle.id,
+            date,
+          );
+
+        if (!hasMaintenace) {
+          if (!result.some((v) => v.id === vehicle.id)) {
+            this.logger.log(
+              `Añadiendo vehículo ${vehicle.id} del servicio actual a la lista de disponibles`,
+            );
+            result.push(vehicle);
+          }
+        } else {
+          this.logger.log(
+            `Vehículo ${vehicle.id} del servicio actual excluido por tener mantenimiento programado`,
+          );
+        }
       }
     }
 
