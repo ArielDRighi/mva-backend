@@ -47,7 +47,7 @@ export class Service {
     name: 'estado',
     type: 'enum',
     enum: ServiceState,
-    default: ServiceState.PENDIENTE_RECURSOS,
+    default: ServiceState.PROGRAMADO,
   })
   estado: ServiceState;
 

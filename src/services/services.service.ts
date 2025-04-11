@@ -68,7 +68,7 @@ export class ServicesService {
       ? new Date(createServiceDto.fechaFin)
       : null;
     service.tipoServicio = createServiceDto.tipoServicio;
-    service.estado = createServiceDto.estado || ServiceState.PENDIENTE_RECURSOS;
+    service.estado = createServiceDto.estado || ServiceState.PROGRAMADO; // Default to PROGRAMADO instead of PENDIENTE_RECURSOS
     service.cantidadBanos = createServiceDto.cantidadBanos;
     service.cantidadEmpleados = createServiceDto.cantidadEmpleados || 1;
     service.cantidadVehiculos = createServiceDto.cantidadVehiculos || 1;
@@ -79,28 +79,46 @@ export class ServicesService {
         ? createServiceDto.asignacionAutomatica
         : true;
 
-    // Guardar el servicio para obtener el ID
-    const savedService = await this.serviceRepository.save(service);
+    // Save the service to get an ID, but don't persist yet - we'll verify resources first
+    const tempService = { ...service };
 
-    // Asignar recursos (automáticos o manuales)
-    if (savedService.asignacionAutomatica) {
-      await this.assignResourcesAutomatically(savedService);
-    } else if (createServiceDto.asignacionesManual?.length) {
-      await this.assignResourcesManually(
-        savedService.id,
-        createServiceDto.asignacionesManual,
+    // Check if resources are available before saving to database
+    try {
+      if (tempService.asignacionAutomatica) {
+        // Check if resources are available
+        await this.verifyResourcesAvailability(tempService);
+      } else if (createServiceDto.asignacionesManual?.length) {
+        // Manual assignments will be verified later in assignResourcesManually
+      } else {
+        throw new BadRequestException(
+          'Se requieren asignaciones manuales cuando asignacionAutomatica es false',
+        );
+      }
+
+      // Now save the service since resources are available
+      const savedService = await this.serviceRepository.save(service);
+
+      // Assign resources
+      if (savedService.asignacionAutomatica) {
+        await this.assignResourcesAutomatically(savedService);
+      } else if (createServiceDto.asignacionesManual?.length) {
+        await this.assignResourcesManually(
+          savedService.id,
+          createServiceDto.asignacionesManual,
+        );
+      }
+
+      // Return the complete service with its assignments
+      return this.findOne(savedService.id);
+    } catch (error) {
+      // Don't save the service if resource verification fails
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
+      this.logger.error(
+        `Error al verificar o asignar recursos: ${errorMessage}`,
       );
+      throw error;
     }
-
-    // Actualizar estado del servicio
-    const updatedService = await this.findOne(savedService.id);
-    if (updatedService.asignaciones?.length > 0) {
-      updatedService.estado = ServiceState.PROGRAMADO;
-      await this.serviceRepository.save(updatedService);
-    }
-
-    // Retornar el servicio completo con sus asignaciones
-    return this.findOne(savedService.id);
   }
 
   async findAll(filters?: FilterServicesDto): Promise<Service[]> {
@@ -184,13 +202,13 @@ export class ServicesService {
   ): Promise<Service> {
     this.logger.log(`Actualizando servicio con id: ${id}`);
 
-    // Después de obtener el servicio original
+    // Get the original service
     const service = await this.findOne(id);
 
-    // Crear una copia para trabajar con ella
+    // Create a copy to work with
     const updatedService = { ...service };
 
-    // Asegurar que la fecha siempre sea un objeto Date válido
+    // Ensure the date is always a valid Date object
     let fechaProgramada: Date;
     if (updateServiceDto.fechaProgramada) {
       fechaProgramada = new Date(updateServiceDto.fechaProgramada);
@@ -198,18 +216,12 @@ export class ServicesService {
       fechaProgramada = new Date(service.fechaProgramada);
     }
 
-    // Verificar explícitamente que la fecha es válida
+    // Explicitly verify the date is valid
     if (isNaN(fechaProgramada.getTime())) {
       throw new BadRequestException('La fecha programada no es válida');
     }
 
-    // Aplicar cambios al servicio, manteniendo la fecha
-    updatedService.fechaProgramada = fechaProgramada;
-    Object.assign(updatedService, updateServiceDto);
-    // Asegurar que la fecha no se sobreescriba
-    updatedService.fechaProgramada = fechaProgramada;
-
-    // Verificar si el servicio está en un estado que permite actualización de recursos
+    // Check if the service is in a state that allows resource updates
     if (
       service.estado === ServiceState.EN_PROGRESO ||
       service.estado === ServiceState.COMPLETADO ||
@@ -220,7 +232,12 @@ export class ServicesService {
       );
     }
 
-    // Determinar si necesitamos reasignar recursos
+    // Update service properties except the date
+    Object.assign(updatedService, updateServiceDto);
+    // Ensure the date isn't overwritten
+    updatedService.fechaProgramada = fechaProgramada;
+
+    // Determine if we need to reassign resources
     const needsResourceReassignment =
       (updateServiceDto.asignacionAutomatica !== undefined &&
         updateServiceDto.asignacionAutomatica !==
@@ -232,192 +249,60 @@ export class ServicesService {
       (updateServiceDto.cantidadVehiculos !== undefined &&
         updateServiceDto.cantidadVehiculos !== service.cantidadVehiculos);
 
-    // Si se requiere asignación automática y hay cambio en recursos,
-    // verificar disponibilidad INCREMENTAL antes de liberar los recursos actuales
-    if (needsResourceReassignment && updatedService.asignacionAutomatica) {
-      try {
-        // Contar recursos ACTUALES del servicio para cada tipo
-        const currentEmployees =
-          service.asignaciones
-            ?.filter((a) => a.empleado)
-            .map((a) => a.empleado) || [];
-
-        const currentVehicles =
-          service.asignaciones
-            ?.filter((a) => a.vehiculo)
-            .map((a) => a.vehiculo) || [];
-
-        const currentToilets =
-          service.asignaciones?.filter((a) => a.bano).map((a) => a.bano) || [];
-
-        // Verificar disponibilidad de empleados ADICIONALES si son necesarios
-        const employeesNeeded =
-          updatedService.cantidadEmpleados - currentEmployees.length;
-        if (employeesNeeded > 0) {
-          const availableEmployees =
-            await this.findAvailableEmployees(fechaProgramada);
-          if (availableEmployees.length < employeesNeeded) {
-            throw new BadRequestException(
-              `No hay suficientes empleados disponibles. Se necesitan ${employeesNeeded} adicionales, pero solo hay ${availableEmployees.length}`,
-            );
-          }
-          this.logger.log(
-            `Verificados ${availableEmployees.length} empleados disponibles, se necesitan ${employeesNeeded} adicionales`,
-          );
-        }
-
-        // Verificar disponibilidad de vehículos ADICIONALES si son necesarios
-        const vehiclesNeeded =
-          updatedService.cantidadVehiculos - currentVehicles.length;
-        if (vehiclesNeeded > 0) {
-          this.logger.log(
-            `Servicio ${service.id} tiene ${currentVehicles.length} vehículos actuales, necesita ${vehiclesNeeded} más`,
-          );
-
-          const availableVehicles = await this.findAvailableVehicles(
-            fechaProgramada,
-            service.id,
-          );
-
-          this.logger.log(
-            `Vehículos disponibles encontrados: ${availableVehicles.length}. IDs: ${availableVehicles.map((v) => v.id).join(', ')}`,
-          );
-
-          if (availableVehicles.length < vehiclesNeeded) {
-            throw new BadRequestException(
-              `No hay suficientes vehículos disponibles. Se necesitan ${vehiclesNeeded} adicionales, pero solo hay ${availableVehicles.length}`,
-            );
-          }
-          // ...
-        }
-
-        // Verificar disponibilidad de baños ADICIONALES si son necesarios
-        const toiletsNeeded =
-          updatedService.cantidadBanos - currentToilets.length;
-        if (toiletsNeeded > 0) {
-          // Obtener baños disponibles que no estén asignados en la fecha
-          const availableToilets = await this.toiletsRepository.find({
-            where: { estado: ResourceState.DISPONIBLE },
-          });
-
-          const busyToiletIds = await this.getBusyResourceIds(
-            'bano_id',
-            fechaProgramada,
-            service.id,
-          );
-
-          const reallyAvailableToilets = availableToilets.filter(
-            (toilet) => !busyToiletIds.includes(toilet.baño_id),
-          );
-
-          // Filtrar por mantenimientos programados
-          const filteredToilets: ChemicalToilet[] = [];
-          for (const toilet of reallyAvailableToilets) {
-            const hasMaintenance =
-              await this.toiletMaintenanceService.hasScheduledMaintenance(
-                toilet.baño_id,
-                fechaProgramada,
-              );
-
-            if (!hasMaintenance) {
-              filteredToilets.push(toilet);
-            }
-          }
-
-          if (filteredToilets.length < toiletsNeeded) {
-            throw new BadRequestException(
-              `No hay suficientes baños disponibles. Se necesitan ${toiletsNeeded} adicionales, pero solo hay ${filteredToilets.length}`,
-            );
-          }
-          this.logger.log(
-            `Verificados ${filteredToilets.length} baños disponibles, se necesitan ${toiletsNeeded} adicionales`,
-          );
-        }
-
-        // Si necesitamos reducir la cantidad de recursos, aún podemos hacerlo sin verificar disponibilidad
-      } catch (error) {
-        // Si hay error en la verificación, rechazar la actualización
-        if (error instanceof BadRequestException) {
-          throw error;
-        }
-        const errorMessage =
-          error instanceof Error ? error.message : 'Error desconocido';
+    // Verify resources are available if reassignment is needed
+    if (needsResourceReassignment) {
+      // Verify resources before making any changes
+      if (updatedService.asignacionAutomatica) {
+        await this.verifyResourcesAvailability(updatedService, true, service);
+      } else if (!updateServiceDto.asignacionesManual?.length) {
         throw new BadRequestException(
-          `Error al verificar disponibilidad de recursos: ${errorMessage}`,
+          'Se requieren asignaciones manuales cuando asignacionAutomatica es false',
         );
       }
-    }
 
-    // Si llegamos aquí, hay suficientes recursos disponibles o no necesitamos reasignar
+      // If we've reached here, resources are available or we have manual assignments
 
-    // Guardar IDs de asignaciones actuales para eliminarlas después si es necesario
-    const assignmentIds = service.asignaciones
-      ? service.asignaciones.map((a) => a.id)
-      : [];
+      // Save IDs of current assignments to delete them if necessary
+      const assignmentIds = service.asignaciones
+        ? service.asignaciones.map((a) => a.id)
+        : [];
 
-    // Liberar recursos existentes si es necesario
-    if (needsResourceReassignment) {
-      // Si cambiamos el modo de asignación, liberamos todos los recursos
+      // Release existing resources if needed
       if (
         updateServiceDto.asignacionAutomatica !== undefined &&
         updateServiceDto.asignacionAutomatica !== service.asignacionAutomatica
       ) {
         await this.releaseAssignedResources(service);
 
-        // Eliminar asignaciones anteriores explícitamente
+        // Delete previous assignments explicitly
         if (assignmentIds.length > 0) {
           await this.assignmentRepository.delete(assignmentIds);
-          // Limpiar las asignaciones en la entidad en memoria también
+          // Clean up assignments in memory too
           service.asignaciones = [];
         }
       }
-      // Si sólo cambiamos cantidades, manejarlo en assignResourcesAutomatically
     }
 
-    // Actualizar propiedades del servicio con los valores del DTO
+    // Update service properties with DTO values
     Object.assign(service, updateServiceDto);
+    service.fechaProgramada = fechaProgramada;
 
-    // Guardar cambios básicos primero
+    // Save basic changes first
     const savedService = await this.serviceRepository.save(service);
 
-    // Realizar la reasignación de recursos si es necesario
-    if (
-      needsResourceReassignment ||
-      service.estado === ServiceState.PENDIENTE_RECURSOS
-    ) {
+    // Perform resource reassignment if needed
+    if (needsResourceReassignment) {
       if (savedService.asignacionAutomatica) {
-        try {
-          // Actualizar la fecha antes de asignar recursos automáticamente
-          savedService.fechaProgramada = fechaProgramada;
-          await this.assignResourcesAutomatically(savedService, true); // true = modo incremental
-
-          // Si la asignación fue exitosa, cambiar el estado a PROGRAMADO
-          if (savedService.estado === ServiceState.PENDIENTE_RECURSOS) {
-            savedService.estado = ServiceState.PROGRAMADO;
-            await this.serviceRepository.save(savedService);
-          }
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : 'Error desconocido';
-          this.logger.error(`Error al reasignar recursos: ${errorMessage}`);
-          savedService.estado = ServiceState.PENDIENTE_RECURSOS;
-          await this.serviceRepository.save(savedService);
-        }
+        await this.assignResourcesAutomatically(savedService, true); // incremental mode
       } else if (updateServiceDto.asignacionesManual?.length) {
         await this.assignResourcesManually(
           savedService.id,
           updateServiceDto.asignacionesManual,
         );
-
-        // Si había estado pendiente, cambiarlo a PROGRAMADO
-        if (savedService.estado === ServiceState.PENDIENTE_RECURSOS) {
-          savedService.estado = ServiceState.PROGRAMADO;
-          await this.serviceRepository.save(savedService);
-        }
       }
     }
 
-    // Recargar el servicio completo
+    // Reload the complete service
     return await this.findOne(savedService.id);
   }
 
@@ -443,10 +328,10 @@ export class ServicesService {
 
     const service = await this.findOne(id);
 
-    // Validar transiciones de estado
+    // Validate state transitions
     this.validateStatusTransition(service.estado, nuevoEstado);
 
-    // Actualizar fechas según el cambio de estado
+    // Update dates based on state change
     if (nuevoEstado === ServiceState.EN_PROGRESO && !service.fechaInicio) {
       service.fechaInicio = new Date();
     }
@@ -455,7 +340,7 @@ export class ServicesService {
       service.fechaFin = new Date();
     }
 
-    // Si se cancela o completa el servicio, liberar los recursos
+    // If service is canceled or completed, release resources
     if (
       nuevoEstado === ServiceState.CANCELADO ||
       nuevoEstado === ServiceState.COMPLETADO
@@ -463,7 +348,7 @@ export class ServicesService {
       await this.releaseAssignedResources(service);
     }
 
-    // Actualizar el estado
+    // Update the state
     service.estado = nuevoEstado;
     return this.serviceRepository.save(service);
   }
@@ -1095,16 +980,8 @@ export class ServicesService {
     currentState: ServiceState,
     newState: ServiceState,
   ): void {
-    // Definir las transiciones válidas
+    // Define valid transitions
     const validTransitions: Record<ServiceState, ServiceState[]> = {
-      [ServiceState.PENDIENTE_RECURSOS]: [
-        ServiceState.PROGRAMADO,
-        ServiceState.CANCELADO,
-      ],
-      [ServiceState.PENDIENTE_CONFIRMACION]: [
-        ServiceState.PROGRAMADO,
-        ServiceState.CANCELADO,
-      ],
       [ServiceState.PROGRAMADO]: [
         ServiceState.EN_PROGRESO,
         ServiceState.CANCELADO,
@@ -1118,11 +995,12 @@ export class ServicesService {
         ServiceState.EN_PROGRESO,
         ServiceState.CANCELADO,
       ],
-      [ServiceState.COMPLETADO]: [], // Estado final
-      [ServiceState.CANCELADO]: [], // Estado final
+      [ServiceState.COMPLETADO]: [], // Final state
+      [ServiceState.CANCELADO]: [], // Final state
+      // Removed PENDIENTE_RECURSOS and PENDIENTE_CONFIRMACION
     };
 
-    // Verificar si la transición es válida
+    // Verify if the transition is valid
     if (!validTransitions[currentState]?.includes(newState)) {
       throw new BadRequestException(
         `No se puede cambiar el estado de ${currentState} a ${newState}`,
@@ -1169,5 +1047,116 @@ export class ServicesService {
     this.logger.log(`Buscando servicios con estado: ${estado}`);
 
     return this.findAll({ estado });
+  }
+
+  private async verifyResourcesAvailability(
+    service: Service,
+    incremental: boolean = false,
+    existingService?: Service,
+  ): Promise<void> {
+    try {
+      // For incremental mode, count current resources
+      const currentEmployees =
+        incremental && existingService?.asignaciones
+          ? existingService.asignaciones
+              .filter((a) => a.empleado)
+              .map((a) => a.empleado)
+              .filter((emp): emp is Empleado => emp !== null)
+          : [];
+
+      const currentVehicles =
+        incremental && existingService?.asignaciones
+          ? existingService.asignaciones
+              .filter((a) => a.vehiculo)
+              .map((a) => a.vehiculo)
+              .filter((veh): veh is Vehicle => veh !== null)
+          : [];
+
+      const currentToilets =
+        incremental && existingService?.asignaciones
+          ? existingService.asignaciones
+              .filter((a) => a.bano)
+              .map((a) => a.bano)
+              .filter((toilet): toilet is ChemicalToilet => toilet !== null)
+          : [];
+
+      // Calculate additional resources needed
+      const employeesNeeded =
+        service.cantidadEmpleados - currentEmployees.length;
+      const vehiclesNeeded = service.cantidadVehiculos - currentVehicles.length;
+      const toiletsNeeded = service.cantidadBanos - currentToilets.length;
+
+      // Verify employee availability
+      if (employeesNeeded > 0) {
+        const availableEmployees = await this.findAvailableEmployees(
+          service.fechaProgramada,
+        );
+        if (availableEmployees.length < employeesNeeded) {
+          throw new BadRequestException(
+            `No hay suficientes empleados disponibles. Se necesitan ${employeesNeeded} adicionales, pero solo hay ${availableEmployees.length}`,
+          );
+        }
+      }
+
+      // Verify vehicle availability
+      if (vehiclesNeeded > 0) {
+        const availableVehicles = await this.findAvailableVehicles(
+          service.fechaProgramada,
+          incremental && existingService ? existingService.id : undefined,
+        );
+        if (availableVehicles.length < vehiclesNeeded) {
+          throw new BadRequestException(
+            `No hay suficientes vehículos disponibles. Se necesitan ${vehiclesNeeded} adicionales, pero solo hay ${availableVehicles.length}`,
+          );
+        }
+      }
+
+      // Verify toilet availability
+      if (toiletsNeeded > 0) {
+        const availableToilets = await this.toiletsRepository.find({
+          where: { estado: ResourceState.DISPONIBLE },
+        });
+
+        const busyToiletIds = await this.getBusyResourceIds(
+          'bano_id',
+          service.fechaProgramada,
+          incremental && existingService ? existingService.id : undefined,
+        );
+
+        const reallyAvailableToilets = availableToilets.filter(
+          (toilet) => !busyToiletIds.includes(toilet.baño_id),
+        );
+
+        // Filter out toilets with scheduled maintenance
+        const filteredToilets: ChemicalToilet[] = [];
+        for (const toilet of reallyAvailableToilets) {
+          const hasMaintenance =
+            await this.toiletMaintenanceService.hasScheduledMaintenance(
+              toilet.baño_id,
+              service.fechaProgramada,
+            );
+
+          if (!hasMaintenance) {
+            filteredToilets.push(toilet);
+          }
+        }
+
+        if (filteredToilets.length < toiletsNeeded) {
+          throw new BadRequestException(
+            `No hay suficientes baños disponibles. Se necesitan ${toiletsNeeded} adicionales, pero solo hay ${filteredToilets.length}`,
+          );
+        }
+      }
+    } catch (error) {
+      // Re-throw BadRequestException, or convert other errors
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
+      throw new BadRequestException(
+        `Error al verificar disponibilidad de recursos: ${errorMessage}`,
+      );
+    }
   }
 }

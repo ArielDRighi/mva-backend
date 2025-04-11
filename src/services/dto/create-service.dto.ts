@@ -37,7 +37,7 @@ export class CreateServiceDto {
 
   @IsOptional()
   @IsEnum(ServiceState)
-  estado?: ServiceState = ServiceState.PENDIENTE_RECURSOS;
+  estado?: ServiceState = ServiceState.PROGRAMADO;
 
   @IsNumber()
   @Min(1, { message: 'La cantidad de baños debe ser al menos 1' })
