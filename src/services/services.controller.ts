@@ -10,6 +10,7 @@ import {
   ParseIntPipe,
   UseGuards,
   Patch,
+  BadRequestException,
 } from '@nestjs/common';
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto/create-service.dto';
@@ -21,6 +22,7 @@ import { RolesGuard } from '../roles/guards/roles.guard';
 import { Roles } from '../roles/decorators/roles.decorator';
 import { Role } from '../roles/enums/role.enum';
 import { ServiceState } from '../common/enums/resource-states.enum';
+import { ChangeServiceStatusDto } from './dto/change-service-status.dto';
 
 @Controller('services')
 @UseGuards(JwtAuthGuard)
@@ -55,7 +57,7 @@ export class ServicesController {
 
   @Get('pending')
   findPending(): Promise<Service[]> {
-    return this.servicesService.findByStatus(ServiceState.PENDIENTE_RECURSOS);
+    return this.servicesService.findByStatus(ServiceState.SUSPENDIDO);
   }
 
   @Get('in-progress')
@@ -89,10 +91,15 @@ export class ServicesController {
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
   @Patch(':id/estado')
-  changeStatus(
+  async changeStatus(
     @Param('id', ParseIntPipe) id: number,
-    @Body('estado') estado: ServiceState,
+    @Body() statusDto: ChangeServiceStatusDto,
   ): Promise<Service> {
-    return this.servicesService.changeStatus(id, estado);
+    // Validar que el estado es válido
+    if (!Object.values(ServiceState).includes(statusDto.estado)) {
+      throw new BadRequestException(`Estado inválido: ${statusDto.estado}`);
+    }
+
+    return this.servicesService.changeStatus(id, statusDto.estado);
   }
 }
