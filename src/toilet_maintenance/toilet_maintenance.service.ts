@@ -75,6 +75,26 @@ export class ToiletMaintenanceService {
       estado: ResourceState.DISPONIBLE,
     });
 
+    // AÑADIR ESTAS LÍNEAS: Actualizar el estado del baño en el objeto en memoria también
+    if (maintenance.toilet) {
+      maintenance.toilet.estado = ResourceState.DISPONIBLE.toString();
+    } else {
+      // Si maintenance.toilet no está cargado, obtener el baño actualizado
+      if (maintenance.toilet) {
+        // Asegurarnos que toilet es del tipo ChemicalToilet y tiene baño_id
+        const toilet = maintenance.toilet as ChemicalToilet;
+        const toiletId = toilet.baño_id;
+        if (toiletId) {
+          const updatedToilet = await this.toiletsRepository.findOne({
+            where: { baño_id: toiletId },
+          });
+          if (updatedToilet) {
+            maintenance.toilet = updatedToilet;
+          }
+        }
+      }
+    }
+
     return this.maintenanceRepository.save(maintenance);
   }
 
