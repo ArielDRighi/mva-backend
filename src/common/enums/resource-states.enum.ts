@@ -1,0 +1,33 @@
+export enum ResourceState {
+  // Estados comunes
+  DISPONIBLE = 'DISPONIBLE',
+  ASIGNADO = 'ASIGNADO',
+  EN_MANTENIMIENTO = 'EN_MANTENIMIENTO',
+  FUERA_DE_SERVICIO = 'FUERA_DE_SERVICIO',
+  BAJA = 'BAJA',
+
+  // Estados específicos para empleados
+  VACACIONES = 'VACACIONES',
+  LICENCIA = 'LICENCIA',
+  INACTIVO = 'INACTIVO',
+
+  // Estados específicos para recursos
+  RESERVADO = 'RESERVADO',
+}
+
+export enum ServiceState {
+  PROGRAMADO = 'PROGRAMADO',
+  EN_PROGRESO = 'EN_PROGRESO',
+  COMPLETADO = 'COMPLETADO',
+  CANCELADO = 'CANCELADO',
+  SUSPENDIDO = 'SUSPENDIDO',
+}
+
+export enum ServiceType {
+  INSTALACION = 'INSTALACION',
+  RETIRO = 'RETIRO',
+  LIMPIEZA = 'LIMPIEZA',
+  MANTENIMIENTO = 'MANTENIMIENTO',
+  REPARACION = 'REPARACION',
+  REUBICACION = 'REUBICACION',
+}

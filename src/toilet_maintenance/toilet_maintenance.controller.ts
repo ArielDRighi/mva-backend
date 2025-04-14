@@ -9,6 +9,7 @@ import {
   Query,
   ParseIntPipe,
   UseGuards,
+  Patch,
 } from '@nestjs/common';
 import { ToiletMaintenanceService } from './toilet_maintenance.service';
 import { CreateToiletMaintenanceDto } from './dto/create_toilet_maintenance.dto';
@@ -80,5 +81,14 @@ export class ToiletMaintenanceController {
     @Param('id', ParseIntPipe) maintenanceId: number,
   ): Promise<void> {
     return this.maintenanceService.delete(maintenanceId);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Patch(':id/complete')
+  async completeMaintenace(
+    @Param('id', ParseIntPipe) maintenanceId: number,
+  ): Promise<ToiletMaintenance> {
+    return this.maintenanceService.completeMaintenace(maintenanceId);
   }
 }

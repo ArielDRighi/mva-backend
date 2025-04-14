@@ -5,6 +5,7 @@ import { FilterChemicalToiletDto } from './dto/filter_chemical_toilet.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ChemicalToilet } from './entities/chemical_toilet.entity';
 import { Repository } from 'typeorm';
+import { ResourceState } from '../common/enums/resource-states.enum';
 
 @Injectable()
 export class ChemicalToiletsService {
@@ -61,6 +62,12 @@ export class ChemicalToiletsService {
     }
 
     return await query.getMany();
+  }
+
+  async findAllByState(estado: ResourceState): Promise<ChemicalToilet[]> {
+    return this.chemicalToiletRepository.find({
+      where: { estado },
+    });
   }
 
   async findById(id: number): Promise<ChemicalToilet> {

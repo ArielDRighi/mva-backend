@@ -19,6 +19,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../roles/guards/roles.guard';
 import { Roles } from '../roles/decorators/roles.decorator';
 import { Role } from '../roles/enums/role.enum';
+import { ResourceState } from '../common/enums/resource-states.enum';
 
 @Controller('vehicles')
 @UseGuards(JwtAuthGuard)
@@ -35,7 +36,7 @@ export class VehiclesController {
   @Get()
   findAll(@Query('estado') estado?: string): Promise<Vehicle[]> {
     if (estado) {
-      return this.vehiclesService.findByEstado(estado);
+      return this.vehiclesService.findByEstado(estado as ResourceState);
     }
     return this.vehiclesService.findAll();
   }
