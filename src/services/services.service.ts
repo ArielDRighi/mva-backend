@@ -127,8 +127,8 @@ for (const empleadoId in asignacionesPorEmpleado) {
   if (!empleado || !empleado.email) continue;
 
   // Obtener datos únicos
-  const vehicle = asignacionesEmpleado[0].vehiculo?.patente || 'No asignado';
-  const toilets = asignacionesEmpleado.map(a => a.bano?.codigo || 'Baño sin código');
+  const vehicle = asignacionesEmpleado[0].vehiculo?.placa || 'No asignado';
+  const toilets = asignacionesEmpleado.map(a => a.bano?.codigo_interno || 'Baño sin código');
   const clients = [asignacionesEmpleado[0].servicio.cliente.nombre]; // mismo cliente para el servicio
 
   await sendRoute(
