@@ -1,5 +1,6 @@
 import * as dotenv from 'dotenv';
-import nodemailer from 'nodemailer'; // Usamos import ya que es mejor para TypeScript
+import * as nodemailer from 'nodemailer';
+ // Usamos import ya que es mejor para TypeScript
 dotenv.config({
   path: '.env', // Cargar las variables de entorno desde el archivo .env
 });
