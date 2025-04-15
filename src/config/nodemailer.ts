@@ -36,7 +36,7 @@ function generateEmailContent(title: string, body: string): string {
         ${body}
       </div>
       <div style="background-color: #f4f4f4; color: #777; padding: 10px; text-align: center; font-size: 14px;">
-        <p style="margin: 0;">© 2024 Eventop. Todos los derechos reservados.</p>
+        <p style="margin: 0;">© 2025 MVA SRL. Todos los derechos reservados.</p>
       </div>
     </div>
   `);
