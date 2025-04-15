@@ -144,6 +144,50 @@ export const sendRouteModified = async (
     console.error(`Error al enviar el correo de modificaciones a ${email}`, error);
   }
 };
+export const sendInProgressNotification = async (
+  adminsEmails: string[],
+  supervisorsEmails: string[],
+  employeeName: string,
+  taskDetails: {
+    client: string;
+    vehicle: string;
+    serviceType: string;
+    toilets: string[];
+    taskDate: string;
+  }
+): Promise<void> => {
+  const subject = '🚚 ¡El trabajo asignado ha comenzado!';
+
+  const body = `
+    <p style="font-size: 16px;">¡Hola!</p>
+    <p style="font-size: 16px;">El trabajo asignado a <strong>${employeeName}</strong> ha <strong>comenzado</strong> según lo programado.</p>
+    <p style="font-size: 16px;">Aquí están los detalles de la tarea en curso:</p>
+    <ul>
+      <li><strong>Cliente:</strong> ${taskDetails.client}</li>
+      <li><strong>Vehículo utilizado:</strong> ${taskDetails.vehicle}</li>
+      <li><strong>Tipo de servicio:</strong> ${taskDetails.serviceType}</li>
+      <li><strong>Baños asignados:</strong> ${taskDetails.toilets.join(', ')}</li>
+      <li><strong>Fecha de inicio:</strong> ${taskDetails.taskDate}</li>
+    </ul>
+    <p style="font-size: 16px;">Este mensaje es solo informativo. Gracias por tu atención.</p>
+  `;
+
+  const htmlContent = generateEmailContent('¡Tarea en curso!', body);
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: [...adminsEmails, ...supervisorsEmails],
+    subject,
+    html: htmlContent,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log('📨 Correo de tarea en progreso enviado');
+  } catch (error) {
+    console.error('❌ Error al enviar el correo de tarea en progreso', error);
+  }
+};
 
 // En tu archivo de configuración de nodemailer
 
@@ -188,4 +232,5 @@ export const sendCompletionNotification = async (
   } catch (error) {
     console.error('Error al enviar el correo de notificación de tarea completada', error);
   }
+  
 };

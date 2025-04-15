@@ -27,7 +27,7 @@ import { Vehicle } from '../vehicles/entities/vehicle.entity';
 import { ChemicalToilet } from '../chemical_toilets/entities/chemical_toilet.entity';
 import { VehicleMaintenanceService } from '../vehicle_maintenance/vehicle_maintenance.service';
 import { ToiletMaintenanceService } from '../toilet_maintenance/toilet_maintenance.service';
-import { sendCompletionNotification, sendRoute, sendRouteModified } from 'src/config/nodemailer';
+import { sendCompletionNotification, sendInProgressNotification, sendRoute, sendRouteModified } from 'src/config/nodemailer';
 import { groupBy } from 'lodash';
 
 
@@ -236,11 +236,16 @@ for (const empleadoId in asignacionesPorEmpleado) {
   ): Promise<Service> {
     this.logger.log(`Actualizando servicio con id: ${id}`);
   
-    // Obtener el servicio original
     const service = await this.findOne(id);
+  
+    // Verificar si el servicio tiene el tipoServicio correctamente cargado
+    if (!service.tipoServicio) {
+      this.logger.warn(`El servicio con ID ${id} no tiene un tipo de servicio definido.`);
+    }
+  
     const updatedService = { ...service };
   
-    // Asegurarse de que la fecha es válida
+    // Validar y asignar fecha programada
     let fechaProgramada: Date;
     if (updateServiceDto.fechaProgramada) {
       fechaProgramada = new Date(updateServiceDto.fechaProgramada);
@@ -252,7 +257,7 @@ for (const empleadoId in asignacionesPorEmpleado) {
       throw new BadRequestException('La fecha programada no es válida');
     }
   
-    // Evitar modificaciones si está en estado finalizado
+    // No permitir modificar servicios ya finalizados, completados o cancelados
     if (
       service.estado === ServiceState.EN_PROGRESO ||
       service.estado === ServiceState.COMPLETADO ||
@@ -263,106 +268,80 @@ for (const empleadoId in asignacionesPorEmpleado) {
       );
     }
   
-    // Verificar si hay cambios que requieren reasignación
-    const needsResourceReassignment =
-      (updateServiceDto.asignacionAutomatica !== undefined &&
-        updateServiceDto.asignacionAutomatica !== service.asignacionAutomatica) ||
-      (updateServiceDto.cantidadBanos !== undefined &&
-        updateServiceDto.cantidadBanos !== service.cantidadBanos) ||
-      (updateServiceDto.cantidadEmpleados !== undefined &&
-        updateServiceDto.cantidadEmpleados !== service.cantidadEmpleados) ||
-      (updateServiceDto.cantidadVehiculos !== undefined &&
-        updateServiceDto.cantidadVehiculos !== service.cantidadVehiculos);
-  
-    // Verificar si la fecha programada cambió
-    const fechaProgramadaCambiada =
-      new Date(service.fechaProgramada).getTime() !== fechaProgramada.getTime();
-  
-    const rutaModificada = needsResourceReassignment || fechaProgramadaCambiada;
-  
-    // Validar disponibilidad de recursos si se requiere
-    if (needsResourceReassignment) {
-      if (updatedService.asignacionAutomatica) {
-        await this.verifyResourcesAvailability(updatedService, true, service);
-      } else if (!updateServiceDto.asignacionesManual?.length) {
-        throw new BadRequestException(
-          'Se requieren asignaciones manuales cuando asignacionAutomatica es false',
-        );
-      }
-  
-      // Guardar IDs de asignaciones anteriores
-      const assignmentIds = service.asignaciones
-        ? service.asignaciones.map((a) => a.id)
-        : [];
-  
-      // Liberar recursos si cambió el modo de asignación
-      if (
-        updateServiceDto.asignacionAutomatica !== undefined &&
-        updateServiceDto.asignacionAutomatica !== service.asignacionAutomatica
-      ) {
-        await this.releaseAssignedResources(service);
-  
-        if (assignmentIds.length > 0) {
-          await this.assignmentRepository.delete(assignmentIds);
-          service.asignaciones = [];
-        }
-      }
-    }
-  
-    // Guardar los cambios del servicio
-    Object.assign(service, updateServiceDto);
+    // Guardar el servicio actualizado
+    Object.assign(service, {
+      ...service,
+      ...updateServiceDto,
+      tipoServicio: updateServiceDto.tipoServicio ?? service.tipoServicio,
+      estado: updateServiceDto.estado ?? service.estado,
+      clienteId: updateServiceDto.clienteId ?? service.clienteId,
+    });
     service.fechaProgramada = fechaProgramada;
   
     const savedService = await this.serviceRepository.save(service);
   
-    // Reasignar recursos si fue necesario
-    if (needsResourceReassignment) {
-      if (savedService.asignacionAutomatica) {
-        await this.assignResourcesAutomatically(savedService, true);
-      } else if (updateServiceDto.asignacionesManual?.length) {
-        await this.assignResourcesManually(
-          savedService.id,
-          updateServiceDto.asignacionesManual,
-        );
-      }
+    // Log para verificar los datos del servicio actualizado
+    this.logger.log(`Servicio actualizado: ${JSON.stringify(savedService)}`);
+  
+    // Reasignar recursos si es necesario
+    if (updateServiceDto.asignacionAutomatica) {
+      await this.assignResourcesAutomatically(savedService, true);
+    } else if (updateServiceDto.asignacionesManual?.length) {
+      await this.assignResourcesManually(savedService.id, updateServiceDto.asignacionesManual);
     }
   
-    // 👉 Enviar notificación si se modificó la ruta o la fecha
-    if (rutaModificada) {
-      const nuevasAsignaciones = await this.assignmentRepository.find({
-        where: { servicioId: savedService.id },
-        relations: ['empleado', 'vehiculo', 'bano', 'servicio', 'servicio.cliente'],
-      });
+    // 👉 Enviar correo si la ruta fue modificada
+    const rutaModificada = updateServiceDto.asignacionAutomatica || updateServiceDto.cantidadBanos || updateServiceDto.cantidadEmpleados || updateServiceDto.cantidadVehiculos;
   
-      const asignacionesPorEmpleado = groupBy(nuevasAsignaciones, (a) => a.empleado?.id);
+    if (rutaModificada) {
+      this.logger.log("Enviando correo debido a la modificación de ruta...");
+  
+      // Obtener las asignaciones del servicio guardado
+      const asignaciones = savedService.asignaciones || [];
+      const asignacionesPorEmpleado = groupBy(asignaciones, (a) => a.empleado?.id);
   
       for (const empleadoId in asignacionesPorEmpleado) {
         const asignacionesEmpleado = asignacionesPorEmpleado[empleadoId];
         const empleado = asignacionesEmpleado[0].empleado;
   
-        if (!empleado || !empleado.email) continue;
+        if (!empleado || !empleado.email) {
+          this.logger.warn(`Empleado sin email o indefinido: ${empleado?.id}`);
+          continue;
+        }
   
-        const vehicle = asignacionesEmpleado[0].vehiculo?.patente || 'No asignado';
-        const toilets = asignacionesEmpleado.map(a => a.bano?.codigo || 'Baño sin código');
-        const clients = [asignacionesEmpleado[0].servicio.cliente.nombre];
-  
-        await sendRouteModified(
-          empleado.email,
-          empleado.nombre,
-          vehicle,
-          toilets,
-          clients,
-          savedService.tipoServicio,
-          savedService.fechaProgramada.toLocaleDateString('es-CL')
+        const vehicle = asignacionesEmpleado[0].vehiculo?.placa || 'No asignado';
+        const toilets = asignacionesEmpleado.map(
+          (a) => a.bano?.codigo_interno || 'Baño sin código',
         );
+        const clients = [savedService.cliente?.nombre || 'Cliente desconocido'];
   
-        this.logger.log(`Se notificó modificación de ruta a: ${empleado.email}`);
+        // Log para verificar el tipo de servicio
+        this.logger.log(`Tipo de servicio: ${savedService.tipoServicio}`);
+  
+        try {
+          await sendRouteModified(
+            empleado.email,
+            empleado.nombre,
+            vehicle,
+            toilets,
+            clients,
+            savedService.tipoServicio || 'Tipo de servicio no definido',
+            savedService.fechaProgramada.toLocaleDateString('es-CL'),
+          );
+          this.logger.log(`Correo enviado a ${empleado.email}`);
+        } catch (error) {
+          this.logger.error(`Error enviando correo a ${empleado.email}: ${error.message}`);
+        }
       }
+    } else {
+      this.logger.log("No se envió correo, ruta no modificada.");
     }
   
-    // Retornar servicio actualizado
     return this.findOne(savedService.id);
   }
+  
+  
+  
   
   async remove(id: number): Promise<void> {
     this.logger.log(`Eliminando servicio con id: ${id}`);
@@ -386,10 +365,10 @@ for (const empleadoId in asignacionesPorEmpleado) {
   
     const service = await this.findOne(id);
   
-    // Validar la transición de estado
+    // Validar transición de estado
     this.validateStatusTransition(service.estado, nuevoEstado);
   
-    // Actualizar fechas si corresponde
+    // Actualizar fechas
     if (nuevoEstado === ServiceState.EN_PROGRESO && !service.fechaInicio) {
       service.fechaInicio = new Date();
     }
@@ -406,12 +385,12 @@ for (const empleadoId in asignacionesPorEmpleado) {
       await this.releaseAssignedResources(service);
     }
   
-    // Actualizar el estado
+    // Guardar estado actualizado
     service.estado = nuevoEstado;
     const savedService = await this.serviceRepository.save(service);
   
-    // 👉 Notificar si el estado es COMPLETADO
-    if (nuevoEstado === ServiceState.COMPLETADO) {
+    // 👉 Enviar mail si pasa a EN_PROGRESO o COMPLETADO
+    if (nuevoEstado === ServiceState.EN_PROGRESO || nuevoEstado === ServiceState.COMPLETADO) {
       const asignaciones = await this.assignmentRepository.find({
         where: { servicioId: savedService.id },
         relations: ['empleado', 'vehiculo', 'bano', 'servicio', 'servicio.cliente'],
@@ -419,8 +398,7 @@ for (const empleadoId in asignacionesPorEmpleado) {
   
       const asignacionesPorEmpleado = groupBy(asignaciones, a => a.empleado?.id);
   
-      // TODO: Obtén los correos reales de administradores y supervisores
-      const adminsEmails = ['admin1@empresa.com', 'admin2@empresa.com'];
+      const adminsEmails = ['admin1@empresa.com', 'admin2@empresa.com', 'federicovanni@hotmail.com'];
       const supervisorsEmails = ['supervisor1@empresa.com'];
   
       for (const empleadoId in asignacionesPorEmpleado) {
@@ -429,30 +407,51 @@ for (const empleadoId in asignacionesPorEmpleado) {
   
         if (!empleado) continue;
   
-        const vehicle = asignacionesEmpleado[0].vehiculo?.patente || 'No asignado';
-        const toilets = asignacionesEmpleado.map(a => a.bano?.codigo || 'Baño sin código');
-        const client = asignacionesEmpleado[0].servicio.cliente.nombre;
-        const taskDate = savedService.fechaFin
-  ? new Date(savedService.fechaFin).toLocaleDateString('es-CL')
-  : 'Fecha no disponible';
-  
-        await sendCompletionNotification(
-          adminsEmails,
-          supervisorsEmails,
-          empleado.nombre,
-          {
-            client,
-            vehicle,
-            serviceType: savedService.tipoServicio,
-            toilets,
-            taskDate
-          }
+        const vehicle = asignacionesEmpleado[0].vehiculo?.placa || 'No asignado';
+        const toilets = asignacionesEmpleado.map(
+          a => a.bano?.codigo_interno || 'Baño sin código'
         );
+        const client = asignacionesEmpleado[0].servicio?.cliente?.nombre || 'Cliente no definido';
+        const taskDate = (nuevoEstado === ServiceState.EN_PROGRESO
+          ? savedService.fechaInicio
+          : savedService.fechaFin)?.toLocaleDateString('es-CL') || 'Fecha no disponible';
+  
+  
+        // Aquí enviamos el correo de "tarea en curso" si el estado es EN_PROGRESO
+        if (nuevoEstado === ServiceState.EN_PROGRESO) {
+          await sendInProgressNotification(
+            adminsEmails,
+            supervisorsEmails,
+            empleado.nombre,
+            {
+              client,
+              vehicle,
+              serviceType: savedService.tipoServicio,
+              toilets,
+              taskDate
+            }
+          );
+        } else if (nuevoEstado === ServiceState.COMPLETADO) {
+          await sendCompletionNotification(
+            adminsEmails,
+            supervisorsEmails,
+            empleado.nombre,
+            {
+              client,
+              vehicle,
+              serviceType: savedService.tipoServicio,
+              toilets,
+              taskDate
+            }
+          );
+        }
       }
     }
   
     return savedService;
   }
+  
+  
   
 
   private async assignResourcesAutomatically(
