@@ -27,4 +27,10 @@ export class ToiletMaintenance {
 
   @ManyToOne(() => ChemicalToilet, (toilet) => toilet.maintenances)
   toilet: ChemicalToilet;
+
+  @Column({ name: 'completado', default: false })
+  completado: boolean;
+
+  @Column({ name: 'fecha_completado', type: 'timestamp', nullable: true })
+  fechaCompletado: Date;
 }

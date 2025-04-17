@@ -9,6 +9,7 @@ import { Repository } from 'typeorm';
 import { Vehicle } from './entities/vehicle.entity';
 import { CreateVehicleDto } from './dto/create_vehicle.dto';
 import { UpdateVehicleDto } from './dto/update_vehicle.dto';
+import { ResourceState } from '../common/enums/resource-states.enum';
 
 @Injectable()
 export class VehiclesService {
@@ -106,7 +107,7 @@ export class VehiclesService {
     return this.vehicleRepository.save(vehicle);
   }
 
-  async findByEstado(estado: string): Promise<Vehicle[]> {
+  async findByEstado(estado: ResourceState): Promise<Vehicle[]> {
     this.logger.log(`Buscando vehículos con estado: ${estado}`);
     return this.vehicleRepository.find({
       where: { estado },

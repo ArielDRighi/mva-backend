@@ -7,7 +7,7 @@ import {
 } from 'typeorm';
 import { Vehicle } from '../../vehicles/entities/vehicle.entity';
 
-@Entity({ name: 'vehicle-maintenance' })
+@Entity({ name: 'vehicle_maintenance' }) // Corregido el nombre de la tabla
 export class VehicleMaintenanceRecord {
   @PrimaryGeneratedColumn({ name: 'mantenimiento_id' })
   id: number;
@@ -33,4 +33,10 @@ export class VehicleMaintenanceRecord {
   @ManyToOne(() => Vehicle, (vehicle) => vehicle.maintenanceRecords)
   @JoinColumn({ name: 'vehiculo_id' })
   vehicle: Vehicle;
+
+  @Column({ name: 'completado', default: false })
+  completado: boolean;
+
+  @Column({ name: 'fecha_completado', type: 'timestamp', nullable: true })
+  fechaCompletado: Date;
 }

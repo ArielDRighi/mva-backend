@@ -13,6 +13,9 @@ import { ToiletMaintenanceModule } from './toilet_maintenance/toilet_maintenance
 import { VehiclesModule } from './vehicles/vehicles.module';
 import { VehicleMaintenanceModule } from './vehicle_maintenance/vehicle_maintenance.module';
 import { ContractualConditionsModule } from './contractual_conditions/contractual_conditions.module';
+import { EmployeesModule } from './employees/employees.module';
+import { ServicesModule } from './services/services.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -32,6 +35,9 @@ import { ContractualConditionsModule } from './contractual_conditions/contractua
     VehiclesModule,
     VehicleMaintenanceModule,
     ContractualConditionsModule,
+    EmployeesModule,
+    ServicesModule,
+    ScheduleModule.forRoot(),
   ],
   controllers: [AppController],
   providers: [AppService],
