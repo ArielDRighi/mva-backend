@@ -147,7 +147,7 @@ export class ClientsPortalService {
         formData.cuit,
         formData.rubroEmpresa,
         formData.zonaDireccion,
-        formData.cantidadBanos,
+        formData.cantidadBaños,
         formData.tipoEvento,
         formData.duracionAlquiler,
         formData.comentarios,

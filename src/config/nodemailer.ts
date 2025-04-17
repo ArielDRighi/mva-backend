@@ -350,7 +350,7 @@ export const sendServiceNotification = async (
   cuit: string,
   rubroEmpresa: string,
   zonaDireccion: string,
-  cantidadBanios: string,
+  cantidadBaños: string,
   tipoEvento: string,
   duracionAlquiler: string,
   comentarios: string,
@@ -376,7 +376,7 @@ export const sendServiceNotification = async (
     </ul>
     <p style="font-size: 16px;">Detalles del servicio:</p>
     <ul>
-      <li><strong>Cantidad de baños:</strong> ${cantidadBanios}</li>
+      <li><strong>Cantidad de baños:</strong> ${cantidadBaños}</li>
       <li><strong>Tipo de evento:</strong> ${tipoEvento}</li>
       <li><strong>Duración del alquiler:</strong> ${duracionAlquiler}</li>
       <li><strong>Comentarios:</strong> ${comentarios}</li>

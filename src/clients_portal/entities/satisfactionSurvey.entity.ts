@@ -11,7 +11,7 @@ export class SatisfactionSurvey {
   encuesta_id: number;
 
   @Column({ name: 'cliente' })
-  Cliente: string;
+  cliente: string;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

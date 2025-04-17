@@ -16,6 +16,7 @@ import { ContractualConditionsModule } from './contractual_conditions/contractua
 import { EmployeesModule } from './employees/employees.module';
 import { ServicesModule } from './services/services.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ClientsPortalModule } from './clients_portal/clientsPortal.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     EmployeesModule,
     ServicesModule,
     ScheduleModule.forRoot(),
+    ClientsPortalModule,
   ],
   controllers: [AppController],
   providers: [AppService],

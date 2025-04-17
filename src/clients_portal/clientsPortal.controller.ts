@@ -19,7 +19,7 @@ import { CreateClaimDto } from './dto/createClaim.dto';
 import { CreateSatisfactionSurveyDto } from './dto/createSatisfactionSurvey.dto';
 import { AskForServiceDto } from './dto/askForService.dto';
 
-@Controller('clients-portal')
+@Controller('clients_portal')
 @UseGuards(JwtAuthGuard)
 export class ClientsPortalController {
   constructor(private readonly clientsPortalService: ClientsPortalService) {}
@@ -102,6 +102,7 @@ export class ClientsPortalController {
     @Body() surveyData: CreateSatisfactionSurveyDto,
   ) {
     try {
+      console.log('Creating satisfaction survey:', surveyData);
       return await this.clientsPortalService.createSatisfactionSurvey(
         surveyData,
       );

@@ -48,7 +48,7 @@ export class AskForServiceDto {
 
   @IsOptional()
   @IsEnum(BathroomQuantity, { message: 'La cantidad debe ser 1-5, 5-10 o +10' })
-  cantidadBanos: BathroomQuantity;
+  cantidadBaños: BathroomQuantity;
 
   @IsOptional()
   @IsString()
