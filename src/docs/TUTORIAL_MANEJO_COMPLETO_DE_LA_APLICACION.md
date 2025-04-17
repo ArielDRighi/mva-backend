@@ -23,6 +23,11 @@
 8. Gestión de Informes
 9. Resolución de Problemas Comunes
 10. Mejores Prácticas
+11. Programación de Agenda Extendida
+    - 11.1 Asignación Múltiple de Recursos
+    - 11.2 Cómo Utilizar esta Funcionalidad
+    - 11.3 Consideraciones Importantes
+    - 11.4 Ejemplos Prácticos
 
 ## 1. Preparación del Entorno
 
@@ -755,7 +760,208 @@ Si no puedes cambiar el estado de un servicio a COMPLETADO:
 1. **Preferir la asignación automática** para servicios estándar.
 2. **Usar asignación manual** para casos especiales o recursos específicos.
 3. **Verificar las asignaciones después de crearlas** para confirmar que sean adecuadas.
+4. **Utilizar la asignación múltiple de recursos** para optimizar la planificación de servicios en la misma fecha.
+
+## 11. Programación de Agenda Extendida
+
+### 11.1 Asignación Múltiple de Recursos
+
+A partir de ahora, el sistema permite asignar empleados y vehículos que tengan el estado "ASIGNADO" a múltiples servicios programados para la misma fecha o para fechas futuras. Esta funcionalidad facilita la planificación de agendas extendidas.
+
+#### Comportamiento
+
+- Los empleados y vehículos pueden estar asignados a múltiples servicios en la misma fecha.
+- Los recursos cambiarán al estado "ASIGNADO" únicamente cuando pasen de "DISPONIBLE" a "ASIGNADO".
+- Si ya están en estado "ASIGNADO", mantendrán ese estado al asignarlos a un nuevo servicio.
+- El estado "ASIGNADO" indica que el recurso está siendo utilizado en al menos un servicio activo.
+- Cuando se completan o cancelan todos los servicios asociados a un recurso, éste volverá al estado "DISPONIBLE".
+- **Importante**: Los baños químicos siguen requiriendo el estado "DISPONIBLE" para ser asignados a un servicio.
+
+#### Casos de Uso
+
+Esta funcionalidad es especialmente útil para:
+
+1. **Planificación de jornadas completas**: Asignar a un mismo empleado y vehículo varios servicios a realizar durante el mismo día.
+2. **Optimización de recursos**: Maximizar la utilización de los recursos disponibles.
+3. **Agendamiento secuencial**: Programar con anticipación una serie de servicios que utilizarán los mismos recursos.
+
+### 11.2 Cómo Utilizar esta Funcionalidad
+
+#### Asignación Manual de Recursos
+
+Para asignar manualmente recursos que ya están asignados a otros servicios:
+
+1. Al crear o actualizar un servicio, establezca `asignacionAutomatica: false`.
+2. En el campo `asignacionesManual`, incluya los IDs de los recursos que desea asignar:
+
+```json
+{
+  "asignacionAutomatica": false,
+  "asignacionesManual": [
+    {
+      "empleadoId": 1,
+      "vehiculoId": 2,
+      "banosIds": [3]
+    }
+  ]
+}
+```
+
+3. El sistema verificará que:
+   - Los empleados y vehículos especificados estén en estado "DISPONIBLE" o "ASIGNADO".
+   - Los baños especificados estén en estado "DISPONIBLE".
+
+#### Asignación Automática de Recursos
+
+Cuando se utiliza la asignación automática, el sistema:
+
+1. Buscará recursos disponibles, incluyendo aquellos con estado "ASIGNADO".
+2. Intentará distribuir los recursos de manera óptima.
+3. Cambiará el estado de los recursos que estén "DISPONIBLE" a "ASIGNADO".
+4. Mantendrá el estado de los recursos que ya estén "ASIGNADO".
+
+#### Verificación de Disponibilidad
+
+Para verificar qué recursos están disponibles para una fecha específica:
+
+1. Consulte los endpoints de empleados, vehículos y baños químicos.
+2. Filtre por estado "DISPONIBLE" o "ASIGNADO" para empleados y vehículos.
+3. Filtre por estado "DISPONIBLE" para baños químicos.
+
+### 11.3 Consideraciones Importantes
+
+- El sistema no considera las horas de los servicios, solo las fechas, por lo que debe planificar adecuadamente para evitar conflictos de horarios.
+- Cuando un servicio se completa o cancela, los recursos asociados se liberan (cambian a "DISPONIBLE") solo si no están asignados a otros servicios activos.
+- Los mantenimientos programados para vehículos y baños químicos son respetados, independientemente del estado actual del recurso.
+
+### 11.4 Ejemplos Prácticos
+
+#### Ejemplo 1: Creación de múltiples servicios para la misma fecha con los mismos recursos
+
+1. **Crear el primer servicio**:
+
+```http
+POST /api/services
+Content-Type: application/json
+
+{
+  "clienteId": 1,
+  "fechaProgramada": "2025-06-10T08:00:00.000Z",
+  "tipoServicio": "INSTALACION",
+  "cantidadBanos": 2,
+  "cantidadEmpleados": 1,
+  "cantidadVehiculos": 1,
+  "ubicacion": "Av. Libertador 1500",
+  "asignacionAutomatica": true
+}
+```
+
+2. **Crear un segundo servicio para la misma fecha usando los mismos empleados y vehículos**:
+
+```http
+POST /api/services
+Content-Type: application/json
+
+{
+  "clienteId": 2,
+  "fechaProgramada": "2025-06-10T14:00:00.000Z",
+  "tipoServicio": "INSTALACION",
+  "cantidadBanos": 1,
+  "cantidadEmpleados": 1,
+  "cantidadVehiculos": 1,
+  "ubicacion": "Av. Callao 500",
+  "asignacionAutomatica": false,
+  "asignacionesManual": [
+    {
+      "empleadoId": 1,
+      "vehiculoId": 1,
+      "banosIds": [3]
+    }
+  ]
+}
+```
+
+#### Ejemplo 2: Verificación de la disponibilidad de recursos asignados
+
+Para comprobar que un empleado o vehículo ya asignado puede ser asignado a un nuevo servicio:
+
+```http
+GET /api/employees/1
+```
+
+Si el estado es "ASIGNADO", aún puede ser utilizado en otro servicio:
+
+```http
+POST /api/services
+Content-Type: application/json
+
+{
+  "clienteId": 3,
+  "fechaProgramada": "2025-06-11T10:00:00.000Z",
+  "tipoServicio": "LIMPIEZA",
+  "cantidadBanos": 1,
+  "cantidadEmpleados": 1,
+  "cantidadVehiculos": 1,
+  "ubicacion": "Av. Santa Fe 2000",
+  "asignacionAutomatica": false,
+  "asignacionesManual": [
+    {
+      "empleadoId": 1,
+      "vehiculoId": 2,
+      "banosIds": [4]
+    }
+  ]
+}
+```
+
+#### Ejemplo 3: Programar una agenda semanal para un equipo
+
+Se puede planificar toda una semana de trabajo para un mismo equipo (empleado + vehículo), garantizando la continuidad:
+
+```http
+# Día 1 - Lunes
+POST /api/services
+Content-Type: application/json
+
+{
+  "clienteId": 1,
+  "fechaProgramada": "2025-06-15T09:00:00.000Z",
+  "tipoServicio": "INSTALACION",
+  "cantidadBanos": 2,
+  "cantidadEmpleados": 1,
+  "cantidadVehiculos": 1,
+  "asignacionAutomatica": true
+}
+
+# Día 2 - Martes (usando los mismos recursos del día anterior)
+POST /api/services
+Content-Type: application/json
+
+{
+  "clienteId": 2,
+  "fechaProgramada": "2025-06-16T09:00:00.000Z",
+  "tipoServicio": "LIMPIEZA",
+  "cantidadBanos": 3,
+  "cantidadEmpleados": 1,
+  "cantidadVehiculos": 1,
+  "asignacionAutomatica": false,
+  "asignacionesManual": [
+    {
+      "empleadoId": 1,
+      "vehiculoId": 1,
+      "banosIds": [5, 6, 7]
+    }
+  ]
+}
+
+# Y así sucesivamente para el resto de la semana...
+```
 
 ---
 
-Con este tutorial completo, cualquier administrador del sistema MVA puede gestionar el ciclo completo de operaciones, desde la creación de recursos hasta la planificación y ejecución de servicios, incluyendo el mantenimiento preventivo y correctivo de la flota y equipos.
+Con este tutorial completo, cualquier administrador del sistema MVA puede gestionar el ciclo completo de operaciones, desde la creación de recursos hasta la planificación y ejecución de servicios, incluyendo la asignación múltiple de recursos para optimizar la agenda y el mantenimiento preventivo y correctivo de la flota y equipos.
+
+```
+
+Este documento ahora incluye una nueva sección (11. Programación de Agenda Extendida) que detalla la nueva funcionalidad de asignación múltiple de recursos, con ejemplos prácticos y casos de uso. También se ha actualizado la sección de Mejores Prácticas para incluir esta nueva funcionalidad.Este documento ahora incluye una nueva sección (11. Programación de Agenda Extendida) que detalla la nueva funcionalidad de asignación múltiple de recursos, con ejemplos prácticos y casos de uso. También se ha actualizado la sección de Mejores Prácticas para incluir esta nueva funcionalidad.
+```
