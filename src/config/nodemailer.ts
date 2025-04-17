@@ -1,6 +1,7 @@
 import * as dotenv from 'dotenv';
 import * as nodemailer from 'nodemailer';
- // Usamos import ya que es mejor para TypeScript
+import { PrioridadReclamo } from 'src/clients_portal/entities/claim.entity';
+// Usamos import ya que es mejor para TypeScript
 dotenv.config({
   path: '.env', // Cargar las variables de entorno desde el archivo .env
 });
@@ -50,10 +51,10 @@ export const sendRoute = async (
   toilets: string[],
   clients: string[],
   serviceType: string,
-  taskDate: string
+  taskDate: string,
 ): Promise<void> => {
   const subject = '🚚 ¡Nueva ruta de trabajo asignada!';
-  
+
   // Crear contenido del cuerpo del correo
   const body = `
     <p style="font-size: 16px;">¡Hola ${name}!</p>
@@ -64,18 +65,21 @@ export const sendRoute = async (
       <li><strong>Tipo de servicio:</strong> ${serviceType}</li>
       <li><strong>Baños a trasladar o mantener:</strong></li>
       <ul>
-        ${toilets.map(toilet => `<li>${toilet}</li>`).join('')}
+        ${toilets.map((toilet) => `<li>${toilet}</li>`).join('')}
       </ul>
       <li><strong>Clientes a visitar:</strong></li>
       <ul>
-        ${clients.map(client => `<li>${client}</li>`).join('')}
+        ${clients.map((client) => `<li>${client}</li>`).join('')}
       </ul>
     </ul>
     <p style="font-size: 16px;">¡Gracias por tu compromiso y buen trabajo!</p>
   `;
 
   // Generar contenido HTML para el correo
-  const htmlContent = generateEmailContent('¡Nueva ruta de trabajo asignada!', body);
+  const htmlContent = generateEmailContent(
+    '¡Nueva ruta de trabajo asignada!',
+    body,
+  );
 
   // Opciones del correo
   const mailOptions = {
@@ -101,7 +105,7 @@ export const sendRouteModified = async (
   toilets: string[],
   clients: string[],
   serviceType: string,
-  taskDate: string
+  taskDate: string,
 ): Promise<void> => {
   const subject = '🔔 ¡Tu ruta asignada sufrió modificaciones!';
 
@@ -115,18 +119,21 @@ export const sendRouteModified = async (
       <li><strong>Tipo de servicio:</strong> ${serviceType}</li>
       <li><strong>Baños a trasladar o mantener:</strong></li>
       <ul>
-        ${toilets.map(toilet => `<li>${toilet}</li>`).join('')}
+        ${toilets.map((toilet) => `<li>${toilet}</li>`).join('')}
       </ul>
       <li><strong>Clientes a visitar:</strong></li>
       <ul>
-        ${clients.map(client => `<li>${client}</li>`).join('')}
+        ${clients.map((client) => `<li>${client}</li>`).join('')}
       </ul>
     </ul>
     <p style="font-size: 16px;">Asegúrate de revisar los cambios y estar preparado para la nueva ruta. ¡Gracias por tu trabajo!</p>
   `;
 
   // Generar contenido HTML para el correo
-  const htmlContent = generateEmailContent('¡Tu ruta asignada sufrió modificaciones!', body);
+  const htmlContent = generateEmailContent(
+    '¡Tu ruta asignada sufrió modificaciones!',
+    body,
+  );
 
   // Opciones del correo
   const mailOptions = {
@@ -141,7 +148,10 @@ export const sendRouteModified = async (
     await transporter.sendMail(mailOptions);
     console.log(`Correo de modificaciones enviado a ${email}`);
   } catch (error) {
-    console.error(`Error al enviar el correo de modificaciones a ${email}`, error);
+    console.error(
+      `Error al enviar el correo de modificaciones a ${email}`,
+      error,
+    );
   }
 };
 export const sendInProgressNotification = async (
@@ -154,7 +164,7 @@ export const sendInProgressNotification = async (
     serviceType: string;
     toilets: string[];
     taskDate: string;
-  }
+  },
 ): Promise<void> => {
   const subject = '🚚 ¡El trabajo asignado ha comenzado!';
 
@@ -192,10 +202,10 @@ export const sendInProgressNotification = async (
 // En tu archivo de configuración de nodemailer
 
 export const sendCompletionNotification = async (
-  adminsEmails: string[],  // Lista de correos de administradores
-  supervisorsEmails: string[],  // Lista de correos de supervisores
-  employeeName: string,  // Nombre del empleado
-  taskDetails: any  // Detalles de la tarea realizada
+  adminsEmails: string[], // Lista de correos de administradores
+  supervisorsEmails: string[], // Lista de correos de supervisores
+  employeeName: string, // Nombre del empleado
+  taskDetails: any, // Detalles de la tarea realizada
 ): Promise<void> => {
   const subject = '✔️ ¡El trabajo asignado fue completado con éxito!';
 
@@ -215,12 +225,15 @@ export const sendCompletionNotification = async (
   `;
 
   // Generar contenido HTML para el correo
-  const htmlContent = generateEmailContent('¡Trabajo completado con éxito!', body);
+  const htmlContent = generateEmailContent(
+    '¡Trabajo completado con éxito!',
+    body,
+  );
 
   // Opciones del correo
   const mailOptions = {
     from: process.env.EMAIL_USER,
-    to: [...adminsEmails, ...supervisorsEmails],  // Correo para todos los admins y supervisores
+    to: [...adminsEmails, ...supervisorsEmails], // Correo para todos los admins y supervisores
     subject,
     html: htmlContent,
   };
@@ -230,7 +243,99 @@ export const sendCompletionNotification = async (
     await transporter.sendMail(mailOptions);
     console.log('Correo de notificación de tarea completada enviado');
   } catch (error) {
-    console.error('Error al enviar el correo de notificación de tarea completada', error);
+    console.error(
+      'Error al enviar el correo de notificación de tarea completada',
+      error,
+    );
   }
-  
+};
+
+export const sendClaimNotification = async (
+  adminsEmails: string[],
+  clientName: string,
+  claimTitle: string,
+  claimDescription: string,
+  claimType: string,
+  claimDate: string,
+): Promise<void> => {
+  const subject = '📝 ¡Nuevo reclamo recibido!';
+
+  const body = `
+    <p style="font-size: 16px;">¡Hola!</p>
+    <p style="font-size: 16px;">Se ha recibido un nuevo reclamo de <strong>${clientName}</strong>.</p>
+    <p style="font-size: 16px;">Detalles del reclamo:</p>
+    <ul>
+    <li><strong>Titulo:</strong> ${claimTitle}</li>
+      <li><strong>Tipo de reclamo:</strong> ${claimType}</li>
+      <li><strong>Descripción:</strong> ${claimDescription}</li>
+      <li><strong>Fecha del reclamo:</strong> ${claimDate}</li>
+
+    </ul>
+    <p style="font-size: 16px;">Gracias por tu atención.</p>
+  `;
+
+  const htmlContent = generateEmailContent('¡Nuevo reclamo recibido!', body);
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: [...adminsEmails],
+    subject,
+    html: htmlContent,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log('📨 Correo de reclamo enviado');
+  } catch (error) {
+    console.error('❌ Error al enviar el correo de reclamo', error);
+  }
+};
+
+export const sendSurveyNotification = async (
+  adminsEmails: string[],
+  clientName: string,
+  maintenanceDate: Date,
+  surveyRating: number,
+  surveyComments: string,
+  surveyAsunto: string,
+  evaluatedAspects: string,
+): Promise<void> => {
+  const subject = '⭐ ¡Nueva encuesta de satisfacción recibida!';
+
+  const body = `
+    <p style="font-size: 16px;">¡Hola!</p>
+    <p style="font-size: 16px;">Se ha recibido una nueva encuesta de satisfacción de <strong>${clientName}</strong>.</p>
+    <p style="font-size: 16px;">Detalles de la encuesta:</p>
+    <ul>
+      <li><strong>Nombre del cliente:</strong> ${clientName}</li>
+      <li><strong>Fecha de Mantenimiento:</strong> ${maintenanceDate}</li>
+      <li><strong>Calificación general:</strong> ${surveyRating}</li>
+      <li><strong>Comentarios:</strong> ${surveyComments}</li>
+      <li><strong>Asunto:</strong> ${surveyAsunto}</li>
+      <li><strong>Aspecto Evaluado:</strong> ${evaluatedAspects}</li>
+    </ul>
+    <p style="font-size: 16px;">Gracias por tu atención.</p>
+  `;
+
+  const htmlContent = generateEmailContent(
+    '¡Nueva encuesta de satisfacción recibida!',
+    body,
+  );
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: [...adminsEmails],
+    subject,
+    html: htmlContent,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log('📨 Correo de encuesta de satisfacción enviado');
+  } catch (error) {
+    console.error(
+      '❌ Error al enviar el correo de encuesta de satisfacción',
+      error,
+    );
+  }
 };

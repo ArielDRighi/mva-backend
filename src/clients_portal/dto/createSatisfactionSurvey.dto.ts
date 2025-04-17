@@ -1,4 +1,3 @@
-export class CreateSatisfacionSurveyDto {}
 import {
   IsDate,
   IsInt,
@@ -13,7 +12,7 @@ import { Type } from 'class-transformer';
 export class CreateSatisfactionSurveyDto {
   @IsNotEmpty()
   @IsString()
-  Cliente: string;
+  cliente: string;
 
   @IsNotEmpty()
   @IsDate()
@@ -28,13 +27,13 @@ export class CreateSatisfactionSurveyDto {
 
   @IsOptional()
   @IsString()
-  comentario?: string;
+  comentario: string;
 
   @IsOptional()
   @IsString()
-  asunto?: string;
+  asunto: string;
 
   @IsOptional()
   @IsString()
-  aspecto_evaluado?: string;
+  aspecto_evaluado: string;
 }

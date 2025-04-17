@@ -4,8 +4,18 @@ import { SatisfactionSurvey } from './entities/satisfactionSurvey.entity';
 import { Repository } from 'typeorm';
 import { Claim } from './entities/claim.entity';
 import { CreateClaimDto } from './dto/createClaim.dto';
-import { CreateSatisfacionSurveyDto } from './dto/createSatisfactionSurvey.dto';
+import { CreateSatisfactionSurveyDto } from './dto/createSatisfactionSurvey.dto';
 import { AskForServiceDto } from './dto/askForService.dto';
+import {
+  sendClaimNotification,
+  sendSurveyNotification,
+} from 'src/config/nodemailer';
+
+const adminsEmails = [
+  'admin1@empresa.com',
+  'admin2@empresa.com',
+  'federicovanni@hotmail.com',
+];
 
 @Injectable()
 export class ClientsPortalService {
@@ -56,16 +66,33 @@ export class ClientsPortalService {
     const claim = this.claimRepository.create(claimData);
     try {
       await this.claimRepository.save(claim);
+      await sendClaimNotification(
+        adminsEmails,
+        claimData.cliente,
+        claimData.titulo,
+        claimData.descripcion,
+        claimData.tipoReclamo,
+        claimData.fechaIncidente,
+      );
       return claim;
     } catch (error) {
-      throw new BadRequestException('Error creating claim');
+      throw new BadRequestException(`Error creating claim ${error}`);
     }
   }
 
-  async createSatisfactionSurvey(surveyData: CreateSatisfacionSurveyDto) {
+  async createSatisfactionSurvey(surveyData: CreateSatisfactionSurveyDto) {
     const survey = this.satisfactionSurveyRepository.create(surveyData);
     try {
       await this.satisfactionSurveyRepository.save(survey);
+      await sendSurveyNotification(
+        adminsEmails,
+        surveyData.cliente,
+        surveyData.fecha_mantenimiento,
+        surveyData.calificacion,
+        surveyData.comentario,
+        surveyData.asunto,
+        surveyData.aspecto_evaluado,
+      );
       return survey;
     } catch (error) {
       throw new BadRequestException('Error creating satisfaction survey');
@@ -90,7 +117,7 @@ export class ClientsPortalService {
 
   async updateSatisfactionSurvey(
     id: number,
-    surveyData: Partial<CreateSatisfacionSurveyDto>,
+    surveyData: Partial<CreateSatisfactionSurveyDto>,
   ) {
     const survey = await this.satisfactionSurveyRepository.findOne({
       where: { encuesta_id: id },
