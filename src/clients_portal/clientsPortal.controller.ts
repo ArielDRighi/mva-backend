@@ -16,7 +16,7 @@ import { Roles } from 'src/roles/decorators/roles.decorator';
 import { RolesGuard } from 'src/roles/guards/roles.guard';
 import { Role } from 'src/roles/enums/role.enum';
 import { CreateClaimDto } from './dto/createClaim.dto';
-import { CreateSatisfacionSurveyDto } from './dto/createSatisfactionSurvey.dto';
+import { CreateSatisfactionSurveyDto } from './dto/createSatisfactionSurvey.dto';
 import { AskForServiceDto } from './dto/askForService.dto';
 
 @Controller('clients-portal')
@@ -99,7 +99,7 @@ export class ClientsPortalController {
   @Post('satisfaction_surveys')
   @HttpCode(HttpStatus.CREATED)
   async createSatisfactionSurvey(
-    @Body() surveyData: CreateSatisfacionSurveyDto,
+    @Body() surveyData: CreateSatisfactionSurveyDto,
   ) {
     try {
       return await this.clientsPortalService.createSatisfactionSurvey(
@@ -137,7 +137,7 @@ export class ClientsPortalController {
   @HttpCode(HttpStatus.OK)
   async updateSatisfactionSurvey(
     @Param('id') id: number,
-    @Body() surveyData: Partial<CreateSatisfacionSurveyDto>,
+    @Body() surveyData: Partial<CreateSatisfactionSurveyDto>,
   ) {
     try {
       return await this.clientsPortalService.updateSatisfactionSurvey(
@@ -160,6 +160,19 @@ export class ClientsPortalController {
     } catch (error) {
       throw new HttpException(
         'Error creating ask for service form',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('stats')
+  @HttpCode(HttpStatus.OK)
+  async getStats() {
+    try {
+      return await this.clientsPortalService.getStats();
+    } catch (error) {
+      throw new HttpException(
+        'Error retrieving stats',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

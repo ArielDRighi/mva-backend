@@ -8,6 +8,7 @@ import { CreateSatisfactionSurveyDto } from './dto/createSatisfactionSurvey.dto'
 import { AskForServiceDto } from './dto/askForService.dto';
 import {
   sendClaimNotification,
+  sendServiceNotification,
   sendSurveyNotification,
 } from 'src/config/nodemailer';
 
@@ -15,6 +16,7 @@ const adminsEmails = [
   'admin1@empresa.com',
   'admin2@empresa.com',
   'federicovanni@hotmail.com',
+  'mateolampasona7@gmail.com',
 ];
 
 @Injectable()
@@ -134,6 +136,38 @@ export class ClientsPortalService {
     }
   }
   async askForService(formData: AskForServiceDto) {
-    // Enviar email mediante NodeMailer
+    try {
+      await sendServiceNotification(
+        adminsEmails,
+        formData.nombrePersona,
+        formData.rolPersona,
+        formData.email,
+        formData.telefono,
+        formData.nombreEmpresa,
+        formData.cuit,
+        formData.rubroEmpresa,
+        formData.zonaDireccion,
+        formData.cantidadBanos,
+        formData.tipoEvento,
+        formData.duracionAlquiler,
+        formData.comentarios,
+      );
+      return { message: 'Service request sent successfully' };
+    } catch (error) {
+      throw new BadRequestException('Error sending service request');
+    }
+  }
+
+  async getStats() {
+    const totalSurveys = await this.satisfactionSurveyRepository.count();
+    const totalClaims = await this.claimRepository.count();
+    const surveys = await this.satisfactionSurveyRepository.find();
+    const claims = await this.claimRepository.find();
+    return {
+      totalSurveys,
+      totalClaims,
+      surveys,
+      claims,
+    };
   }
 }

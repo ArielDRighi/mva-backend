@@ -339,3 +339,70 @@ export const sendSurveyNotification = async (
     );
   }
 };
+
+export const sendServiceNotification = async (
+  adminsEmails: string[],
+  nombrePersona: string,
+  rolPersona: string,
+  email: string,
+  telefono: string,
+  nombreEmpresa: string,
+  cuit: string,
+  rubroEmpresa: string,
+  zonaDireccion: string,
+  cantidadBanios: string,
+  tipoEvento: string,
+  duracionAlquiler: string,
+  comentarios: string,
+): Promise<void> => {
+  const subject = '🛠️ ¡Nueva solicitud de servicio recibida!';
+
+  const body = `
+    <p style="font-size: 16px;">¡Hola!</p>
+    <p style="font-size: 16px;">Se ha recibido una nueva solicitud de servicio.</p>
+    <p style="font-size: 16px;">Detalles del cliente:</p>
+    <ul>
+      <li><strong>Nombre de la persona:</strong> ${nombrePersona}</li>
+      <li><strong>Rol de la persona:</strong> ${rolPersona}</li>
+      <li><strong>Email:</strong> ${email}</li>
+      <li><strong>Teléfono:</strong> ${telefono}</li>
+    </ul>
+    <p style="font-size: 16px;">Detalles de la empresa:</p>
+    <ul>
+      <li><strong>Nombre de la empresa:</strong> ${nombreEmpresa}</li>
+      <li><strong>CUIT:</strong> ${cuit}</li>
+      <li><strong>Rubro de la empresa:</strong> ${rubroEmpresa}</li>
+      <li><strong>Zona de dirección:</strong> ${zonaDireccion}</li>
+    </ul>
+    <p style="font-size: 16px;">Detalles del servicio:</p>
+    <ul>
+      <li><strong>Cantidad de baños:</strong> ${cantidadBanios}</li>
+      <li><strong>Tipo de evento:</strong> ${tipoEvento}</li>
+      <li><strong>Duración del alquiler:</strong> ${duracionAlquiler}</li>
+      <li><strong>Comentarios:</strong> ${comentarios}</li>
+    </ul>
+    <p style="font-size: 16px;">Gracias por tu atención.</p>
+  `;
+
+  const htmlContent = generateEmailContent(
+    '¡Nueva solicitud de servicio recibida!',
+    body,
+  );
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: [...adminsEmails],
+    subject,
+    html: htmlContent,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log('📨 Correo de solicitud de servicio enviado');
+  } catch (error) {
+    console.error(
+      '❌ Error al enviar el correo de solicitud de servicio',
+      error,
+    );
+  }
+};
