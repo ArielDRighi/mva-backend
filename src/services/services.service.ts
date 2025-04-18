@@ -441,7 +441,6 @@ export class ServicesService {
         'admin1@empresa.com',
         'admin2@empresa.com',
         'federicovanni@hotmail.com',
-        'mateolampasona7@gmail.com',
       ];
       const supervisorsEmails = ['supervisor1@empresa.com'];
 
@@ -636,27 +635,50 @@ export class ServicesService {
       let newToilets: ChemicalToilet[] = [];
 
       if (additionalEmployees > 0) {
-        const availableEmployees = await this.findAvailableEmployees(
-          service.fechaProgramada,
+        // Modificado para incluir empleados ASIGNADOS
+        const allEmployees = await this.employeesService.findAll();
+        const availableEmployees = allEmployees.filter(
+          (employee) =>
+            employee.estado === ResourceState.DISPONIBLE.toString() ||
+            employee.estado === ResourceState.ASIGNADO.toString(),
         );
+
         if (availableEmployees.length < additionalEmployees) {
           throw new BadRequestException(
-            `No hay suficientes empleados disponibles. Se necesitan ${additionalEmployees} adicionales, pero solo hay ${availableEmployees.length}`,
+            `No hay suficientes empleados disponibles o asignados. Se necesitan ${additionalEmployees} adicionales, pero solo hay ${availableEmployees.length}`,
           );
         }
         newEmployees = availableEmployees.slice(0, additionalEmployees);
       }
 
       if (additionalVehicles > 0) {
-        const availableVehicles = await this.findAvailableVehicles(
-          service.fechaProgramada,
+        // Modificado para incluir vehículos ASIGNADOS
+        const allVehicles = await this.vehiclesRepository.find();
+        const availableVehicles = allVehicles.filter(
+          (vehicle) =>
+            vehicle.estado === ResourceState.DISPONIBLE.toString() ||
+            vehicle.estado === ResourceState.ASIGNADO.toString(),
         );
-        if (availableVehicles.length < additionalVehicles) {
+
+        // Filtrar vehículos con mantenimiento programado
+        const eligibleVehicles: Vehicle[] = [];
+        for (const vehicle of availableVehicles) {
+          const hasMaintenace =
+            await this.vehicleMaintenanceService.hasScheduledMaintenance(
+              vehicle.id,
+              service.fechaProgramada,
+            );
+          if (!hasMaintenace) {
+            eligibleVehicles.push(vehicle);
+          }
+        }
+
+        if (eligibleVehicles.length < additionalVehicles) {
           throw new BadRequestException(
-            `No hay suficientes vehículos disponibles. Se necesitan ${additionalVehicles} adicionales, pero solo hay ${availableVehicles.length}`,
+            `No hay suficientes vehículos disponibles o asignados. Se necesitan ${additionalVehicles} adicionales, pero solo hay ${eligibleVehicles.length}`,
           );
         }
-        newVehicles = availableVehicles.slice(0, additionalVehicles);
+        newVehicles = eligibleVehicles.slice(0, additionalVehicles);
       }
 
       if (additionalToilets > 0) {
@@ -668,13 +690,19 @@ export class ServicesService {
 
       // Cambiar estados de los nuevos recursos
       for (const employee of newEmployees) {
-        await this.updateResourceState(employee, ResourceState.ASIGNADO);
-        employee.estado = ResourceState.ASIGNADO.toString();
+        // Solo actualizar si estaba DISPONIBLE
+        if (employee.estado === ResourceState.DISPONIBLE.toString()) {
+          await this.updateResourceState(employee, ResourceState.ASIGNADO);
+          employee.estado = ResourceState.ASIGNADO.toString();
+        }
       }
 
       for (const vehicle of newVehicles) {
-        await this.updateVehicleState(vehicle, ResourceState.ASIGNADO);
-        vehicle.estado = ResourceState.ASIGNADO.toString();
+        // Solo actualizar si estaba DISPONIBLE
+        if (vehicle.estado === ResourceState.DISPONIBLE.toString()) {
+          await this.updateVehicleState(vehicle, ResourceState.ASIGNADO);
+          vehicle.estado = ResourceState.ASIGNADO.toString();
+        }
       }
 
       // Crear nuevas asignaciones para los recursos adicionales
@@ -760,12 +788,21 @@ export class ServicesService {
           employee = await this.employeesService.findOne(
             assignmentDto.empleadoId,
           );
-          if (employee.estado !== ResourceState.DISPONIBLE.toString()) {
+
+          // Modificado: permitir tanto DISPONIBLE como ASIGNADO
+          if (
+            employee.estado !== ResourceState.DISPONIBLE.toString() &&
+            employee.estado !== ResourceState.ASIGNADO.toString()
+          ) {
             throw new BadRequestException(
-              `El empleado con ID ${employee.id} no está disponible`,
+              `El empleado con ID ${employee.id} no está disponible ni asignado`,
             );
           }
-          await this.updateResourceState(employee, ResourceState.ASIGNADO);
+
+          // Solo actualizar el estado si estaba DISPONIBLE
+          if (employee.estado === ResourceState.DISPONIBLE.toString()) {
+            await this.updateResourceState(employee, ResourceState.ASIGNADO);
+          }
         }
 
         // Verificar vehículo
@@ -774,15 +811,25 @@ export class ServicesService {
           vehicle = await this.vehiclesService.findOne(
             assignmentDto.vehiculoId,
           );
-          if (vehicle.estado !== ResourceState.DISPONIBLE.toString()) {
+
+          // Modificado: permitir tanto DISPONIBLE como ASIGNADO
+          if (
+            vehicle.estado !== ResourceState.DISPONIBLE.toString() &&
+            vehicle.estado !== ResourceState.ASIGNADO.toString()
+          ) {
             throw new BadRequestException(
-              `El vehículo con ID ${vehicle.id} no está disponible`,
+              `El vehículo con ID ${vehicle.id} no está disponible ni asignado`,
             );
           }
-          await this.updateVehicleState(vehicle, ResourceState.ASIGNADO);
+
+          // Solo actualizar el estado si estaba DISPONIBLE
+          if (vehicle.estado === ResourceState.DISPONIBLE.toString()) {
+            await this.updateVehicleState(vehicle, ResourceState.ASIGNADO);
+          }
         }
 
-        // Verificar baños
+        // Verificar baños - No cambiamos esta parte porque los baños
+        // todavía necesitan estar DISPONIBLE para ser asignados
         if (assignmentDto.banosIds && assignmentDto.banosIds.length > 0) {
           for (const toiletId of assignmentDto.banosIds) {
             const toilet = await this.toiletsService.findById(toiletId);
@@ -876,22 +923,22 @@ export class ServicesService {
   }
 
   private async findAvailableEmployees(date: Date): Promise<Empleado[]> {
-    // Buscar empleados disponibles que no estén ya asignados a otro servicio en la misma fecha
+    // Buscar empleados disponibles o ya asignados
     if (!date || isNaN(date.getTime())) {
       this.logger.error(
         `Fecha inválida recibida: ${date ? date.toISOString() : 'undefined'}`,
       );
       throw new BadRequestException('Se requiere una fecha válida');
     }
-    const busyEmployeeIds = await this.getBusyResourceIds('empleado_id', date);
 
-    // Obtener empleados disponibles
+    // Obtener todos los empleados (ya no filtramos por estado ocupado)
     const availableEmployees = await this.employeesService.findAll();
 
+    // Incluir tanto DISPONIBLE como ASIGNADO
     return availableEmployees.filter(
       (employee) =>
-        employee.estado === ResourceState.DISPONIBLE.toString() &&
-        !busyEmployeeIds.includes(employee.id),
+        employee.estado === ResourceState.DISPONIBLE.toString() ||
+        employee.estado === ResourceState.ASIGNADO.toString(),
     );
   }
 
@@ -899,27 +946,23 @@ export class ServicesService {
     date: Date,
     serviceId?: number,
   ): Promise<Vehicle[]> {
-    // Obtener IDs de vehículos que ya están asignados
     if (!date || isNaN(date.getTime())) {
       this.logger.error(
         `Fecha inválida recibida: ${date ? date.toISOString() : 'undefined'}`,
       );
       throw new BadRequestException('Se requiere una fecha válida');
     }
-    const busyVehicleIds = await this.getBusyResourceIds('vehiculo_id', date);
 
-    this.logger.log(`Vehículos ocupados: ${busyVehicleIds.join(', ')}`);
-
-    // Buscar todos los vehículos disponibles que no estén en la lista
+    // Buscar todos los vehículos DISPONIBLES o ASIGNADOS
     const availableVehicles = await this.vehiclesRepository.find({
-      where: {
-        estado: ResourceState.DISPONIBLE,
-        id: Not(In(busyVehicleIds)),
-      },
+      where: [
+        { estado: ResourceState.DISPONIBLE },
+        { estado: ResourceState.ASIGNADO },
+      ],
     });
 
     this.logger.log(
-      `Vehículos con estado DISPONIBLE encontrados: ${availableVehicles.map((v) => v.id).join(', ')}`,
+      `Vehículos con estado DISPONIBLE o ASIGNADO encontrados: ${availableVehicles.map((v) => v.id).join(', ')}`,
     );
 
     // Filtrar vehículos que tienen mantenimiento programado
@@ -950,7 +993,6 @@ export class ServicesService {
         `Buscando vehículos ya asignados al servicio ${serviceId}`,
       );
 
-      // MODIFICAR ESTA CONSULTA para asegurar que devuelve resultados
       const currentServiceAssignments = await this.assignmentRepository.find({
         where: {
           servicioId: serviceId,
@@ -1234,30 +1276,52 @@ export class ServicesService {
 
       // Verify employee availability
       if (employeesNeeded > 0) {
-        const availableEmployees = await this.findAvailableEmployees(
-          service.fechaProgramada,
+        // Modificado: Ahora se obtienen también los empleados ASIGNADOS
+        const availableEmployees = await this.employeesService.findAll();
+        const eligibleEmployees = availableEmployees.filter(
+          (employee) =>
+            employee.estado === ResourceState.DISPONIBLE.toString() ||
+            employee.estado === ResourceState.ASIGNADO.toString(),
         );
-        if (availableEmployees.length < employeesNeeded) {
+
+        if (eligibleEmployees.length < employeesNeeded) {
           throw new BadRequestException(
-            `No hay suficientes empleados disponibles. Se necesitan ${employeesNeeded} adicionales, pero solo hay ${availableEmployees.length}`,
+            `No hay suficientes empleados disponibles o asignados. Se necesitan ${employeesNeeded} adicionales, pero solo hay ${eligibleEmployees.length}`,
           );
         }
       }
 
       // Verify vehicle availability
       if (vehiclesNeeded > 0) {
-        const availableVehicles = await this.findAvailableVehicles(
-          service.fechaProgramada,
-          incremental && existingService ? existingService.id : undefined,
-        );
-        if (availableVehicles.length < vehiclesNeeded) {
+        // Modificado: Ahora se obtienen también los vehículos ASIGNADOS
+        const availableVehicles = await this.vehiclesRepository.find({
+          where: [
+            { estado: ResourceState.DISPONIBLE },
+            { estado: ResourceState.ASIGNADO },
+          ],
+        });
+
+        // Excluir vehículos con mantenimiento programado
+        const eligibleVehicles: Vehicle[] = [];
+        for (const vehicle of availableVehicles) {
+          const hasMaintenace =
+            await this.vehicleMaintenanceService.hasScheduledMaintenance(
+              vehicle.id,
+              service.fechaProgramada,
+            );
+          if (!hasMaintenace) {
+            eligibleVehicles.push(vehicle);
+          }
+        }
+
+        if (eligibleVehicles.length < vehiclesNeeded) {
           throw new BadRequestException(
-            `No hay suficientes vehículos disponibles. Se necesitan ${vehiclesNeeded} adicionales, pero solo hay ${availableVehicles.length}`,
+            `No hay suficientes vehículos disponibles o asignados. Se necesitan ${vehiclesNeeded} adicionales, pero solo hay ${eligibleVehicles.length}`,
           );
         }
       }
 
-      // Verify toilet availability
+      // Verify toilet availability (sin cambios porque los baños deben estar DISPONIBLE)
       if (toiletsNeeded > 0) {
         const availableToilets = await this.toiletsRepository.find({
           where: { estado: ResourceState.DISPONIBLE },
