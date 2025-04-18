@@ -69,6 +69,15 @@ export class Service {
   @Column({ name: 'asignacion_automatica', type: 'boolean', default: true })
   asignacionAutomatica: boolean;
 
+  @Column({ type: 'simple-array', nullable: true })
+  banosInstalados: number[];
+
+  @Column({ nullable: true })
+  condicionContractualId: number;
+
+  @Column({ type: 'date', nullable: true })
+  fechaFinAsignacion: Date;
+
   @CreateDateColumn({ name: 'fecha_creacion' })
   fechaCreacion: Date;
 

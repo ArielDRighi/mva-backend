@@ -5,13 +5,19 @@ import { FilterChemicalToiletDto } from './dto/filter_chemical_toilet.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ChemicalToilet } from './entities/chemical_toilet.entity';
 import { Repository } from 'typeorm';
-import { ResourceState } from '../common/enums/resource-states.enum';
+import {
+  ResourceState,
+  ServiceState,
+} from '../common/enums/resource-states.enum';
+import { Service } from '../services/entities/service.entity';
 
 @Injectable()
 export class ChemicalToiletsService {
   constructor(
     @InjectRepository(ChemicalToilet)
     private chemicalToiletRepository: Repository<ChemicalToilet>,
+    @InjectRepository(Service)
+    private serviceRepository: Repository<Service>,
   ) {}
 
   // Método para crear un baño químico
@@ -149,5 +155,27 @@ export class ChemicalToiletsService {
           )
         : null,
     };
+  }
+
+  async findByClientId(clientId: number): Promise<ChemicalToilet[]> {
+    const toilets = await this.chemicalToiletRepository
+      .createQueryBuilder('bano')
+      .innerJoin(
+        'asignacion_recursos',
+        'asignacion',
+        'asignacion.bano_id = bano.baño_id',
+      )
+      .innerJoin(
+        'servicios',
+        'service',
+        'service.servicio_id = asignacion.servicio_id',
+      )
+      .where('service.cliente_id = :clientId', { clientId })
+      .andWhere('service.estado NOT IN (:...completedStates)', {
+        completedStates: [ServiceState.COMPLETADO, ServiceState.CANCELADO],
+      })
+      .getMany();
+
+    return toilets;
   }
 }

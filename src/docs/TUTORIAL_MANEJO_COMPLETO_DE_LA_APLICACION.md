@@ -1,3 +1,6 @@
+Voy a rehacer el archivo de tutorial completo incorporando los nuevos cambios relacionados con los tipos de servicios y la gestión de baños ya instalados.
+
+```markdown
 # Tutorial Completo: MVA Backend - De la Inserción de Datos al Flujo Administrativo
 
 ## Índice
@@ -16,10 +19,12 @@
    - 6.1 Creación de Servicios
    - 6.2 Asignación Manual de Recursos
    - 6.3 Actualización del Estado de un Servicio
+   - 6.4 Servicios para Baños Ya Instalados
 7. Flujos Administrativos Completos
    - 7.1 Flujo de Instalación
    - 7.2 Flujo de Mantenimiento Programado
    - 7.3 Gestión de Imprevistos
+   - 7.4 Flujo de Retiro
 8. Gestión de Informes
 9. Resolución de Problemas Comunes
 10. Mejores Prácticas
@@ -34,8 +39,8 @@
 Antes de comenzar, debemos asegurarnos de que el entorno esté correctamente configurado:
 
 ### Configuración del archivo .env
-
 ```
+
 DB_HOST=localhost
 DB_PORT=5432
 DB_USERNAME=postgres
@@ -44,7 +49,8 @@ DB_DATABASE=mva_db
 DB_SCHEMA=public
 JWT_SECRET=tu_secreto_jwt
 JWT_EXPIRATION_TIME=8h
-```
+
+````
 
 ### Instalación de Dependencias
 
@@ -60,7 +66,7 @@ npm run build
 
 # Iniciar la aplicación en modo desarrollo
 npm run start:dev
-```
+````
 
 ## 2. Población Inicial de la Base de Datos
 
@@ -412,6 +418,61 @@ Content-Type: application/json
 }
 ```
 
+### 6.4 Servicios para Baños Ya Instalados
+
+#### Crear un servicio de LIMPIEZA para baños ya instalados
+
+```http
+POST /api/services
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "clienteId": 3,
+  "fechaProgramada": "2025-05-10T09:00:00.000Z",
+  "tipoServicio": "LIMPIEZA",
+  "cantidadBanos": 0,
+  "cantidadEmpleados": 2,
+  "cantidadVehiculos": 1,
+  "ubicacion": "Av. Santa Fe 1234, Buenos Aires",
+  "notas": "Limpieza programada según contrato",
+  "asignacionAutomatica": true,
+  "banosInstalados": [5, 6, 7]
+}
+```
+
+> **Nota importante**: Para servicios de tipo LIMPIEZA, REEMPLAZO, RETIRO, MANTENIMIENTO_IN_SITU o REPARACION, el campo `cantidadBanos` debe ser 0 y el campo `banosInstalados` debe especificar los IDs de los baños ya instalados en el cliente.
+
+#### Crear un servicio de RETIRO al finalizar contrato
+
+```http
+POST /api/services
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "clienteId": 3,
+  "fechaProgramada": "2025-06-30T09:00:00.000Z",
+  "tipoServicio": "RETIRO",
+  "cantidadBanos": 0,
+  "cantidadEmpleados": 2,
+  "cantidadVehiculos": 1,
+  "ubicacion": "Av. Santa Fe 1234, Buenos Aires",
+  "notas": "Retiro por finalización de contrato",
+  "asignacionAutomatica": true,
+  "banosInstalados": [5, 6, 7]
+}
+```
+
+#### Consultar baños instalados en un cliente
+
+Para facilitar la creación de servicios que operan sobre baños ya instalados, puede consultar los baños asignados a un cliente específico:
+
+```http
+GET /api/chemical_toilets/by-client/3
+Authorization: Bearer {{token}}
+```
+
 ## 7. Flujos Administrativos Completos
 
 ### 7.1 Flujo de Instalación
@@ -509,11 +570,12 @@ Content-Type: application/json
   "clienteId": 7,
   "fechaProgramada": "2025-05-04T10:00:00.000Z",
   "tipoServicio": "LIMPIEZA",
-  "cantidadBanos": 5,
+  "cantidadBanos": 0,
   "cantidadEmpleados": 2,
   "cantidadVehiculos": 1,
   "ubicacion": "Ruta 2 km 50, Salón Principal",
-  "asignacionAutomatica": true
+  "asignacionAutomatica": true,
+  "banosInstalados": [10, 11, 12, 13, 14]
 }
 ```
 
@@ -527,11 +589,12 @@ Content-Type: application/json
   "clienteId": 7,
   "fechaProgramada": "2025-05-31T18:00:00.000Z",
   "tipoServicio": "RETIRO",
-  "cantidadBanos": 5,
+  "cantidadBanos": 0,
   "cantidadEmpleados": 3,
   "cantidadVehiculos": 2,
   "ubicacion": "Ruta 2 km 50, Salón Principal",
-  "asignacionAutomatica": true
+  "asignacionAutomatica": true,
+  "banosInstalados": [10, 11, 12, 13, 14]
 }
 ```
 
@@ -668,6 +731,67 @@ Pasos para manejar situaciones imprevistas:
    }
    ```
 
+### 7.4 Flujo de Retiro
+
+Este flujo corresponde a la finalización de un contrato y el retiro de los baños instalados en el cliente.
+
+1. **Verificar los baños instalados en el cliente**
+
+```http
+GET /api/chemical_toilets/by-client/7
+Authorization: Bearer {{token}}
+```
+
+2. **Programar el servicio de retiro**
+
+```http
+POST /api/services
+Content-Type: application/json
+
+{
+  "clienteId": 7,
+  "fechaProgramada": "2025-05-31T18:00:00.000Z",
+  "tipoServicio": "RETIRO",
+  "cantidadBanos": 0,
+  "cantidadEmpleados": 3,
+  "cantidadVehiculos": 2,
+  "ubicacion": "Ruta 2 km 50, Salón Principal",
+  "asignacionAutomatica": true,
+  "banosInstalados": [10, 11, 12, 13, 14]
+}
+```
+
+3. **Iniciar el servicio el día del retiro**
+
+```http
+PATCH /api/services/5/estado
+Content-Type: application/json
+
+{
+  "estado": "EN_PROGRESO"
+}
+```
+
+4. **Completar el servicio una vez retirados los baños**
+
+```http
+PATCH /api/services/5/estado
+Content-Type: application/json
+
+{
+  "estado": "COMPLETADO"
+}
+```
+
+5. **Verificar que los baños han cambiado a estado EN_MANTENIMIENTO**
+
+```http
+GET /api/chemical_toilets/10
+GET /api/chemical_toilets/11
+```
+
+> **Nota**: Al completar un servicio de RETIRO, el sistema cambia automáticamente el estado de los baños retirados de ASIGNADO a EN_MANTENIMIENTO para su limpieza y acondicionamiento antes de volver a estar disponibles.
+
 ## 8. Gestión de Informes
 
 ### Generar reportes de servicios por cliente
@@ -741,6 +865,35 @@ Si no puedes cambiar el estado de un servicio a COMPLETADO:
    }
    ```
 
+### Error en servicios que operan sobre baños ya instalados
+
+Si al crear un servicio de LIMPIEZA, REEMPLAZO o RETIRO recibe un error sobre los baños:
+
+1. **Asegurarse de establecer cantidadBanos en 0**
+
+```http
+POST /api/services
+Content-Type: application/json
+
+{
+  "tipoServicio": "LIMPIEZA",
+  "cantidadBanos": 0,  // Debe ser 0
+  "banosInstalados": [5, 6, 7]  // Obligatorio
+}
+```
+
+2. **Verificar que los baños listados estén asignados al cliente**
+
+```http
+GET /api/chemical_toilets/by-client/{clientId}
+```
+
+3. **Comprobar que los baños listados estén en estado ASIGNADO**
+
+```http
+GET /api/chemical_toilets/{banoId}
+```
+
 ## 10. Mejores Prácticas
 
 ### Planificación de Recursos
@@ -762,6 +915,13 @@ Si no puedes cambiar el estado de un servicio a COMPLETADO:
 3. **Verificar las asignaciones después de crearlas** para confirmar que sean adecuadas.
 4. **Utilizar la asignación múltiple de recursos** para optimizar la planificación de servicios en la misma fecha.
 
+### Gestión de Tipos de Servicio
+
+1. **Identificar correctamente el tipo de servicio** para aplicar las reglas adecuadas de recursos.
+2. **Para servicios de INSTALACION o TRASLADO**, asegurarse de que cantidadBanos > 0.
+3. **Para servicios de LIMPIEZA, REEMPLAZO, RETIRO o MANTENIMIENTO_IN_SITU**, establecer cantidadBanos = 0 y proporcionar los IDs de baños ya instalados.
+4. **Utilizar el endpoint /api/chemical_toilets/by-client/{clientId}** para obtener la lista de baños ya instalados en un cliente.
+
 ## 11. Programación de Agenda Extendida
 
 ### 11.1 Asignación Múltiple de Recursos
@@ -775,7 +935,7 @@ A partir de ahora, el sistema permite asignar empleados y vehículos que tengan 
 - Si ya están en estado "ASIGNADO", mantendrán ese estado al asignarlos a un nuevo servicio.
 - El estado "ASIGNADO" indica que el recurso está siendo utilizado en al menos un servicio activo.
 - Cuando se completan o cancelan todos los servicios asociados a un recurso, éste volverá al estado "DISPONIBLE".
-- **Importante**: Los baños químicos siguen requiriendo el estado "DISPONIBLE" para ser asignados a un servicio.
+- **Importante**: Los baños químicos siguen requiriendo el estado "DISPONIBLE" para ser asignados a un servicio, excepto para servicios de LIMPIEZA, REEMPLAZO, RETIRO y MANTENIMIENTO_IN_SITU que requieren baños ya instalados en estado ASIGNADO.
 
 #### Casos de Uso
 
@@ -809,7 +969,7 @@ Para asignar manualmente recursos que ya están asignados a otros servicios:
 
 3. El sistema verificará que:
    - Los empleados y vehículos especificados estén en estado "DISPONIBLE" o "ASIGNADO".
-   - Los baños especificados estén en estado "DISPONIBLE".
+   - Los baños especificados estén en estado "DISPONIBLE" o en estado "ASIGNADO" para servicios de baños ya instalados.
 
 #### Asignación Automática de Recursos
 
@@ -826,7 +986,7 @@ Para verificar qué recursos están disponibles para una fecha específica:
 
 1. Consulte los endpoints de empleados, vehículos y baños químicos.
 2. Filtre por estado "DISPONIBLE" o "ASIGNADO" para empleados y vehículos.
-3. Filtre por estado "DISPONIBLE" para baños químicos.
+3. Filtre por estado "DISPONIBLE" para baños químicos (o "ASIGNADO" si se trata de un servicio de baños ya instalados).
 
 ### 11.3 Consideraciones Importantes
 
@@ -899,7 +1059,7 @@ Content-Type: application/json
   "clienteId": 3,
   "fechaProgramada": "2025-06-11T10:00:00.000Z",
   "tipoServicio": "LIMPIEZA",
-  "cantidadBanos": 1,
+  "cantidadBanos": 0,
   "cantidadEmpleados": 1,
   "cantidadVehiculos": 1,
   "ubicacion": "Av. Santa Fe 2000",
@@ -908,7 +1068,7 @@ Content-Type: application/json
     {
       "empleadoId": 1,
       "vehiculoId": 2,
-      "banosIds": [4]
+      "banosInstalados": [4, 5]
     }
   ]
 }
@@ -941,27 +1101,18 @@ Content-Type: application/json
   "clienteId": 2,
   "fechaProgramada": "2025-06-16T09:00:00.000Z",
   "tipoServicio": "LIMPIEZA",
-  "cantidadBanos": 3,
+  "cantidadBanos": 0,
   "cantidadEmpleados": 1,
   "cantidadVehiculos": 1,
   "asignacionAutomatica": false,
   "asignacionesManual": [
     {
       "empleadoId": 1,
-      "vehiculoId": 1,
-      "banosIds": [5, 6, 7]
+      "vehiculoId": 1
     }
-  ]
+  ],
+  "banosInstalados": [5, 6, 7]
 }
 
 # Y así sucesivamente para el resto de la semana...
-```
-
----
-
-Con este tutorial completo, cualquier administrador del sistema MVA puede gestionar el ciclo completo de operaciones, desde la creación de recursos hasta la planificación y ejecución de servicios, incluyendo la asignación múltiple de recursos para optimizar la agenda y el mantenimiento preventivo y correctivo de la flota y equipos.
-
-```
-
-Este documento ahora incluye una nueva sección (11. Programación de Agenda Extendida) que detalla la nueva funcionalidad de asignación múltiple de recursos, con ejemplos prácticos y casos de uso. También se ha actualizado la sección de Mejores Prácticas para incluir esta nueva funcionalidad.Este documento ahora incluye una nueva sección (11. Programación de Agenda Extendida) que detalla la nueva funcionalidad de asignación múltiple de recursos, con ejemplos prácticos y casos de uso. También se ha actualizado la sección de Mejores Prácticas para incluir esta nueva funcionalidad.
 ```
