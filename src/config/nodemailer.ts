@@ -252,6 +252,7 @@ export const sendCompletionNotification = async (
 
 export const sendClaimNotification = async (
   adminsEmails: string[],
+  supervisorsEmails: string[],
   clientName: string,
   claimTitle: string,
   claimDescription: string,
@@ -278,7 +279,7 @@ export const sendClaimNotification = async (
 
   const mailOptions = {
     from: process.env.EMAIL_USER,
-    to: [...adminsEmails],
+    to: [...adminsEmails, ...supervisorsEmails],
     subject,
     html: htmlContent,
   };
@@ -293,6 +294,7 @@ export const sendClaimNotification = async (
 
 export const sendSurveyNotification = async (
   adminsEmails: string[],
+  supervisorsEmails: string[],
   clientName: string,
   maintenanceDate: Date,
   surveyRating: number,
@@ -324,7 +326,7 @@ export const sendSurveyNotification = async (
 
   const mailOptions = {
     from: process.env.EMAIL_USER,
-    to: [...adminsEmails],
+    to: [...adminsEmails, supervisorsEmails],
     subject,
     html: htmlContent,
   };
@@ -342,6 +344,7 @@ export const sendSurveyNotification = async (
 
 export const sendServiceNotification = async (
   adminsEmails: string[],
+  supervisorsEmails: string[],
   nombrePersona: string,
   rolPersona: string,
   email: string,
@@ -391,7 +394,7 @@ export const sendServiceNotification = async (
 
   const mailOptions = {
     from: process.env.EMAIL_USER,
-    to: [...adminsEmails],
+    to: [...adminsEmails, supervisorsEmails],
     subject,
     html: htmlContent,
   };
