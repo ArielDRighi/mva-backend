@@ -14,6 +14,7 @@
 4. Gestión de Recursos
    - Asignación Automática
    - Asignación Manual
+   - Asignación Múltiple de Recursos
 5. Estados de Servicio
 6. Manejo de Errores
 7. Ejemplos de Flujos Completos
@@ -91,6 +92,19 @@ Content-Type: application/json
 }
 ```
 
+| Campo                | Tipo               | Requerido | Descripción                                                                   |
+| -------------------- | ------------------ | --------- | ----------------------------------------------------------------------------- |
+| clienteId            | number             | Sí        | ID del cliente                                                                |
+| fechaProgramada      | string (fecha ISO) | Sí        | Fecha programada del servicio                                                 |
+| tipoServicio         | string             | Sí        | INSTALACION, RETIRO, LIMPIEZA, MANTENIMIENTO, etc.                            |
+| cantidadBanos        | number             | Sí        | Cantidad de baños requeridos                                                  |
+| cantidadEmpleados    | number             | Sí        | Cantidad de empleados requeridos                                              |
+| cantidadVehiculos    | number             | Sí        | Cantidad de vehículos requeridos                                              |
+| ubicacion            | string             | Sí        | Ubicación del servicio                                                        |
+| notas                | string             | No        | Notas adicionales                                                             |
+| asignacionAutomatica | boolean            | Sí        | Si es true, el sistema asigna recursos; si es false, asignación manual        |
+| asignacionesManual   | array              | No\*      | Array de asignaciones manuales (\*Requerido si asignacionAutomatica es false) |
+
 #### Respuesta Exitosa (201 Created)
 
 ```json
@@ -129,16 +143,15 @@ Content-Type: application/json
 
 **Endpoint:** `GET /api/services`
 
-#### Parámetros de Consulta Opcionales
+**Parámetros de Query:**
 
-| Parámetro    | Tipo   | Descripción                                                                                          |
-| ------------ | ------ | ---------------------------------------------------------------------------------------------------- |
-| clienteId    | number | Filtrar por ID de cliente                                                                            |
-| estado       | string | Filtrar por estado (`PROGRAMADO`, `EN_PROGRESO`, `COMPLETADO`, `CANCELADO`, `PENDIENTE_RECURSOS`)    |
-| tipoServicio | string | Filtrar por tipo (`INSTALACION`, `RETIRO`, `LIMPIEZA`, `MANTENIMIENTO`, `REPARACION`, `REUBICACION`) |
-| ubicacion    | string | Filtrar por ubicación (búsqueda parcial)                                                             |
-| fechaDesde   | string | Fecha inicial (formato ISO)                                                                          |
-| fechaHasta   | string | Fecha final (formato ISO)                                                                            |
+| Parámetro    | Tipo               | Descripción                     |
+| ------------ | ------------------ | ------------------------------- |
+| estado       | string             | Filtrar por estado del servicio |
+| clienteId    | number             | Filtrar por cliente             |
+| fechaDesde   | string (fecha ISO) | Filtrar desde esta fecha        |
+| fechaHasta   | string (fecha ISO) | Filtrar hasta esta fecha        |
+| tipoServicio | string             | Filtrar por tipo de servicio    |
 
 #### Ejemplos
 
@@ -182,10 +195,6 @@ GET /api/services?fechaDesde=2025-05-01T00:00:00.000Z&fechaHasta=2025-06-01T00:0
 ### 3. Obtener un Servicio Específico
 
 **Endpoint:** `GET /api/services/{id}`
-
-```
-GET /api/services/1
-```
 
 #### Respuesta Exitosa (200 OK)
 
@@ -337,11 +346,9 @@ Estados válidos:
 
 **Endpoint:** `DELETE /api/services/{id}`
 
-```
-DELETE /api/services/1
-```
-
 #### Respuesta Exitosa (204 No Content)
+
+No hay cuerpo de respuesta para una eliminación exitosa.
 
 ## Gestión de Recursos
 
@@ -373,15 +380,33 @@ Cuando `asignacionAutomatica` es `false` y se proporciona `asignacionesManual`, 
 }
 ```
 
+### Asignación Múltiple de Recursos
+
+La API ahora permite asignar empleados y vehículos con estado "ASIGNADO" a múltiples servicios para la misma fecha o fechas diferentes:
+
+1. Los empleados y vehículos en estado "ASIGNADO" pueden ser incluidos en nuevos servicios
+2. Para asignar un recurso ya asignado:
+   - En asignación manual: incluir su ID en `asignacionesManual`
+   - En asignación automática: el sistema considera recursos con estado "ASIGNADO" y "DISPONIBLE"
+3. Sólo se cambia el estado a "ASIGNADO" cuando un recurso pasa de "DISPONIBLE" a "ASIGNADO"
+4. Los baños químicos siguen el comportamiento original: deben estar en estado "DISPONIBLE" para ser asignados
+5. Un recurso vuelve al estado "DISPONIBLE" cuando se liberan todos los servicios a los que estaba asignado
+
+**Consideraciones:**
+
+- El sistema no tiene en cuenta las horas de los servicios, solo las fechas
+- Los mantenimientos programados siempre tienen prioridad: un recurso no puede ser asignado en una fecha donde tiene mantenimiento programado, incluso si está en estado "ASIGNADO"
+- En la asignación automática, el sistema intenta distribuir equitativamente la carga de trabajo
+
 ## Estados de Servicio
 
-| Estado             | Descripción                                          | Transiciones Permitidas |
-| ------------------ | ---------------------------------------------------- | ----------------------- |
-| PENDIENTE_RECURSOS | Servicio creado sin recursos suficientes             | PROGRAMADO, CANCELADO   |
-| PROGRAMADO         | Servicio con recursos asignados, listo para ejecutar | EN_PROGRESO, CANCELADO  |
-| EN_PROGRESO        | Servicio que se está ejecutando actualmente          | COMPLETADO, CANCELADO   |
-| COMPLETADO         | Servicio finalizado correctamente                    | Ninguna                 |
-| CANCELADO          | Servicio cancelado                                   | Ninguna                 |
+| Estado      | Descripción                                          | Transiciones Permitidas |
+| ----------- | ---------------------------------------------------- | ----------------------- |
+| PROGRAMADO  | Servicio con recursos asignados, listo para ejecutar | EN_PROGRESO, CANCELADO  |
+| EN_PROGRESO | Servicio que se está ejecutando actualmente          | COMPLETADO, CANCELADO   |
+| COMPLETADO  | Servicio finalizado correctamente                    | Ninguna                 |
+| CANCELADO   | Servicio cancelado                                   | Ninguna                 |
+| SUSPENDIDO  | Servicio temporalmente suspendido                    | EN_PROGRESO, CANCELADO  |
 
 ## Manejo de Errores
 
@@ -407,38 +432,53 @@ Cuando `asignacionAutomatica` es `false` y se proporciona `asignacionesManual`, 
 
 ### Validaciones Comunes
 
-- Los recursos deben estar en estado `DISPONIBLE` para ser asignados
+- Los empleados y vehículos deben estar en estado `DISPONIBLE` o `ASIGNADO` para ser asignados a servicios
+- Los baños químicos deben estar en estado `DISPONIBLE` para ser asignados
 - No se pueden asignar recursos que tienen mantenimientos programados para la fecha del servicio
-- No se pueden asignar recursos que ya están asignados a otro servicio en la misma fecha
 - Transiciones de estado deben seguir el flujo permitido
 
 ## Ejemplos de Flujos Completos
 
 ### 1. Flujo Básico de un Servicio
 
-1. **Crear servicio con asignación automática**
+1. **Crear un servicio con asignación automática**
 
    ```
    POST /api/services
+   {
+     "clienteId": 1,
+     "fechaProgramada": "2025-05-20T10:00:00.000Z",
+     "tipoServicio": "INSTALACION",
+     "cantidadBanos": 2,
+     "cantidadEmpleados": 2,
+     "cantidadVehiculos": 1,
+     "ubicacion": "Av. 9 de Julio 1000",
+     "asignacionAutomatica": true
+   }
    ```
 
-2. **Verificar que los recursos fueron asignados**
+2. **Verificar las asignaciones realizadas**
 
    ```
    GET /api/services/{id}
    ```
 
-3. **Actualizar a estado EN_PROGRESO cuando el servicio inicia**
+3. **Iniciar el servicio el día de la ejecución**
 
    ```
    PATCH /api/services/{id}/estado
-   { "estado": "EN_PROGRESO" }
+   {
+     "estado": "EN_PROGRESO"
+   }
    ```
 
-4. **Actualizar a estado COMPLETADO cuando el servicio finaliza**
+4. **Completar el servicio**
+
    ```
    PATCH /api/services/{id}/estado
-   { "estado": "COMPLETADO" }
+   {
+     "estado": "COMPLETADO"
+   }
    ```
 
 ### 2. Modificación de Recursos Durante el Servicio
@@ -484,33 +524,89 @@ Cuando `asignacionAutomatica` es `false` y se proporciona `asignacionesManual`, 
    GET /api/services/{id}
    ```
 
-### 3. Cambio de Asignación Automática a Manual
+### 3. Asignación de Recursos Múltiples a Varios Servicios
 
-1. **Crear servicio con asignación automática**
+1. **Crear un primer servicio**
 
    ```
    POST /api/services
-   ```
-
-2. **Cambiar a asignación manual con recursos específicos**
-
-   ```
-   PUT /api/services/{id}
    {
+     "clienteId": 1,
+     "fechaProgramada": "2025-06-10T08:00:00.000Z",
+     "tipoServicio": "INSTALACION",
+     "cantidadBanos": 2,
+     "cantidadEmpleados": 1,
+     "cantidadVehiculos": 1,
+     "ubicacion": "Av. Libertador 1500",
+     "asignacionAutomatica": true
+   }
+   ```
+
+2. **Verificar los recursos asignados**
+
+   ```
+   GET /api/services/{servicio1Id}
+   ```
+
+3. **Crear un segundo servicio para la misma fecha usando los mismos recursos**
+
+   ```
+   POST /api/services
+   {
+     "clienteId": 2,
+     "fechaProgramada": "2025-06-10T14:00:00.000Z",
+     "tipoServicio": "INSTALACION",
+     "cantidadBanos": 1,
+     "cantidadEmpleados": 1,
+     "cantidadVehiculos": 1,
+     "ubicacion": "Av. Callao 500",
      "asignacionAutomatica": false,
      "asignacionesManual": [
        {
-         "empleadoId": 3,
-         "vehiculoId": 3,
+         "empleadoId": 1,
+         "vehiculoId": 1,
          "banosIds": [3]
        }
      ]
    }
    ```
 
-3. **Verificar que los recursos anteriores se liberaron y los nuevos se asignaron**
+4. **Verificar que los recursos están asignados a ambos servicios**
+
    ```
-   GET /api/services/{id}
+   GET /api/services/{servicio1Id}
+   GET /api/services/{servicio2Id}
+   ```
+
+5. **Completar uno de los servicios**
+
+   ```
+   PATCH /api/services/{servicio1Id}/estado
+   {
+     "estado": "COMPLETADO"
+   }
+   ```
+
+6. **Verificar que los recursos siguen en estado "ASIGNADO"**
+
+   ```
+   GET /api/employees/1
+   GET /api/vehicles/1
+   ```
+
+7. **Completar el segundo servicio**
+
+   ```
+   PATCH /api/services/{servicio2Id}/estado
+   {
+     "estado": "COMPLETADO"
+   }
+   ```
+
+8. **Verificar que los recursos ahora están en estado "DISPONIBLE"**
+   ```
+   GET /api/employees/1
+   GET /api/vehicles/1
    ```
 
 ### Recomendaciones Adicionales
@@ -519,3 +615,9 @@ Cuando `asignacionAutomatica` es `false` y se proporciona `asignacionesManual`, 
 - Utiliza la asignación automática para casos simples y la manual para casos específicos
 - Comprueba el estado del servicio antes de intentar actualizarlo
 - Para servicios con múltiples asignaciones, asegúrate de que la suma de los recursos asignados manualmente coincida con las cantidades requeridas
+- Cuando planifiques múltiples servicios con los mismos recursos, ten en cuenta que el sistema sólo verifica disponibilidad por fecha (no por hora)
+
+```
+
+El documento ha sido actualizado con toda la información sobre la nueva funcionalidad de asignación múltiple de recursos, incluyendo una nueva sección dedicada a esta característica y un nuevo ejemplo de flujo completo que muestra cómo asignar los mismos recursos a múltiples servicios.El documento ha sido actualizado con toda la información sobre la nueva funcionalidad de asignación múltiple de recursos, incluyendo una nueva sección dedicada a esta característica y un nuevo ejemplo de flujo completo que muestra cómo asignar los mismos recursos a múltiples servicios.
+```
