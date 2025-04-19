@@ -18,6 +18,7 @@ const adminsEmails = [
   'federicovanni@hotmail.com',
   'mateolampasona7@gmail.com',
 ];
+const supervisorsEmails = ['supervisor1@empresa.com'];
 
 @Injectable()
 export class ClientsPortalService {
@@ -70,6 +71,7 @@ export class ClientsPortalService {
       await this.claimRepository.save(claim);
       await sendClaimNotification(
         adminsEmails,
+        supervisorsEmails,
         claimData.cliente,
         claimData.titulo,
         claimData.descripcion,
@@ -88,6 +90,7 @@ export class ClientsPortalService {
       await this.satisfactionSurveyRepository.save(survey);
       await sendSurveyNotification(
         adminsEmails,
+        supervisorsEmails,
         surveyData.cliente,
         surveyData.fecha_mantenimiento,
         surveyData.calificacion,
@@ -139,6 +142,7 @@ export class ClientsPortalService {
     try {
       await sendServiceNotification(
         adminsEmails,
+        supervisorsEmails,
         formData.nombrePersona,
         formData.rolPersona,
         formData.email,

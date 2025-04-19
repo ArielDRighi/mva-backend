@@ -20,11 +20,10 @@ import { CreateSatisfactionSurveyDto } from './dto/createSatisfactionSurvey.dto'
 import { AskForServiceDto } from './dto/askForService.dto';
 
 @Controller('clients_portal')
-@UseGuards(JwtAuthGuard)
 export class ClientsPortalController {
   constructor(private readonly clientsPortalService: ClientsPortalService) {}
 
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Get('satisfaction_surveys')
   @HttpCode(HttpStatus.OK)
@@ -39,7 +38,7 @@ export class ClientsPortalController {
     }
   }
 
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Get('satisfaction_surveys/:id')
   @HttpCode(HttpStatus.OK)
@@ -54,7 +53,7 @@ export class ClientsPortalController {
     }
   }
 
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Get('claims')
   @HttpCode(HttpStatus.OK)
@@ -68,7 +67,7 @@ export class ClientsPortalController {
       );
     }
   }
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Get('claims/:id')
   @HttpCode(HttpStatus.OK)
@@ -114,7 +113,7 @@ export class ClientsPortalController {
     }
   }
 
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Put('claims/:id')
   @HttpCode(HttpStatus.OK)
@@ -132,7 +131,7 @@ export class ClientsPortalController {
     }
   }
 
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Put('satisfaction_surveys/:id')
   @HttpCode(HttpStatus.OK)
@@ -166,6 +165,7 @@ export class ClientsPortalController {
     }
   }
 
+  @UseGuards(RolesGuard, JwtAuthGuard)
   @Get('stats')
   @HttpCode(HttpStatus.OK)
   async getStats() {
