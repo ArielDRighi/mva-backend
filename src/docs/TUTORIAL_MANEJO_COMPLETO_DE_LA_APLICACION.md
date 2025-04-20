@@ -1,46 +1,47 @@
-Voy a rehacer el archivo de tutorial completo incorporando los nuevos cambios relacionados con los tipos de servicios y la gestión de baños ya instalados.
-
-```markdown
 # Tutorial Completo: MVA Backend - De la Inserción de Datos al Flujo Administrativo
 
 ## Índice
 
 1. Preparación del Entorno
 2. Población Inicial de la Base de Datos
-3. Gestión de Recursos
-   - 3.1 Gestión de Empleados
-   - 3.2 Gestión de Vehículos
-   - 3.3 Gestión de Baños Químicos
-4. Gestión de Mantenimientos
-   - 4.1 Mantenimiento de Vehículos
-   - 4.2 Mantenimiento de Baños Químicos
-5. Gestión de Clientes y Condiciones Contractuales
-6. Gestión de Servicios
-   - 6.1 Creación de Servicios
-   - 6.2 Asignación Manual de Recursos
-   - 6.3 Actualización del Estado de un Servicio
-   - 6.4 Servicios para Baños Ya Instalados
-7. Flujos Administrativos Completos
-   - 7.1 Flujo de Instalación
-   - 7.2 Flujo de Mantenimiento Programado
-   - 7.3 Gestión de Imprevistos
-   - 7.4 Flujo de Retiro
-8. Gestión de Informes
-9. Resolución de Problemas Comunes
-10. Mejores Prácticas
-11. Programación de Agenda Extendida
-    - 11.1 Asignación Múltiple de Recursos
-    - 11.2 Cómo Utilizar esta Funcionalidad
-    - 11.3 Consideraciones Importantes
-    - 11.4 Ejemplos Prácticos
+3. Gestión de Usuarios y Autenticación
+   - 3.1 Creación del Usuario Administrador
+   - 3.2 Inicio de Sesión y Obtención de Token
+   - 3.3 Gestión de Usuarios y Roles
+4. Gestión de Recursos
+   - 4.1 Gestión de Empleados
+   - 4.2 Gestión de Vehículos
+   - 4.3 Gestión de Baños Químicos
+5. Gestión de Mantenimientos
+   - 5.1 Mantenimiento de Vehículos
+   - 5.2 Mantenimiento de Baños Químicos
+6. Gestión de Clientes y Condiciones Contractuales
+7. Gestión de Servicios
+   - 7.1 Creación de Servicios
+   - 7.2 Asignación Manual de Recursos
+   - 7.3 Actualización del Estado de un Servicio
+   - 7.4 Servicios para Baños Ya Instalados
+8. Flujos Administrativos Completos
+   - 8.1 Flujo de Instalación
+   - 8.2 Flujo de Mantenimiento Programado
+   - 8.3 Gestión de Imprevistos
+   - 8.4 Flujo de Retiro
+9. Gestión de Informes
+10. Resolución de Problemas Comunes
+11. Mejores Prácticas
+12. Programación de Agenda Extendida
+    - 12.1 Asignación Múltiple de Recursos
+    - 12.2 Cómo Utilizar esta Funcionalidad
+    - 12.3 Consideraciones Importantes
+    - 12.4 Ejemplos Prácticos
 
 ## 1. Preparación del Entorno
 
 Antes de comenzar, debemos asegurarnos de que el entorno esté correctamente configurado:
 
 ### Configuración del archivo .env
-```
 
+```
 DB_HOST=localhost
 DB_PORT=5432
 DB_USERNAME=postgres
@@ -49,8 +50,7 @@ DB_DATABASE=mva_db
 DB_SCHEMA=public
 JWT_SECRET=tu_secreto_jwt
 JWT_EXPIRATION_TIME=8h
-
-````
+```
 
 ### Instalación de Dependencias
 
@@ -66,7 +66,7 @@ npm run build
 
 # Iniciar la aplicación en modo desarrollo
 npm run start:dev
-````
+```
 
 ## 2. Población Inicial de la Base de Datos
 
@@ -105,9 +105,131 @@ Total de baños químicos en la base de datos: 10
 ¡Datos de prueba insertados correctamente!
 ```
 
-## 3. Gestión de Recursos
+## 3. Gestión de Usuarios y Autenticación
 
-### 3.1 Gestión de Empleados
+### 3.1 Creación del Usuario Administrador
+
+Para comenzar a utilizar el sistema, necesitamos crear un usuario administrador inicial:
+
+```bash
+# Ejecutar script de creación de usuario administrador
+npx ts-node -r tsconfig-paths/register src/scripts/create-admin-standalone.ts
+```
+
+El script mostrará un resultado similar a este:
+
+```
+Iniciando proceso de creación de usuario administrador...
+Conexión a la base de datos establecida correctamente
+¡Usuario administrador creado exitosamente!
+-------------------------------------
+nombre: admin
+Password: admin123
+Email: admin@mva.com
+Roles: ADMIN
+ID: 1
+-------------------------------------
+¡IMPORTANTE! Recuerda cambiar esta contraseña después del primer inicio de sesión.
+Conexión a la base de datos cerrada
+Script finalizado correctamente
+```
+
+### 3.2 Inicio de Sesión y Obtención de Token
+
+Para interactuar con la API, es necesario obtener un token JWT mediante el proceso de autenticación:
+
+```http
+POST /api/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin123"
+}
+```
+
+La respuesta incluirá el token de acceso necesario para las solicitudes autenticadas:
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 1,
+    "nombre": "admin",
+    "email": "admin@mva.com",
+    "empleadoId": null,
+    "estado": "ACTIVO",
+    "roles": ["ADMIN"]
+  }
+}
+```
+
+Este token debe incluirse en todas las solicitudes posteriores como encabezado de autorización:
+
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+### 3.3 Gestión de Usuarios y Roles
+
+#### Crear un nuevo usuario
+
+```http
+POST /api/users
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "supervisor1",
+  "email": "supervisor@mva.com",
+  "password": "supervisor123",
+  "roles": ["SUPERVISOR"],
+  "empleadoId": 2
+}
+```
+
+#### Actualizar un usuario existente
+
+```http
+PUT /api/users/2
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "email": "nuevo_email@mva.com",
+  "roles": ["SUPERVISOR", "OPERARIO"]
+}
+```
+
+#### Cambiar estado de un usuario
+
+```http
+PATCH /api/users/2/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "estado": "INACTIVO"
+}
+```
+
+#### Ver todos los usuarios
+
+```http
+GET /api/users
+Authorization: Bearer {{token}}
+```
+
+#### Ver un usuario específico
+
+```http
+GET /api/users/2
+Authorization: Bearer {{token}}
+```
+
+## 4. Gestión de Recursos
+
+### 4.1 Gestión de Empleados
 
 #### Crear un nuevo empleado
 
@@ -149,7 +271,7 @@ GET /api/employees?estado=DISPONIBLE
 Authorization: Bearer {{token}}
 ```
 
-### 3.2 Gestión de Vehículos
+### 4.2 Gestión de Vehículos
 
 #### Crear un nuevo vehículo
 
@@ -188,7 +310,7 @@ GET /api/vehicles
 Authorization: Bearer {{token}}
 ```
 
-### 3.3 Gestión de Baños Químicos
+### 4.3 Gestión de Baños Químicos
 
 #### Crear un nuevo baño químico
 
@@ -225,9 +347,9 @@ GET /api/chemical_toilets/search?estado=DISPONIBLE
 Authorization: Bearer {{token}}
 ```
 
-## 4. Gestión de Mantenimientos
+## 5. Gestión de Mantenimientos
 
-### 4.1 Mantenimiento de Vehículos
+### 5.1 Mantenimiento de Vehículos
 
 #### Programar un mantenimiento futuro
 
@@ -275,7 +397,7 @@ Authorization: Bearer {{token}}
 
 > **Nota**: Al completar un mantenimiento, el vehículo vuelve automáticamente a estado "DISPONIBLE".
 
-### 4.2 Mantenimiento de Baños Químicos
+### 5.2 Mantenimiento de Baños Químicos
 
 #### Programar mantenimiento para un baño
 
@@ -301,7 +423,7 @@ PATCH /api/toilet_maintenance/1/complete
 Authorization: Bearer {{token}}
 ```
 
-## 5. Gestión de Clientes y Condiciones Contractuales
+## 6. Gestión de Clientes y Condiciones Contractuales
 
 #### Crear un nuevo cliente
 
@@ -323,25 +445,32 @@ Content-Type: application/json
 #### Crear condiciones contractuales
 
 ```http
-POST /api/contractual_conditions
+POST /api/contractual_conditions/create
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-  "clienteId": 6,
-  "costo_instalacion": 15000,
-  "costo_alquiler_dia": 2000,
-  "costo_retiro": 15000,
-  "costo_limpieza": 5000,
-  "frecuencia_limpieza": 7,
-  "fecha_inicio": "2025-04-15T00:00:00.000Z",
-  "fecha_fin": "2025-12-31T00:00:00.000Z"
+  "clientId": 6,
+  "tipo_de_contrato": "Permanente",
+  "fecha_inicio": "2025-01-01T00:00:00.000Z",
+  "fecha_fin": "2025-12-31T00:00:00.000Z",
+  "condiciones_especificas": "Incluye servicio de limpieza semanal sin costo adicional",
+  "tarifa": 2500,
+  "periodicidad": "Mensual",
+  "estado": "Activo"
 }
 ```
 
-## 6. Gestión de Servicios
+#### Consultar las condiciones contractuales de un cliente
 
-### 6.1 Creación de Servicios
+```http
+GET /api/contractual_conditions/client/6
+Authorization: Bearer {{token}}
+```
+
+## 7. Gestión de Servicios
+
+### 7.1 Creación de Servicios
 
 #### Crear servicio con asignación automática de recursos
 
@@ -359,11 +488,12 @@ Content-Type: application/json
   "cantidadVehiculos": 1,
   "ubicacion": "Av. Corrientes 1234, Buenos Aires",
   "notas": "Entregar antes de las 9am",
-  "asignacionAutomatica": true
+  "asignacionAutomatica": true,
+  "condicionContractualId": 1
 }
 ```
 
-### 6.2 Asignación Manual de Recursos
+### 7.2 Asignación Manual de Recursos
 
 ```http
 POST /api/services
@@ -388,11 +518,12 @@ Content-Type: application/json
     {
       "empleadoId": 3
     }
-  ]
+  ],
+  "condicionContractualId": 2
 }
 ```
 
-### 6.3 Actualización del Estado de un Servicio
+### 7.3 Actualización del Estado de un Servicio
 
 #### Iniciar un servicio (cambiar a EN_PROGRESO)
 
@@ -418,7 +549,18 @@ Content-Type: application/json
 }
 ```
 
-### 6.4 Servicios para Baños Ya Instalados
+### 7.4 Servicios para Baños Ya Instalados
+
+#### Consultar baños instalados en un cliente
+
+Para facilitar la creación de servicios que operan sobre baños ya instalados, puede consultar los baños asignados a un cliente específico:
+
+```http
+GET /api/chemical_toilets/by-client/3
+Authorization: Bearer {{token}}
+```
+
+Este endpoint devolverá todos los baños en estado "ASIGNADO" que estén vinculados al cliente especificado, independientemente del estado del servicio de instalación que los asignó.
 
 #### Crear un servicio de LIMPIEZA para baños ya instalados
 
@@ -464,18 +606,9 @@ Content-Type: application/json
 }
 ```
 
-#### Consultar baños instalados en un cliente
+## 8. Flujos Administrativos Completos
 
-Para facilitar la creación de servicios que operan sobre baños ya instalados, puede consultar los baños asignados a un cliente específico:
-
-```http
-GET /api/chemical_toilets/by-client/3
-Authorization: Bearer {{token}}
-```
-
-## 7. Flujos Administrativos Completos
-
-### 7.1 Flujo de Instalación
+### 8.1 Flujo de Instalación
 
 Paso a paso para completar una instalación de baños químicos:
 
@@ -483,6 +616,7 @@ Paso a paso para completar una instalación de baños químicos:
 
 ```http
 POST /api/clients
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -498,18 +632,19 @@ Content-Type: application/json
 2. **Establecer condiciones contractuales**
 
 ```http
-POST /api/contractual_conditions
+POST /api/contractual_conditions/create
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-  "clienteId": 7,
-  "costo_instalacion": 18000,
-  "costo_alquiler_dia": 2500,
-  "costo_retiro": 18000,
-  "costo_limpieza": 6000,
-  "frecuencia_limpieza": 3,
+  "clientId": 7,
+  "tipo_de_contrato": "Temporal",
   "fecha_inicio": "2025-05-01T00:00:00.000Z",
-  "fecha_fin": "2025-05-31T00:00:00.000Z"
+  "fecha_fin": "2025-05-31T00:00:00.000Z",
+  "condiciones_especificas": "Contrato para evento de 3 días",
+  "tarifa": 2500,
+  "periodicidad": "Total",
+  "estado": "Activo"
 }
 ```
 
@@ -517,6 +652,7 @@ Content-Type: application/json
 
 ```http
 POST /api/services
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -528,7 +664,8 @@ Content-Type: application/json
   "cantidadVehiculos": 2,
   "ubicacion": "Ruta 2 km 50, Salón Principal",
   "notas": "Evento de 3 días con 1000 asistentes",
-  "asignacionAutomatica": true
+  "asignacionAutomatica": true,
+  "condicionContractualId": 3
 }
 ```
 
@@ -536,12 +673,14 @@ Content-Type: application/json
 
 ```http
 GET /api/services/3
+Authorization: Bearer {{token}}
 ```
 
 5. **Iniciar el servicio el día de la instalación**
 
 ```http
 PATCH /api/services/3/estado
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -553,6 +692,7 @@ Content-Type: application/json
 
 ```http
 PATCH /api/services/3/estado
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -560,10 +700,18 @@ Content-Type: application/json
 }
 ```
 
-7. **Programar servicio de limpieza según frecuencia contractual**
+7. **Verificar que los baños siguen ASIGNADOS al cliente a pesar de haber completado el servicio**
+
+```http
+GET /api/chemical_toilets/by-client/7
+Authorization: Bearer {{token}}
+```
+
+8. **Programar servicio de limpieza según frecuencia contractual**
 
 ```http
 POST /api/services
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -579,10 +727,11 @@ Content-Type: application/json
 }
 ```
 
-8. **Programar servicio de retiro al finalizar el evento**
+9. **Programar servicio de retiro al finalizar el evento**
 
 ```http
 POST /api/services
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -598,7 +747,7 @@ Content-Type: application/json
 }
 ```
 
-### 7.2 Flujo de Mantenimiento Programado
+### 8.2 Flujo de Mantenimiento Programado
 
 Paso a paso para gestionar el mantenimiento programado de recursos:
 
@@ -606,6 +755,7 @@ Paso a paso para gestionar el mantenimiento programado de recursos:
 
 ```http
 POST /api/vehicle_maintenance
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -622,12 +772,14 @@ Content-Type: application/json
 
 ```http
 GET /api/vehicles/3
+Authorization: Bearer {{token}}
 ```
 
 3. **Intentar asignar el vehículo para un servicio en la fecha de mantenimiento**
 
 ```http
 POST /api/services
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -650,9 +802,10 @@ Content-Type: application/json
 
 ```http
 PATCH /api/vehicle_maintenance/3/complete
+Authorization: Bearer {{token}}
 ```
 
-### 7.3 Gestión de Imprevistos
+### 8.3 Gestión de Imprevistos
 
 Pasos para manejar situaciones imprevistas:
 
@@ -662,6 +815,7 @@ Pasos para manejar situaciones imprevistas:
 
    ```http
    PATCH /api/vehicles/4/estado
+   Authorization: Bearer {{token}}
    Content-Type: application/json
 
    {
@@ -673,6 +827,7 @@ Pasos para manejar situaciones imprevistas:
 
    ```http
    POST /api/vehicle_maintenance
+   Authorization: Bearer {{token}}
    Content-Type: application/json
 
    {
@@ -688,6 +843,7 @@ Pasos para manejar situaciones imprevistas:
 
    ```http
    PUT /api/services/2
+   Authorization: Bearer {{token}}
    Content-Type: application/json
 
    {
@@ -707,6 +863,7 @@ Pasos para manejar situaciones imprevistas:
 
    ```http
    PATCH /api/employees/4/estado
+   Authorization: Bearer {{token}}
    Content-Type: application/json
 
    {
@@ -718,6 +875,7 @@ Pasos para manejar situaciones imprevistas:
 
    ```http
    PUT /api/services/3
+   Authorization: Bearer {{token}}
    Content-Type: application/json
 
    {
@@ -731,7 +889,7 @@ Pasos para manejar situaciones imprevistas:
    }
    ```
 
-### 7.4 Flujo de Retiro
+### 8.4 Flujo de Retiro
 
 Este flujo corresponde a la finalización de un contrato y el retiro de los baños instalados en el cliente.
 
@@ -746,6 +904,7 @@ Authorization: Bearer {{token}}
 
 ```http
 POST /api/services
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -765,6 +924,7 @@ Content-Type: application/json
 
 ```http
 PATCH /api/services/5/estado
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -776,6 +936,7 @@ Content-Type: application/json
 
 ```http
 PATCH /api/services/5/estado
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -788,11 +949,12 @@ Content-Type: application/json
 ```http
 GET /api/chemical_toilets/10
 GET /api/chemical_toilets/11
+Authorization: Bearer {{token}}
 ```
 
 > **Nota**: Al completar un servicio de RETIRO, el sistema cambia automáticamente el estado de los baños retirados de ASIGNADO a EN_MANTENIMIENTO para su limpieza y acondicionamiento antes de volver a estar disponibles.
 
-## 8. Gestión de Informes
+## 9. Gestión de Informes
 
 ### Generar reportes de servicios por cliente
 
@@ -815,7 +977,43 @@ GET /api/chemical_toilets/stats/1
 Authorization: Bearer {{token}}
 ```
 
-## 9. Resolución de Problemas Comunes
+### Reportes de actividad de usuarios
+
+```http
+GET /api/activity-logs?userId=2&startDate=2025-01-01T00:00:00.000Z&endDate=2025-01-31T23:59:59.999Z
+Authorization: Bearer {{token}}
+```
+
+## 10. Resolución de Problemas Comunes
+
+### Problemas de autenticación
+
+Si recibes errores de autenticación:
+
+1. **Verifica que el token es válido y no ha expirado**
+
+   ```http
+   POST /api/auth/login
+   Content-Type: application/json
+
+   {
+     "username": "admin",
+     "password": "admin123"
+   }
+   ```
+
+2. **Asegúrate de incluir el prefijo "Bearer" antes del token**
+
+   ```
+   Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+   ```
+
+3. **Verifica que el usuario tenga los permisos adecuados**
+
+   ```http
+   GET /api/users/me
+   Authorization: Bearer {{token}}
+   ```
 
 ### Error en la asignación de recursos
 
@@ -849,6 +1047,7 @@ Si no puedes cambiar el estado de un servicio a COMPLETADO:
 
    ```http
    GET /api/services/1
+   Authorization: Bearer {{token}}
    ```
 
 2. Verifica que todas las tareas relacionadas estén completadas.
@@ -857,6 +1056,7 @@ Si no puedes cambiar el estado de un servicio a COMPLETADO:
 
    ```http
    PATCH /api/services/1/estado
+   Authorization: Bearer {{token}}
    Content-Type: application/json
 
    {
@@ -873,6 +1073,7 @@ Si al crear un servicio de LIMPIEZA, REEMPLAZO o RETIRO recibe un error sobre lo
 
 ```http
 POST /api/services
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -886,15 +1087,45 @@ Content-Type: application/json
 
 ```http
 GET /api/chemical_toilets/by-client/{clientId}
+Authorization: Bearer {{token}}
 ```
 
 3. **Comprobar que los baños listados estén en estado ASIGNADO**
 
 ```http
 GET /api/chemical_toilets/{banoId}
+Authorization: Bearer {{token}}
 ```
 
-## 10. Mejores Prácticas
+### Problemas con la gestión de usuarios
+
+Si experimentas problemas al crear o actualizar usuarios:
+
+1. **Verificar que el nombre de usuario y email sean únicos**
+
+   ```http
+   GET /api/users?nombre=nuevo_usuario
+   GET /api/users?email=usuario@mva.com
+   ```
+
+2. **Asegurarse de que las contraseñas cumplan los requisitos**
+
+   - Entre 6 y 30 caracteres
+   - Incluir al menos una letra y un número
+
+3. **Verificar los roles asignados**
+   - Los roles válidos son: ADMIN, SUPERVISOR, OPERARIO
+   - Solo un ADMIN puede asignar el rol ADMIN
+
+## 11. Mejores Prácticas
+
+### Seguridad y Autenticación
+
+1. **Cambiar regularmente las contraseñas** de las cuentas administrativas.
+2. **Utilizar contraseñas fuertes** con combinación de letras, números y símbolos.
+3. **No compartir tokens JWT** entre usuarios o sistemas.
+4. **Cerrar sesión** cuando no se esté utilizando el sistema.
+5. **Revisar periódicamente los registros de actividad** para detectar comportamientos anómalos.
 
 ### Planificación de Recursos
 
@@ -921,10 +1152,11 @@ GET /api/chemical_toilets/{banoId}
 2. **Para servicios de INSTALACION o TRASLADO**, asegurarse de que cantidadBanos > 0.
 3. **Para servicios de LIMPIEZA, REEMPLAZO, RETIRO o MANTENIMIENTO_IN_SITU**, establecer cantidadBanos = 0 y proporcionar los IDs de baños ya instalados.
 4. **Utilizar el endpoint /api/chemical_toilets/by-client/{clientId}** para obtener la lista de baños ya instalados en un cliente.
+5. **Vincular los servicios de instalación con las condiciones contractuales** para gestionar correctamente la duración del alquiler.
 
-## 11. Programación de Agenda Extendida
+## 12. Programación de Agenda Extendida
 
-### 11.1 Asignación Múltiple de Recursos
+### 12.1 Asignación Múltiple de Recursos
 
 A partir de ahora, el sistema permite asignar empleados y vehículos que tengan el estado "ASIGNADO" a múltiples servicios programados para la misma fecha o para fechas futuras. Esta funcionalidad facilita la planificación de agendas extendidas.
 
@@ -945,7 +1177,7 @@ Esta funcionalidad es especialmente útil para:
 2. **Optimización de recursos**: Maximizar la utilización de los recursos disponibles.
 3. **Agendamiento secuencial**: Programar con anticipación una serie de servicios que utilizarán los mismos recursos.
 
-### 11.2 Cómo Utilizar esta Funcionalidad
+### 12.2 Cómo Utilizar esta Funcionalidad
 
 #### Asignación Manual de Recursos
 
@@ -988,13 +1220,14 @@ Para verificar qué recursos están disponibles para una fecha específica:
 2. Filtre por estado "DISPONIBLE" o "ASIGNADO" para empleados y vehículos.
 3. Filtre por estado "DISPONIBLE" para baños químicos (o "ASIGNADO" si se trata de un servicio de baños ya instalados).
 
-### 11.3 Consideraciones Importantes
+### 12.3 Consideraciones Importantes
 
 - El sistema no considera las horas de los servicios, solo las fechas, por lo que debe planificar adecuadamente para evitar conflictos de horarios.
 - Cuando un servicio se completa o cancela, los recursos asociados se liberan (cambian a "DISPONIBLE") solo si no están asignados a otros servicios activos.
 - Los mantenimientos programados para vehículos y baños químicos son respetados, independientemente del estado actual del recurso.
+- Los baños permanecen en estado ASIGNADO después de completar un servicio de instalación, hasta que se realiza un servicio de RETIRO o hasta que finaliza el contrato asociado.
 
-### 11.4 Ejemplos Prácticos
+### 12.4 Ejemplos Prácticos
 
 #### Ejemplo 1: Creación de múltiples servicios para la misma fecha con los mismos recursos
 
@@ -1002,6 +1235,7 @@ Para verificar qué recursos están disponibles para una fecha específica:
 
 ```http
 POST /api/services
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -1012,7 +1246,8 @@ Content-Type: application/json
   "cantidadEmpleados": 1,
   "cantidadVehiculos": 1,
   "ubicacion": "Av. Libertador 1500",
-  "asignacionAutomatica": true
+  "asignacionAutomatica": true,
+  "condicionContractualId": 1
 }
 ```
 
@@ -1020,6 +1255,7 @@ Content-Type: application/json
 
 ```http
 POST /api/services
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -1037,7 +1273,8 @@ Content-Type: application/json
       "vehiculoId": 1,
       "banosIds": [3]
     }
-  ]
+  ],
+  "condicionContractualId": 2
 }
 ```
 
@@ -1047,12 +1284,14 @@ Para comprobar que un empleado o vehículo ya asignado puede ser asignado a un n
 
 ```http
 GET /api/employees/1
+Authorization: Bearer {{token}}
 ```
 
 Si el estado es "ASIGNADO", aún puede ser utilizado en otro servicio:
 
 ```http
 POST /api/services
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -1067,10 +1306,10 @@ Content-Type: application/json
   "asignacionesManual": [
     {
       "empleadoId": 1,
-      "vehiculoId": 2,
-      "banosInstalados": [4, 5]
+      "vehiculoId": 2
     }
-  ]
+  ],
+  "banosInstalados": [4, 5]
 }
 ```
 
@@ -1081,6 +1320,7 @@ Se puede planificar toda una semana de trabajo para un mismo equipo (empleado + 
 ```http
 # Día 1 - Lunes
 POST /api/services
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -1090,11 +1330,13 @@ Content-Type: application/json
   "cantidadBanos": 2,
   "cantidadEmpleados": 1,
   "cantidadVehiculos": 1,
-  "asignacionAutomatica": true
+  "asignacionAutomatica": true,
+  "condicionContractualId": 1
 }
 
 # Día 2 - Martes (usando los mismos recursos del día anterior)
 POST /api/services
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {

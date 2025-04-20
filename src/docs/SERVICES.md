@@ -16,9 +16,11 @@
    - Asignación Manual
    - Asignación Múltiple de Recursos
    - Tipos de Servicio y Recursos Requeridos
+   - Gestión de Baños Asignados
 5. Estados de Servicio
-6. Manejo de Errores
-7. Ejemplos de Flujos Completos
+6. Integración con Condiciones Contractuales
+7. Manejo de Errores
+8. Ejemplos de Flujos Completos
 
 ## Introducción
 
@@ -50,7 +52,7 @@ Content-Type: application/json
 
 **Endpoint:** `POST /api/services`
 
-#### A. Crear Servicio con Asignación Automática
+#### A. Crear Servicio de INSTALACIÓN con Asignación Automática
 
 ```json
 {
@@ -62,7 +64,8 @@ Content-Type: application/json
   "cantidadVehiculos": 1,
   "ubicacion": "Av. Corrientes 1234, Buenos Aires",
   "notas": "Entregar antes de las 9am",
-  "asignacionAutomatica": true
+  "asignacionAutomatica": true,
+  "condicionContractualId": 1
 }
 ```
 
@@ -89,7 +92,8 @@ Content-Type: application/json
       "vehiculoId": 2,
       "banosIds": [2]
     }
-  ]
+  ],
+  "condicionContractualId": 1
 }
 ```
 
@@ -111,19 +115,20 @@ Para servicios que operan sobre baños ya instalados en el cliente:
 }
 ```
 
-| Campo                | Tipo               | Requerido | Descripción                                                                         |
-| -------------------- | ------------------ | --------- | ----------------------------------------------------------------------------------- |
-| clienteId            | number             | Sí        | ID del cliente                                                                      |
-| fechaProgramada      | string (fecha ISO) | Sí        | Fecha programada del servicio                                                       |
-| tipoServicio         | string             | Sí        | INSTALACION, RETIRO, LIMPIEZA, MANTENIMIENTO, etc.                                  |
-| cantidadBanos        | number             | Sí        | Cantidad de baños requeridos (0 para servicios de tipo LIMPIEZA, REEMPLAZO, RETIRO) |
-| cantidadEmpleados    | number             | Sí        | Cantidad de empleados requeridos                                                    |
-| cantidadVehiculos    | number             | Sí        | Cantidad de vehículos requeridos                                                    |
-| ubicacion            | string             | Sí        | Ubicación del servicio                                                              |
-| notas                | string             | No        | Notas adicionales                                                                   |
-| asignacionAutomatica | boolean            | Sí        | Si es true, el sistema asigna recursos; si es false, asignación manual              |
-| asignacionesManual   | array              | No\*      | Array de asignaciones manuales (\*Requerido si asignacionAutomatica es false)       |
-| banosInstalados      | array of number    | No\*      | IDs de los baños ya instalados (\*Requerido para LIMPIEZA, REEMPLAZO, RETIRO)       |
+| Campo                  | Tipo               | Requerido | Descripción                                                                         |
+| ---------------------- | ------------------ | --------- | ----------------------------------------------------------------------------------- |
+| clienteId              | number             | Sí        | ID del cliente                                                                      |
+| fechaProgramada        | string (fecha ISO) | Sí        | Fecha programada del servicio                                                       |
+| tipoServicio           | string             | Sí        | INSTALACION, RETIRO, LIMPIEZA, MANTENIMIENTO, etc.                                  |
+| cantidadBanos          | number             | Sí        | Cantidad de baños requeridos (0 para servicios de tipo LIMPIEZA, REEMPLAZO, RETIRO) |
+| cantidadEmpleados      | number             | Sí        | Cantidad de empleados requeridos                                                    |
+| cantidadVehiculos      | number             | Sí        | Cantidad de vehículos requeridos                                                    |
+| ubicacion              | string             | Sí        | Ubicación del servicio                                                              |
+| notas                  | string             | No        | Notas adicionales                                                                   |
+| asignacionAutomatica   | boolean            | Sí        | Si es true, el sistema asigna recursos; si es false, asignación manual              |
+| asignacionesManual     | array              | No\*      | Array de asignaciones manuales (\*Requerido si asignacionAutomatica es false)       |
+| banosInstalados        | array of number    | No\*      | IDs de los baños ya instalados (\*Requerido para LIMPIEZA, REEMPLAZO, RETIRO)       |
+| condicionContractualId | number             | No        | ID de la condición contractual asociada (recomendado para servicios de INSTALACIÓN) |
 
 #### Respuesta Exitosa (201 Created)
 
@@ -144,6 +149,7 @@ Para servicios que operan sobre baños ya instalados en el cliente:
   "fechaProgramada": "2025-05-15T10:00:00.000Z",
   "fechaInicio": null,
   "fechaFin": null,
+  "fechaFinAsignacion": "2025-12-31T00:00:00.000Z",
   "tipoServicio": "INSTALACION",
   "estado": "PROGRAMADO",
   "cantidadBanos": 2,
@@ -152,6 +158,7 @@ Para servicios que operan sobre baños ya instalados en el cliente:
   "ubicacion": "Av. Corrientes 1234, Buenos Aires",
   "notas": "Entregar antes de las 9am",
   "asignacionAutomatica": true,
+  "condicionContractualId": 1,
   "fechaCreacion": "2025-04-10T15:30:00.000Z",
   "asignaciones": [
     // Detalles de las asignaciones
@@ -195,6 +202,7 @@ GET /api/services?fechaDesde=2025-05-01T00:00:00.000Z&fechaHasta=2025-06-01T00:0
     "fechaProgramada": "2025-05-15T10:00:00.000Z",
     "fechaInicio": null,
     "fechaFin": null,
+    "fechaFinAsignacion": "2025-12-31T00:00:00.000Z",
     "tipoServicio": "INSTALACION",
     "estado": "PROGRAMADO",
     "cantidadBanos": 2,
@@ -203,6 +211,7 @@ GET /api/services?fechaDesde=2025-05-01T00:00:00.000Z&fechaHasta=2025-06-01T00:0
     "ubicacion": "Av. Corrientes 1234, Buenos Aires",
     "notas": "Entregar antes de las 9am",
     "asignacionAutomatica": true,
+    "condicionContractualId": 1,
     "fechaCreacion": "2025-04-10T15:30:00.000Z",
     "asignaciones": [
       // Detalles de las asignaciones
@@ -228,6 +237,7 @@ GET /api/services?fechaDesde=2025-05-01T00:00:00.000Z&fechaHasta=2025-06-01T00:0
   "fechaProgramada": "2025-05-15T10:00:00.000Z",
   "fechaInicio": null,
   "fechaFin": null,
+  "fechaFinAsignacion": "2025-12-31T00:00:00.000Z",
   "tipoServicio": "INSTALACION",
   "estado": "PROGRAMADO",
   "cantidadBanos": 2,
@@ -236,6 +246,7 @@ GET /api/services?fechaDesde=2025-05-01T00:00:00.000Z&fechaHasta=2025-06-01T00:0
   "ubicacion": "Av. Corrientes 1234, Buenos Aires",
   "notas": "Entregar antes de las 9am",
   "asignacionAutomatica": true,
+  "condicionContractualId": 1,
   "fechaCreacion": "2025-04-10T15:30:00.000Z",
   "asignaciones": [
     {
@@ -310,6 +321,14 @@ GET /api/services?fechaDesde=2025-05-01T00:00:00.000Z&fechaHasta=2025-06-01T00:0
   "tipoServicio": "LIMPIEZA",
   "cantidadBanos": 0,
   "banosInstalados": [8, 9, 10]
+}
+```
+
+#### E. Actualizar Condición Contractual
+
+```json
+{
+  "condicionContractualId": 2
 }
 ```
 
@@ -428,6 +447,21 @@ Los distintos tipos de servicio tienen requisitos diferentes en cuanto a los rec
 
 **Nota:** Para los servicios que requieren baños ya instalados, el sistema verificará que los baños especificados existan y estén en estado ASIGNADO.
 
+### Gestión de Baños Asignados
+
+El sistema gestiona el ciclo de vida de los baños asignados a clientes de la siguiente manera:
+
+1. **Servicio de INSTALACIÓN:** Los baños pasan a estado `ASIGNADO` y permanecen así hasta que se realice un servicio de `RETIRO`.
+2. **Servicio de LIMPIEZA:** Opera sobre baños que ya están en estado `ASIGNADO` y los mantiene en ese estado.
+3. **Servicio de REEMPLAZO:** Cambia los baños asignados pero mantiene la misma cantidad.
+4. **Servicio de RETIRO:** Al completarse, cambia los baños de estado `ASIGNADO` a `EN_MANTENIMIENTO`.
+
+Para obtener los baños asignados a un cliente específico, útil para crear servicios de LIMPIEZA o RETIRO:
+
+```
+GET /api/chemical_toilets/by-client/{clientId}
+```
+
 ## Estados de Servicio
 
 | Estado      | Descripción                                          | Transiciones Permitidas |
@@ -437,6 +471,16 @@ Los distintos tipos de servicio tienen requisitos diferentes en cuanto a los rec
 | COMPLETADO  | Servicio finalizado correctamente                    | Ninguna                 |
 | CANCELADO   | Servicio cancelado                                   | Ninguna                 |
 | SUSPENDIDO  | Servicio temporalmente suspendido                    | EN_PROGRESO, CANCELADO  |
+
+## Integración con Condiciones Contractuales
+
+Los servicios de tipo `INSTALACION` pueden estar asociados a condiciones contractuales que definen los términos del alquiler:
+
+1. Al crear un servicio de `INSTALACION`, se puede especificar un `condicionContractualId`.
+2. Si se proporciona, el sistema utilizará la fecha de finalización del contrato para establecer la `fechaFinAsignacion` en el servicio.
+3. Esta fecha indica cuándo los baños deben ser retirados automáticamente o programarse un servicio de `RETIRO`.
+
+Si no se especifica un `condicionContractualId`, el sistema intentará buscar un contrato activo para el cliente y utilizará su fecha de finalización.
 
 ## Manejo de Errores
 
@@ -451,28 +495,51 @@ La API devuelve códigos de error HTTP estándar junto con mensajes descriptivos
 
 ## Ejemplos de Flujos Completos
 
-### 1. Flujo Básico de un Servicio
+### 1. Flujo Básico de un Servicio con Contrato
 
-1. **Crear un servicio con asignación automática**
+1. **Crear un cliente y condición contractual**
+
+   ```
+   POST /api/clients
+   {
+     "nombre_empresa": "Constructora XYZ",
+     "cuit": "30-71234572-5",
+     "direccion": "Av. Libertador 1234",
+     "telefono": "011-5678-9012",
+     "email": "contacto@constructoraxyz.com",
+     "contacto_principal": "Fernando López"
+   }
+   ```
+
+   ```
+   POST /api/contractual_conditions/create
+   {
+     "clientId": 1,
+     "tipo_de_contrato": "Temporal",
+     "fecha_inicio": "2025-05-01T00:00:00.000Z",
+     "fecha_fin": "2025-06-30T00:00:00.000Z",
+     "condiciones_especificas": "Contrato para obra pública",
+     "tarifa": 2500,
+     "periodicidad": "Mensual",
+     "estado": "ACTIVO"
+   }
+   ```
+
+2. **Crear un servicio de INSTALACIÓN con asignación automática vinculado al contrato**
 
    ```
    POST /api/services
    {
      "clienteId": 1,
-     "fechaProgramada": "2025-05-20T10:00:00.000Z",
+     "fechaProgramada": "2025-05-01T10:00:00.000Z",
      "tipoServicio": "INSTALACION",
      "cantidadBanos": 2,
      "cantidadEmpleados": 2,
      "cantidadVehiculos": 1,
      "ubicacion": "Av. 9 de Julio 1000",
-     "asignacionAutomatica": true
+     "asignacionAutomatica": true,
+     "condicionContractualId": 1
    }
-   ```
-
-2. **Verificar las asignaciones realizadas**
-
-   ```
-   GET /api/services/{id}
    ```
 
 3. **Iniciar el servicio el día de la ejecución**
@@ -493,12 +560,62 @@ La API devuelve códigos de error HTTP estándar junto con mensajes descriptivos
    }
    ```
 
+5. **Verificar que los baños siguen ASIGNADOS al cliente**
+
+   ```
+   GET /api/chemical_toilets/by-client/1
+   ```
+
+6. **Crear un servicio de LIMPIEZA para los baños ya instalados**
+
+   ```
+   POST /api/services
+   {
+     "clienteId": 1,
+     "fechaProgramada": "2025-05-15T10:00:00.000Z",
+     "tipoServicio": "LIMPIEZA",
+     "cantidadBanos": 0,
+     "cantidadEmpleados": 2,
+     "cantidadVehiculos": 1,
+     "ubicacion": "Av. 9 de Julio 1000",
+     "asignacionAutomatica": true,
+     "banosInstalados": [1, 2]
+   }
+   ```
+
+7. **Programar un servicio de RETIRO para la fecha de fin del contrato**
+
+   ```
+   POST /api/services
+   {
+     "clienteId": 1,
+     "fechaProgramada": "2025-06-30T10:00:00.000Z",
+     "tipoServicio": "RETIRO",
+     "cantidadBanos": 0,
+     "cantidadEmpleados": 2,
+     "cantidadVehiculos": 1,
+     "ubicacion": "Av. 9 de Julio 1000",
+     "asignacionAutomatica": true,
+     "banosInstalados": [1, 2]
+   }
+   ```
+
 ### 2. Modificación de Recursos Durante el Servicio
 
 1. **Crear servicio inicial con 1 empleado, 1 vehículo, 1 baño**
 
    ```
    POST /api/services
+   {
+     "clienteId": 1,
+     "fechaProgramada": "2025-07-15T10:00:00.000Z",
+     "tipoServicio": "INSTALACION",
+     "cantidadBanos": 1,
+     "cantidadEmpleados": 1,
+     "cantidadVehiculos": 1,
+     "ubicacion": "Av. Sarmiento 500",
+     "asignacionAutomatica": true
+   }
    ```
 
 2. **Aumentar la cantidad de recursos**
@@ -680,7 +797,5 @@ La API devuelve códigos de error HTTP estándar junto con mensajes descriptivos
 - Para servicios con múltiples asignaciones, asegúrate de que la suma de los recursos asignados manualmente coincida con las cantidades requeridas
 - Cuando planifiques múltiples servicios con los mismos recursos, ten en cuenta que el sistema sólo verifica disponibilidad por fecha (no por hora)
 - Para servicios de tipo LIMPIEZA, REEMPLAZO o RETIRO, recuerda establecer cantidadBanos en 0 y proporcionar los IDs de los baños ya instalados en el campo banosInstalados
-
-```
-
-```
+- Al crear un servicio de INSTALACIÓN, asocia una condición contractual para gestionar correctamente el período de alquiler
+- Utiliza el endpoint `/api/chemical_toilets/by-client/{clientId}` para obtener los baños asignados a un cliente y usarlos en servicios de LIMPIEZA o RETIRO

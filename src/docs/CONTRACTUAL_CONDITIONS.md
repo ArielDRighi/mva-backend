@@ -15,15 +15,17 @@
    - Tipos de Contrato
    - Periodicidades
    - Estados de Contrato
-5. Ejemplos de Uso
+5. Integración con Servicios de Instalación
+6. Ejemplos de Uso
    - Ciclo de Vida de un Contrato
    - Actualización de Tarifas
-6. Manejo de Errores
-7. Consideraciones Importantes
+   - Creación de Servicio de Instalación Vinculado
+7. Manejo de Errores
+8. Consideraciones Importantes
 
 ## Introducción
 
-La API de Condiciones Contractuales permite gestionar los acuerdos comerciales entre la empresa y sus clientes. Estos acuerdos definen las tarifas, periodicidades, fechas de vigencia y otras condiciones específicas que rigen la prestación de servicios relacionados con los baños químicos.
+La API de Condiciones Contractuales permite gestionar los acuerdos comerciales entre la empresa y sus clientes. Estos acuerdos definen las tarifas, periodicidades, fechas de vigencia y otras condiciones específicas que rigen la prestación de servicios relacionados con los baños químicos. Los contratos están directamente vinculados con los servicios de instalación y definen el período durante el cual los baños permanecen asignados al cliente.
 
 ## Autenticación
 
@@ -311,6 +313,31 @@ DELETE /api/contractual_conditions/delete/5
 | Inactivo  | Contrato temporalmente suspendido |
 | Terminado | Contrato finalizado o cancelado   |
 
+## Integración con Servicios de Instalación
+
+Las condiciones contractuales están directamente relacionadas con los servicios de instalación de baños químicos:
+
+1. **Vinculación de Servicios de Instalación con Contratos:**
+
+   - Al crear un servicio de INSTALACIÓN, se puede especificar el `condicionContractualId` para vincularlo a un contrato existente.
+   - El sistema usará la fecha de finalización del contrato (`fecha_fin`) para establecer la fecha de finalización de asignación de los baños (`fechaFinAsignacion`).
+   - Esto determina hasta cuándo los baños permanecerán asignados al cliente.
+
+2. **Comportamiento de Asignación:**
+
+   - Los baños instalados mediante un servicio vinculado a un contrato permanecerán en estado ASIGNADO hasta la fecha de finalización del contrato o hasta que se realice explícitamente un servicio de RETIRO.
+
+3. **Búsqueda Automática de Contratos:**
+
+   - Si al crear un servicio de INSTALACIÓN no se especifica un `condicionContractualId`, el sistema buscará automáticamente un contrato activo para el cliente y utilizará su fecha de finalización.
+   - Si hay múltiples contratos activos, se utilizará el que tenga la fecha de finalización más lejana.
+
+4. **Consulta de Baños Asignados:**
+   - Para obtener la lista de baños asignados a un cliente (útil para crear servicios de LIMPIEZA o RETIRO):
+   ```
+   GET /api/chemical_toilets/by-client/{clientId}
+   ```
+
 ## Ejemplos de Uso
 
 ### Ciclo de Vida de un Contrato
@@ -387,6 +414,80 @@ DELETE /api/contractual_conditions/delete/5
    }
    ```
 
+### Creación de Servicio de Instalación Vinculado
+
+1. **Crear un contrato**
+
+   ```http
+   POST /api/contractual_conditions/create
+   Authorization: Bearer {{token}}
+   Content-Type: application/json
+
+   {
+     "clientId": 4,
+     "tipo_de_contrato": "Temporal",
+     "fecha_inicio": "2025-05-01T00:00:00.000Z",
+     "fecha_fin": "2025-06-30T00:00:00.000Z",
+     "condiciones_especificas": "Contrato para evento de verano",
+     "tarifa": 3500,
+     "periodicidad": "Mensual"
+   }
+   ```
+
+2. **Vincular un servicio de instalación al contrato**
+
+   ```http
+   POST /api/services
+   Authorization: Bearer {{token}}
+   Content-Type: application/json
+
+   {
+     "clienteId": 4,
+     "fechaProgramada": "2025-05-01T08:00:00.000Z",
+     "tipoServicio": "INSTALACION",
+     "cantidadBanos": 3,
+     "cantidadEmpleados": 2,
+     "cantidadVehiculos": 1,
+     "ubicacion": "Av. del Libertador 4500",
+     "notas": "Instalación para evento de verano",
+     "asignacionAutomatica": true,
+     "condicionContractualId": 7
+   }
+   ```
+
+3. **Verificar que los baños siguen asignados después de completar el servicio**
+
+   Primero, iniciar el servicio:
+
+   ```http
+   PATCH /api/services/{servicioId}/estado
+   Authorization: Bearer {{token}}
+   Content-Type: application/json
+
+   {
+     "estado": "EN_PROGRESO"
+   }
+   ```
+
+   Luego, completar el servicio:
+
+   ```http
+   PATCH /api/services/{servicioId}/estado
+   Authorization: Bearer {{token}}
+   Content-Type: application/json
+
+   {
+     "estado": "COMPLETADO"
+   }
+   ```
+
+   Finalmente, verificar los baños asignados:
+
+   ```http
+   GET /api/chemical_toilets/by-client/4
+   Authorization: Bearer {{token}}
+   ```
+
 ## Manejo de Errores
 
 ### Respuesta de Error (404 Not Found)
@@ -432,3 +533,7 @@ DELETE /api/contractual_conditions/delete/5
    - Una tarifa de 2000 con periodicidad "Mensual" significa $2000 por mes
 
 6. **Condiciones Específicas**: Utiliza este campo para detallar cualquier acuerdo especial que no esté cubierto por los otros campos (descuentos especiales, servicios adicionales, requisitos particulares).
+
+7. **Vinculación con Servicios**: Al crear un servicio de instalación, siempre intenta vincularlo a un contrato mediante el campo `condicionContractualId` para asegurar una correcta gestión del ciclo de vida de los baños asignados.
+
+8. **Fecha de Fin de Asignación**: Esta fecha, derivada del contrato, determina hasta cuándo los baños permanecerán asignados al cliente. Planifica adecuadamente los servicios de retiro para coincidir con esta fecha o asegúrate de modificar el contrato si es necesario extender el período de asignación.
