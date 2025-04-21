@@ -28,6 +28,7 @@ import { Vehicle } from '../vehicles/entities/vehicle.entity';
 import { ChemicalToilet } from '../chemical_toilets/entities/chemical_toilet.entity';
 import { VehicleMaintenanceService } from '../vehicle_maintenance/vehicle_maintenance.service';
 import { ToiletMaintenanceService } from '../toilet_maintenance/toilet_maintenance.service';
+import { EmployeeLeavesService } from '../employee_leaves/employee-leaves.service';
 import {
   sendCompletionNotification,
   sendInProgressNotification,
@@ -61,6 +62,7 @@ export class ServicesService {
     private readonly toiletMaintenanceService: ToiletMaintenanceService,
     @InjectRepository(CondicionesContractuales)
     private condicionesContractualesRepository: Repository<CondicionesContractuales>,
+    private readonly employeeLeavesService: EmployeeLeavesService,
   ) {}
 
   async create(createServiceDto: CreateServiceDto): Promise<Service> {
@@ -79,7 +81,7 @@ export class ServicesService {
       ubicacion: createServiceDto.ubicacion,
       notas: createServiceDto.notas,
       asignacionAutomatica: createServiceDto.asignacionAutomatica,
-      // Asegurarse de que se copie correctamente el array de baños instalados
+
       banosInstalados: createServiceDto.banosInstalados || [],
     });
 
@@ -1321,7 +1323,39 @@ export class ServicesService {
 
       // Verificar disponibilidad de empleados (igual que antes)
       if (employeesNeeded > 0) {
-        // Resto del código para verificar empleados
+        // Primero, obtenemos todos los empleados disponibles actualmente
+        const allEmployees = await this.employeesService.findAll();
+        const availableEmployees = allEmployees.filter(
+          (employee) => employee.estado === ResourceState.DISPONIBLE.toString(),
+        );
+
+        // Luego, filtramos los que estarán disponibles en la fecha del servicio
+        const employeesAvailableOnDate: Empleado[] = [];
+
+        for (const employee of availableEmployees) {
+          // Verificar si el empleado estará en licencia/vacaciones para la fecha del servicio
+          const isAvailable =
+            await this.employeeLeavesService.isEmployeeAvailable(
+              employee.id,
+              new Date(service.fechaProgramada),
+            );
+
+          if (isAvailable) {
+            employeesAvailableOnDate.push(employee);
+          } else {
+            this.logger.log(
+              `Empleado ${employee.id} excluido por tener licencia/vacaciones programada para la fecha del servicio`,
+            );
+          }
+        }
+
+        if (employeesAvailableOnDate.length < employeesNeeded) {
+          throw new BadRequestException(
+            `No hay suficientes empleados disponibles para la fecha. Se necesitan ${employeesNeeded}, pero solo hay ${employeesAvailableOnDate.length} disponibles.`,
+          );
+        }
+
+        // Continuar con la asignación usando employeesAvailableOnDate
       }
 
       // Verificar disponibilidad de vehículos (igual que antes)
