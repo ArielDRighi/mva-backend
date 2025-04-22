@@ -75,7 +75,7 @@ export class Service {
   @Column({ nullable: true })
   condicionContractualId: number;
 
-  @Column({ type: 'date', nullable: true })
+  @Column({ type: 'timestamp with time zone', nullable: true })
   fechaFinAsignacion: Date;
 
   @CreateDateColumn({ name: 'fecha_creacion' })
