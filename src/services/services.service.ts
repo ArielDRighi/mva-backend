@@ -37,14 +37,6 @@ import { VehicleMaintenanceService } from '../vehicle_maintenance/vehicle_mainte
 import { ToiletMaintenanceService } from '../toilet_maintenance/toilet_maintenance.service';
 import { EmployeeLeavesService } from '../employee_leaves/employee-leaves.service';
 import {
-  sendCompletionNotification,
-  sendInProgressNotification,
-  sendRoute,
-  sendRouteModified,
-} from 'src/config/nodemailer';
-
-import { groupBy } from 'lodash';
-import {
   CondicionesContractuales,
   EstadoContrato,
 } from '../contractual_conditions/entities/contractual_conditions.entity';
@@ -319,64 +311,6 @@ export class ServicesService {
         updateServiceDto.asignacionesManual,
       );
     }
-
-    // 👉 Enviar correo si la ruta fue modificada
-    const rutaModificada =
-      updateServiceDto.asignacionAutomatica ||
-      updateServiceDto.cantidadBanos ||
-      updateServiceDto.cantidadEmpleados ||
-      updateServiceDto.cantidadVehiculos;
-
-    if (rutaModificada) {
-      this.logger.log('Enviando correo debido a la modificación de ruta...');
-
-      // Obtener las asignaciones del servicio guardado
-      const asignaciones = savedService.asignaciones || [];
-      const asignacionesPorEmpleado = groupBy(
-        asignaciones,
-        (a) => a.empleado?.id,
-      );
-
-      for (const empleadoId in asignacionesPorEmpleado) {
-        const asignacionesEmpleado = asignacionesPorEmpleado[empleadoId];
-        const empleado = asignacionesEmpleado[0].empleado;
-
-        if (!empleado || !empleado.email) {
-          this.logger.warn(`Empleado sin email o indefinido: ${empleado?.id}`);
-          continue;
-        }
-
-        const vehicle =
-          asignacionesEmpleado[0].vehiculo?.placa || 'No asignado';
-        const toilets = asignacionesEmpleado.map(
-          (a) => a.bano?.codigo_interno || 'Baño sin código',
-        );
-        const clients = [savedService.cliente?.nombre || 'Cliente desconocido'];
-
-        // Log para verificar el tipo de servicio
-        this.logger.log(`Tipo de servicio: ${savedService.tipoServicio}`);
-
-        try {
-          await sendRouteModified(
-            empleado.email,
-            empleado.nombre,
-            vehicle,
-            toilets,
-            clients,
-            savedService.tipoServicio || 'Tipo de servicio no definido',
-            savedService.fechaProgramada.toLocaleDateString('es-CL'),
-          );
-          this.logger.log(`Correo enviado a ${empleado.email}`);
-        } catch (error) {
-          this.logger.error(
-            `Error enviando correo a ${empleado.email}: ${error.message}`,
-          );
-        }
-      }
-    } else {
-      this.logger.log('No se envió correo, ruta no modificada.');
-    }
-
     return this.findOne(savedService.id);
   }
 
