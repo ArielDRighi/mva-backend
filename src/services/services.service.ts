@@ -5,7 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not, In, IsNull } from 'typeorm';
+import { Repository, Not, In, IsNull, EntityManager } from 'typeorm';
 import { Service } from './entities/service.entity';
 import { ResourceAssignment } from './entities/resource-assignment.entity';
 import {
@@ -35,11 +35,13 @@ import {
   sendRoute,
   sendRouteModified,
 } from 'src/config/nodemailer';
+import { sendRouteModified } from 'src/config/nodemailer';
 import { groupBy } from 'lodash';
 import {
   CondicionesContractuales,
   EstadoContrato,
 } from '../contractual_conditions/entities/contractual_conditions.entity';
+import { Connection } from 'typeorm';
 
 @Injectable()
 export class ServicesService {
@@ -63,89 +65,115 @@ export class ServicesService {
     @InjectRepository(CondicionesContractuales)
     private condicionesContractualesRepository: Repository<CondicionesContractuales>,
     private readonly employeeLeavesService: EmployeeLeavesService,
+    private connection: Connection,
   ) {}
 
   async create(createServiceDto: CreateServiceDto): Promise<Service> {
-    // Crear un nuevo servicio
-    const newService = new Service();
+    // Crear un query runner para manejar la transacción
+    const queryRunner = this.connection.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    // Copiar propiedades básicas
-    Object.assign(newService, {
-      cliente: { clienteId: createServiceDto.clienteId },
-      fechaProgramada: createServiceDto.fechaProgramada,
-      tipoServicio: createServiceDto.tipoServicio,
-      estado: createServiceDto.estado || ServiceState.PROGRAMADO,
-      cantidadBanos: createServiceDto.cantidadBanos,
-      cantidadEmpleados: createServiceDto.cantidadEmpleados,
-      cantidadVehiculos: createServiceDto.cantidadVehiculos,
-      ubicacion: createServiceDto.ubicacion,
-      notas: createServiceDto.notas,
-      asignacionAutomatica: createServiceDto.asignacionAutomatica,
+    try {
+      // Crear un nuevo servicio
+      const newService = new Service();
+      Object.assign(newService, {
+        cliente: { clienteId: createServiceDto.clienteId },
+        fechaProgramada: createServiceDto.fechaProgramada,
+        tipoServicio: createServiceDto.tipoServicio,
+        estado: createServiceDto.estado || ServiceState.PROGRAMADO,
+        cantidadBanos: createServiceDto.cantidadBanos,
+        cantidadEmpleados: createServiceDto.cantidadEmpleados,
+        cantidadVehiculos: createServiceDto.cantidadVehiculos,
+        ubicacion: createServiceDto.ubicacion,
+        notas: createServiceDto.notas,
+        asignacionAutomatica: createServiceDto.asignacionAutomatica,
+        banosInstalados: createServiceDto.banosInstalados || [],
+      });
 
-      banosInstalados: createServiceDto.banosInstalados || [],
-    });
+      // Si es un servicio de INSTALACIÓN y no tiene fecha de fin de asignación especificada
+      if (
+        createServiceDto.tipoServicio === ServiceType.INSTALACION &&
+        !createServiceDto.fechaFinAsignacion
+      ) {
+        // Intentar obtener la fecha fin del contrato
+        if (createServiceDto.condicionContractualId) {
+          const condicionContractual =
+            await this.condicionesContractualesRepository.findOne({
+              where: {
+                condicionContractualId: createServiceDto.condicionContractualId,
+              },
+            });
 
-    // Si es un servicio de INSTALACIÓN y no tiene fecha de fin de asignación especificada
-    if (
-      createServiceDto.tipoServicio === ServiceType.INSTALACION &&
-      !createServiceDto.fechaFinAsignacion
-    ) {
-      // Intentar obtener la fecha fin del contrato
-      if (createServiceDto.condicionContractualId) {
-        const condicionContractual =
-          await this.condicionesContractualesRepository.findOne({
-            where: {
-              condicionContractualId: createServiceDto.condicionContractualId,
-            },
-          });
+          if (condicionContractual) {
+            newService.condicionContractualId =
+              condicionContractual.condicionContractualId;
 
-        if (condicionContractual) {
-          newService.condicionContractualId =
-            condicionContractual.condicionContractualId;
-          newService.fechaFinAsignacion = condicionContractual.fecha_fin;
-        }
-      } else {
-        // Si no se especificó ID de contrato, buscar contratos activos para el cliente
-        const condicionesContractuales =
-          await this.condicionesContractualesRepository.find({
-            where: {
-              cliente: { clienteId: createServiceDto.clienteId },
-              estado: EstadoContrato.ACTIVO,
-            },
-            order: { fecha_fin: 'DESC' },
-          });
+            // Ajustar la fecha sumando 24 horas (1 día) para compensar la diferencia
+            if (condicionContractual.fecha_fin) {
+              const fechaFin = new Date(condicionContractual.fecha_fin);
+              // Sumar 24 horas a la fecha
+              fechaFin.setTime(fechaFin.getTime() + 24 * 60 * 60 * 1000);
+              newService.fechaFinAsignacion = fechaFin;
+            }
+          }
+        } else {
+          // Si no se especificó ID de contrato, buscar contratos activos para el cliente
+          const condicionesContractuales =
+            await this.condicionesContractualesRepository.find({
+              where: {
+                cliente: { clienteId: createServiceDto.clienteId },
+                estado: EstadoContrato.ACTIVO,
+              },
+              order: { fecha_fin: 'DESC' },
+            });
 
-        if (condicionesContractuales && condicionesContractuales.length > 0) {
-          // Usar el contrato más reciente (con fecha de finalización más lejana)
-          const contratoMasReciente = condicionesContractuales[0];
-          newService.condicionContractualId =
-            contratoMasReciente.condicionContractualId;
-          newService.fechaFinAsignacion = contratoMasReciente.fecha_fin;
+          if (condicionesContractuales && condicionesContractuales.length > 0) {
+            // Usar el contrato más reciente (con fecha de finalización más lejana)
+            const contratoMasReciente = condicionesContractuales[0];
+            newService.condicionContractualId =
+              contratoMasReciente.condicionContractualId;
+
+            // Ajustar la fecha sumando 24 horas para compensar la diferencia
+            if (contratoMasReciente.fecha_fin) {
+              const fechaFin = new Date(contratoMasReciente.fecha_fin);
+              // Sumar 24 horas a la fecha
+              fechaFin.setTime(fechaFin.getTime() + 24 * 60 * 60 * 1000);
+              newService.fechaFinAsignacion = fechaFin;
+            }
+          }
         }
       }
+
+      // IMPORTANTE: Verificar disponibilidad de recursos antes de guardar
+      await this.verifyResourcesAvailability(newService);
+
+      // PRIMERO: Guardar el servicio para obtener un ID válido
+      const savedService = await queryRunner.manager.save(newService);
+
+      // DESPUÉS: Asignar recursos al servicio ya guardado
+      if (createServiceDto.asignacionAutomatica) {
+        await this.assignResourcesAutomatically(
+          savedService,
+          false,
+          queryRunner.manager,
+        );
+      } else if (createServiceDto.asignacionesManual?.length) {
+        await this.assignResourcesManually(
+          savedService.id,
+          createServiceDto.asignacionesManual,
+          queryRunner.manager,
+        );
+      }
+
+      await queryRunner.commitTransaction();
+      return this.findOne(savedService.id);
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
-
-    // Validación específica según el tipo de servicio
-    this.validateServiceTypeSpecificRequirements(createServiceDto);
-
-    // Guardar el servicio en la base de datos
-    const savedService = await this.serviceRepository.save(newService);
-
-    // Verificar disponibilidad de recursos
-    await this.verifyResourcesAvailability(savedService);
-
-    // Asignar recursos según corresponda
-    if (createServiceDto.asignacionAutomatica) {
-      await this.assignResourcesAutomatically(savedService);
-    } else if (createServiceDto.asignacionesManual?.length) {
-      await this.assignResourcesManually(
-        savedService.id,
-        createServiceDto.asignacionesManual,
-      );
-    }
-
-    // Retornar el servicio con relaciones cargadas
-    return this.findOne(savedService.id);
   }
 
   async findAll(filters?: FilterServicesDto): Promise<Service[]> {
@@ -237,8 +265,6 @@ export class ServicesService {
         `El servicio con ID ${id} no tiene un tipo de servicio definido.`,
       );
     }
-
-    const updatedService = { ...service };
 
     // Validar y asignar fecha programada
     let fechaProgramada: Date;
@@ -492,6 +518,7 @@ export class ServicesService {
   private async assignResourcesAutomatically(
     service: Service,
     incremental: boolean = false,
+    entityManager?: EntityManager,
   ): Promise<void> {
     try {
       // Definir qué tipos de servicio requieren baños nuevos del inventario
@@ -757,7 +784,11 @@ export class ServicesService {
 
       // Guardar todas las asignaciones
       if (assignments.length > 0) {
-        await this.assignmentRepository.save(assignments);
+        if (entityManager) {
+          await entityManager.save(assignments);
+        } else {
+          await this.assignmentRepository.save(assignments);
+        }
       }
     } catch (error) {
       const errorMessage =
@@ -772,6 +803,7 @@ export class ServicesService {
   private async assignResourcesManually(
     serviceId: number,
     assignmentDtos: ResourceAssignmentDto[],
+    entityManager?: EntityManager,
   ): Promise<void> {
     const service = await this.findOne(serviceId);
 
@@ -870,7 +902,11 @@ export class ServicesService {
       }
 
       // Guardar todas las asignaciones
-      await this.assignmentRepository.save(assignments);
+      if (entityManager) {
+        await entityManager.save(assignments);
+      } else {
+        await this.assignmentRepository.save(assignments);
+      }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Error desconocido';

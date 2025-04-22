@@ -33,6 +33,7 @@ export class ContractualConditionsService {
     const contractualCondition =
       await this.contractualConditionsRepository.findOne({
         where: { condicionContractualId: contractualConditionId },
+        relations: ['cliente'],
       });
     if (!contractualCondition) {
       throw new NotFoundException(
@@ -49,16 +50,24 @@ export class ContractualConditionsService {
     if (!client) {
       throw new NotFoundException(`Client with ID: ${clientId} not found`);
     }
+
+    // Modificar la consulta para usar las relaciones explícitamente
     const contractualConditions =
       await this.contractualConditionsRepository.find({
-        where: { cliente: client },
+        relations: ['cliente'],
+        where: {
+          cliente: {
+            clienteId: clientId,
+          },
+        },
       });
+
     if (!contractualConditions || contractualConditions.length === 0) {
       throw new NotFoundException(
         `The client with ID: ${clientId} not have contractual Conditions`,
       );
     }
-    return contractualConditions; // Retornar el resultado
+    return contractualConditions;
   }
 
   async createContractualCondition(
