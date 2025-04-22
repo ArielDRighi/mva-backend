@@ -5,7 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not, In, IsNull } from 'typeorm';
+import { Repository, Not, In, IsNull, EntityManager } from 'typeorm';
 import { Service } from './entities/service.entity';
 import { ResourceAssignment } from './entities/resource-assignment.entity';
 import {
@@ -61,7 +61,7 @@ export class ServicesService {
   ) {}
 
   async create(createServiceDto: CreateServiceDto): Promise<Service> {
-    // Crear un nuevo servicio usando QueryRunner para controlar la transacción
+    // Crear un query runner para manejar la transacción
     const queryRunner = this.connection.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -69,8 +69,6 @@ export class ServicesService {
     try {
       // Crear un nuevo servicio
       const newService = new Service();
-
-      // Copiar propiedades básicas
       Object.assign(newService, {
         cliente: { clienteId: createServiceDto.clienteId },
         fechaProgramada: createServiceDto.fechaProgramada,
@@ -139,33 +137,33 @@ export class ServicesService {
         }
       }
 
-      // IMPORTANTE: Primero verificar la disponibilidad de recursos antes de guardar el servicio
+      // IMPORTANTE: Verificar disponibilidad de recursos antes de guardar
       await this.verifyResourcesAvailability(newService);
 
-      // Guardar el servicio en la base de datos usando el queryRunner
+      // PRIMERO: Guardar el servicio para obtener un ID válido
       const savedService = await queryRunner.manager.save(newService);
 
-      // Asignar recursos según corresponda
+      // DESPUÉS: Asignar recursos al servicio ya guardado
       if (createServiceDto.asignacionAutomatica) {
-        await this.assignResourcesAutomatically(savedService);
+        await this.assignResourcesAutomatically(
+          savedService,
+          false,
+          queryRunner.manager,
+        );
       } else if (createServiceDto.asignacionesManual?.length) {
         await this.assignResourcesManually(
           savedService.id,
           createServiceDto.asignacionesManual,
+          queryRunner.manager,
         );
       }
 
-      // Si llegamos hasta aquí, todo ha salido bien, confirmar la transacción
       await queryRunner.commitTransaction();
-
-      // Retornar el servicio con relaciones cargadas
       return this.findOne(savedService.id);
     } catch (error) {
-      // Si hay algún error, revertir la transacción
       await queryRunner.rollbackTransaction();
       throw error;
     } finally {
-      // Liberar el queryRunner
       await queryRunner.release();
     }
   }
@@ -512,6 +510,7 @@ export class ServicesService {
   private async assignResourcesAutomatically(
     service: Service,
     incremental: boolean = false,
+    entityManager?: EntityManager,
   ): Promise<void> {
     try {
       // Definir qué tipos de servicio requieren baños nuevos del inventario
@@ -777,7 +776,11 @@ export class ServicesService {
 
       // Guardar todas las asignaciones
       if (assignments.length > 0) {
-        await this.assignmentRepository.save(assignments);
+        if (entityManager) {
+          await entityManager.save(assignments);
+        } else {
+          await this.assignmentRepository.save(assignments);
+        }
       }
     } catch (error) {
       const errorMessage =
@@ -792,6 +795,7 @@ export class ServicesService {
   private async assignResourcesManually(
     serviceId: number,
     assignmentDtos: ResourceAssignmentDto[],
+    entityManager?: EntityManager,
   ): Promise<void> {
     const service = await this.findOne(serviceId);
 
@@ -890,7 +894,11 @@ export class ServicesService {
       }
 
       // Guardar todas las asignaciones
-      await this.assignmentRepository.save(assignments);
+      if (entityManager) {
+        await entityManager.save(assignments);
+      } else {
+        await this.assignmentRepository.save(assignments);
+      }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Error desconocido';
