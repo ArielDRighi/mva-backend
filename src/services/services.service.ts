@@ -5,7 +5,14 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not, In, IsNull, EntityManager } from 'typeorm';
+import {
+  Repository,
+  Not,
+  In,
+  IsNull,
+  EntityManager,
+  DataSource,
+} from 'typeorm';
 import { Service } from './entities/service.entity';
 import { ResourceAssignment } from './entities/resource-assignment.entity';
 import {
@@ -35,13 +42,12 @@ import {
   sendRoute,
   sendRouteModified,
 } from 'src/config/nodemailer';
-import { sendRouteModified } from 'src/config/nodemailer';
+
 import { groupBy } from 'lodash';
 import {
   CondicionesContractuales,
   EstadoContrato,
 } from '../contractual_conditions/entities/contractual_conditions.entity';
-import { Connection } from 'typeorm';
 
 @Injectable()
 export class ServicesService {
@@ -65,12 +71,12 @@ export class ServicesService {
     @InjectRepository(CondicionesContractuales)
     private condicionesContractualesRepository: Repository<CondicionesContractuales>,
     private readonly employeeLeavesService: EmployeeLeavesService,
-    private connection: Connection,
+    private dataSource: DataSource,
   ) {}
 
   async create(createServiceDto: CreateServiceDto): Promise<Service> {
     // Crear un query runner para manejar la transacción
-    const queryRunner = this.connection.createQueryRunner();
+    const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
