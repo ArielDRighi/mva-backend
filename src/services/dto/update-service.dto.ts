@@ -7,6 +7,7 @@ import {
   IsOptional,
   IsString,
   Min,
+  IsArray,
 } from 'class-validator';
 import {
   ServiceState,
@@ -69,4 +70,12 @@ export class UpdateServiceDto {
   @IsOptional()
   @Type(() => ResourceAssignmentDto)
   asignacionesManual?: ResourceAssignmentDto[];
+
+  @IsOptional()
+  @IsArray()
+  @IsNumber(
+    {},
+    { each: true, message: 'Los IDs de baños instalados deben ser números' },
+  )
+  banosInstalados?: number[];
 }

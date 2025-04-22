@@ -78,4 +78,13 @@ export class ChemicalToiletsController {
   async getStats(@Param('id', ParseIntPipe) id: number): Promise<any> {
     return this.chemicalToiletsService.getMaintenanceStats(id);
   }
+
+  @Get('/by-client/:clientId')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  async findToiletsByClient(
+    @Param('clientId', ParseIntPipe) clientId: number,
+  ): Promise<ChemicalToilet[]> {
+    return this.chemicalToiletsService.findByClientId(clientId);
+  }
 }

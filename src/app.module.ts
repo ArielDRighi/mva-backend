@@ -16,6 +16,7 @@ import { ContractualConditionsModule } from './contractual_conditions/contractua
 import { EmployeesModule } from './employees/employees.module';
 import { ServicesModule } from './services/services.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { SchedulerModule } from './scheduler/scheduler.module';
 import { ClientsPortalModule } from './clients_portal/clientsPortal.module';
 
 @Module({
@@ -39,6 +40,7 @@ import { ClientsPortalModule } from './clients_portal/clientsPortal.module';
     EmployeesModule,
     ServicesModule,
     ScheduleModule.forRoot(),
+    SchedulerModule,
     ClientsPortalModule,
   ],
   controllers: [AppController],
