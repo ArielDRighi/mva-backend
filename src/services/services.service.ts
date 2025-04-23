@@ -1297,12 +1297,14 @@ export class ServicesService {
         }
       }
 
-      // Verificar disponibilidad de empleados (igual que antes)
+      // Verificar disponibilidad de empleados
       if (employeesNeeded > 0) {
         // Primero, obtenemos todos los empleados disponibles actualmente
         const allEmployees = await this.employeesService.findAll();
         const availableEmployees = allEmployees.filter(
-          (employee) => employee.estado === ResourceState.DISPONIBLE.toString(),
+          (employee) =>
+            employee.estado === ResourceState.DISPONIBLE.toString() ||
+            employee.estado === ResourceState.ASIGNADO.toString(),
         );
 
         // Luego, filtramos los que estarán disponibles en la fecha del servicio
