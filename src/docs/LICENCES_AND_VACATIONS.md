@@ -295,3 +295,188 @@ Cuando se programa un nuevo servicio, el sistema verificará automáticamente si
 2. Se aprueban las vacaciones
 3. Se intenta crear un servicio para el 20 de mayo de 2025 que requiere un conductor
 4. Aunque Juan Pérez es conductor y actualmente tiene estado "DISPONIBLE", el sistema no lo considerará para este servicio porque estará de vacaciones en esa fecha
+
+# Probando Licencias/Vacaciones y su Impacto en la Creación de Servicios
+
+Para probar cómo las licencias y vacaciones afectan la asignación de empleados a servicios, necesitarás seguir estos pasos en Postman:
+
+## 1. Crear una Licencia/Vacación para un Empleado
+
+### Paso 1: Crear la licencia/vacación
+
+```
+POST /api/employee-leaves
+```
+
+**Headers:**
+
+- Content-Type: application/json
+- Authorization: Bearer {tu_token}
+
+**Body:**
+
+```json
+{
+  "employeeId": 1,
+  "fechaInicio": "2025-05-15T00:00:00.000Z",
+  "fechaFin": "2025-05-30T00:00:00.000Z",
+  "tipoLicencia": "VACACIONES",
+  "notas": "Vacaciones anuales programadas"
+}
+```
+
+> 📝 **Nota:** Reemplaza `employeeId` con el ID de un empleado existente en tu sistema y ajusta las fechas según necesites. Usa una fecha próxima para facilitar las pruebas.
+
+### Paso 2: Aprobar la licencia/vacación creada
+
+```
+PATCH /api/employee-leaves/{id}/approve
+```
+
+**Headers:**
+
+- Authorization: Bearer {tu_token}
+
+> 📝 **Nota:** Reemplaza `{id}` con el ID de la licencia que acabas de crear.
+
+### Paso 3: Verificar que el estado del empleado ha cambiado automáticamente
+
+```
+GET /api/employees/{id}
+```
+
+**Headers:**
+
+- Authorization: Bearer {tu_token}
+
+> El sistema actualizará automáticamente el estado del empleado a "NO_DISPONIBLE" cuando llegue la fecha de inicio de la licencia (mediante el scheduler).
+
+## 2. Intentar Crear un Servicio Durante ese Período
+
+### Paso 1: Crear un servicio con asignación automática
+
+```
+POST /api/services
+```
+
+**Headers:**
+
+- Content-Type: application/json
+- Authorization: Bearer {tu_token}
+
+**Body:**
+
+```json
+{
+  "clienteId": 1,
+  "fechaProgramada": "2025-05-20T10:00:00.000Z",
+  "tipoServicio": "INSTALACION",
+  "estado": "PROGRAMADO",
+  "cantidadBanos": 2,
+  "cantidadEmpleados": 1,
+  "cantidadVehiculos": 1,
+  "ubicacion": "Avenida Principal 123",
+  "notas": "Instalación estándar",
+  "asignacionAutomatica": true
+}
+```
+
+> 📝 **Nota:** La fecha del servicio debe estar dentro del período de vacaciones/licencia del empleado.
+
+### Paso 2: Verificar el resultado
+
+- Si el sistema funciona correctamente, el empleado en vacaciones/licencia no debería ser asignado automáticamente al servicio.
+- Deberías ver otros empleados asignados, o recibir un error si no hay suficientes empleados disponibles.
+
+### Paso 3: Intentar asignar manualmente al empleado en licencia
+
+```
+POST /api/services
+```
+
+**Headers:**
+
+- Content-Type: application/json
+- Authorization: Bearer {tu_token}
+
+**Body:**
+
+```json
+{
+  "clienteId": 1,
+  "fechaProgramada": "2025-05-20T10:00:00.000Z",
+  "tipoServicio": "INSTALACION",
+  "estado": "PROGRAMADO",
+  "cantidadBanos": 2,
+  "cantidadEmpleados": 1,
+  "cantidadVehiculos": 1,
+  "ubicacion": "Avenida Principal 123",
+  "notas": "Instalación estándar",
+  "asignacionAutomatica": false,
+  "asignacionesManual": [
+    {
+      "empleadoId": 1,
+      "vehiculoId": 1,
+      "banosIds": [1, 2]
+    }
+  ]
+}
+```
+
+> El sistema debería rechazar esta asignación manual, ya que el empleado estará en vacaciones/licencia durante esa fecha.
+
+## 3. Crear un Servicio Fuera del Período de Licencia
+
+Repite los pasos anteriores pero con una fecha fuera del período de licencia/vacaciones. El empleado debería poder ser asignado normalmente.
+
+## 4. Verificar Finalización de Licencia
+
+### Paso 1: Esperar a que se ejecute el scheduler al llegar la fecha de fin
+
+El scheduler automáticamente cambiará el estado del empleado a "DISPONIBLE" cuando llegue la fecha de finalización de la licencia.
+
+> 📝 **Nota:** Para pruebas, puedes simular esto cambiando manualmente el estado del empleado:
+
+```
+PATCH /api/employees/{id}/estado
+```
+
+**Headers:**
+
+- Content-Type: application/json
+- Authorization: Bearer {tu_token}
+
+**Body:**
+
+```json
+{
+  "estado": "DISPONIBLE"
+}
+```
+
+### Paso 2: Verificar que el empleado puede ser asignado nuevamente a servicios
+
+Repite la creación de un servicio con fecha posterior al fin de la licencia.
+
+## Consideraciones Importantes
+
+1. **Fechas de prueba:** Usa fechas cercanas al día actual para ver el efecto del scheduler. Alternativamente, puedes modificar manualmente los estados para probar la lógica.
+
+2. **Verificación del sistema de asignación:** El sistema debe verificar:
+
+   - Si un empleado está en licencia en la fecha de un servicio
+   - No permitir asignación manual de empleados en licencia
+   - No incluir empleados en licencia para asignación automática
+
+3. **Logs del sistema:** Verifica los logs del servidor para ver mensajes informativos sobre:
+
+   - Empleados que inician licencia
+   - Empleados que finalizan licencia
+   - Intentos de asignación rechazados por licencia
+
+4. **Base de datos:** Puedes verificar directamente en la base de datos:
+   - La tabla `employee_leaves` para ver las licencias registradas
+   - La tabla de empleados para confirmar su estado
+   - La tabla de asignaciones para verificar que los empleados en licencia no estén asignados
+
+Para simular adecuadamente el comportamiento del scheduler sin esperar a que las fechas lleguen naturalmente, puedes modificar temporalmente las fechas de inicio y fin de la licencia para que coincidan con la fecha actual, lo que activará el scheduler en su próxima ejecución.
