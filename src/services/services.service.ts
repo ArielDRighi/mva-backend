@@ -28,7 +28,6 @@ import { Vehicle } from '../vehicles/entities/vehicle.entity';
 import { ChemicalToilet } from '../chemical_toilets/entities/chemical_toilet.entity';
 import { VehicleMaintenanceService } from '../vehicle_maintenance/vehicle_maintenance.service';
 import { ToiletMaintenanceService } from '../toilet_maintenance/toilet_maintenance.service';
-import { sendRouteModified } from 'src/config/nodemailer';
 import { groupBy } from 'lodash';
 import {
   CondicionesContractuales,
@@ -342,27 +341,9 @@ export class ServicesService {
         // Log para verificar el tipo de servicio
         this.logger.log(`Tipo de servicio: ${savedService.tipoServicio}`);
 
-        try {
-          await sendRouteModified(
-            empleado.email,
-            empleado.nombre,
-            vehicle,
-            toilets,
-            clients,
-            savedService.tipoServicio || 'Tipo de servicio no definido',
-            savedService.fechaProgramada.toLocaleDateString('es-CL'),
-          );
-          this.logger.log(`Correo enviado a ${empleado.email}`);
-        } catch (error) {
-          this.logger.error(
-            `Error enviando correo a ${empleado.email}: ${error.message}`,
-          );
-        }
-      }
-    } else {
-      this.logger.log('No se envió correo, ruta no modificada.');
-    }
-
+       
+      }}
+  
     return this.findOne(savedService.id);
   }
 

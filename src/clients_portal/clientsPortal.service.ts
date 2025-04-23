@@ -6,11 +6,6 @@ import { Claim } from './entities/claim.entity';
 import { CreateClaimDto } from './dto/createClaim.dto';
 import { CreateSatisfactionSurveyDto } from './dto/createSatisfactionSurvey.dto';
 import { AskForServiceDto } from './dto/askForService.dto';
-import {
-  sendClaimNotification,
-  sendServiceNotification,
-  sendSurveyNotification,
-} from 'src/config/nodemailer';
 
 const adminsEmails = [
   'admin1@empresa.com',
@@ -69,15 +64,6 @@ export class ClientsPortalService {
     const claim = this.claimRepository.create(claimData);
     try {
       await this.claimRepository.save(claim);
-      await sendClaimNotification(
-        adminsEmails,
-        supervisorsEmails,
-        claimData.cliente,
-        claimData.titulo,
-        claimData.descripcion,
-        claimData.tipoReclamo,
-        claimData.fechaIncidente,
-      );
       return claim;
     } catch (error) {
       throw new BadRequestException(`Error creating claim ${error}`);
@@ -88,16 +74,6 @@ export class ClientsPortalService {
     const survey = this.satisfactionSurveyRepository.create(surveyData);
     try {
       await this.satisfactionSurveyRepository.save(survey);
-      await sendSurveyNotification(
-        adminsEmails,
-        supervisorsEmails,
-        surveyData.cliente,
-        surveyData.fecha_mantenimiento,
-        surveyData.calificacion,
-        surveyData.comentario,
-        surveyData.asunto,
-        surveyData.aspecto_evaluado,
-      );
       return survey;
     } catch (error) {
       throw new BadRequestException('Error creating satisfaction survey');
@@ -139,28 +115,12 @@ export class ClientsPortalService {
     }
   }
   async askForService(formData: AskForServiceDto) {
-    try {
-      await sendServiceNotification(
-        adminsEmails,
-        supervisorsEmails,
-        formData.nombrePersona,
-        formData.rolPersona,
-        formData.email,
-        formData.telefono,
-        formData.nombreEmpresa,
-        formData.cuit,
-        formData.rubroEmpresa,
-        formData.zonaDireccion,
-        formData.cantidadBaños,
-        formData.tipoEvento,
-        formData.duracionAlquiler,
-        formData.comentarios,
-      );
-      return { message: 'Service request sent successfully' };
-    } catch (error) {
-      throw new BadRequestException('Error sending service request');
-    }
+    return {
+      message: 'Service request received successfully',
+      data: formData, // necesario para que el interceptor lo intercepte y dispare el correo
+    };
   }
+  
 
   async getStats() {
     const totalSurveys = await this.satisfactionSurveyRepository.count();

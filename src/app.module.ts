@@ -18,6 +18,7 @@ import { ServicesModule } from './services/services.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SchedulerModule } from './scheduler/scheduler.module';
 import { ClientsPortalModule } from './clients_portal/clientsPortal.module';
+import { MailerModule } from './mailer/mailer.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { ClientsPortalModule } from './clients_portal/clientsPortal.module';
     ScheduleModule.forRoot(),
     SchedulerModule,
     ClientsPortalModule,
+    MailerModule,
   ],
   controllers: [AppController],
   providers: [AppService],

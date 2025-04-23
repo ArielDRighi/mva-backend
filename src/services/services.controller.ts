@@ -11,6 +11,7 @@ import {
   UseGuards,
   Patch,
   BadRequestException,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto/create-service.dto';
@@ -23,7 +24,9 @@ import { Roles } from '../roles/decorators/roles.decorator';
 import { Role } from '../roles/enums/role.enum';
 import { ServiceState } from '../common/enums/resource-states.enum';
 import { ChangeServiceStatusDto } from './dto/change-service-status.dto';
+import { MailerInterceptor } from 'src/mailer/interceptor/mailer.interceptor';
 
+@UseInterceptors(MailerInterceptor)
 @Controller('services')
 @UseGuards(JwtAuthGuard)
 export class ServicesController {
