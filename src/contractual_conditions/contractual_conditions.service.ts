@@ -18,16 +18,32 @@ export class ContractualConditionsService {
     private clientRepository: Repository<Cliente>,
   ) {}
 
-  async getAllContractualConditions() {
-    const contractualConditions =
-      await this.contractualConditionsRepository.find();
-    if (!contractualConditions) {
+  async getAllContractualConditions(page: number = 1, limit: number = 10) {
+    // Validamos que los parámetros sean números válidos
+    if (page < 1 || limit < 1) {
+      throw new Error('Page and limit must be greater than 0');
+    }
+  
+    const [contractualConditions, total] = await this.contractualConditionsRepository.findAndCount({
+      skip: (page - 1) * limit, // Calculamos el salto (offset) para la paginación
+      take: limit, // Número de registros a devolver por página
+    });
+  
+    if (!contractualConditions || contractualConditions.length === 0) {
       throw new NotFoundException(
-        'An error ocurred while to get the Contractual Conditions',
+        'An error occurred while trying to get the Contractual Conditions',
       );
     }
-    return contractualConditions;
+  
+    // Retornamos los resultados con información de la paginación
+    return {
+      data: contractualConditions,
+      totalItems: total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+    };
   }
+  
 
   async getContractualConditionById(contractualConditionId: number) {
     const contractualCondition =

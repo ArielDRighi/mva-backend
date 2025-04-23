@@ -1,6 +1,7 @@
 import { IsOptional, IsString, IsDateString } from 'class-validator';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
-export class FilterChemicalToiletDto {
+export class FilterChemicalToiletDto  extends PaginationDto {
   @IsOptional()
   @IsString()
   estado?: string;
