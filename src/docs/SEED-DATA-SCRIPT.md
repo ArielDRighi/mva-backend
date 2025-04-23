@@ -1,19 +1,18 @@
-# Documentación del Script de Datos de Prueba (seed-test-data)
+# Documentación de Scripts de Datos (Seed)
 
 ## Descripción
 
-El script seed-test-data.ts está diseñado para poblar la base de datos de la aplicación MVA Backend con datos de prueba para facilitar el desarrollo y las pruebas. Este script inserta:
+El proyecto MVA Backend incluye varios scripts para poblar la base de datos con diferentes tipos de datos:
 
-- Clientes
-- Empleados
-- Vehículos
-- Baños químicos
+1. **seed-test-data.ts**: Inserta datos básicos de prueba (clientes, empleados, vehículos y baños químicos)
+2. **seed-clients.ts**: Inserta 100 clientes aleatorios con datos realistas
+3. **create-admin-standalone.ts**: Crea un usuario administrador
 
-Además, el script verifica la existencia previa de registros para evitar duplicados.
+Todos los scripts verifican la existencia previa de registros para evitar duplicados.
 
 ## Requisitos previos
 
-Antes de ejecutar el script, asegúrate de:
+Antes de ejecutar cualquier script, asegúrate de:
 
 1. Tener configurado el archivo .env con las credenciales de la base de datos:
 
@@ -47,52 +46,35 @@ Antes de ejecutar el script, asegúrate de:
 cd d:/Personal/mva-backend
 ```
 
-### Paso 2: Ejecutar el script
+### Paso 2: Ejecutar el script deseado
 
-Hay dos formas de ejecutar el script:
+Todos los scripts de datos pueden ejecutarse de manera uniforme usando los comandos npm configurados en package.json:
 
-#### Opción 1: Ejecutar directamente con ts-node
+#### Para insertar datos básicos de prueba (empleados, vehículos, baños y algunos clientes):
 
 ```bash
-npx ts-node src/scripts/seed-test-data.ts
+npm run seed:test-data
 ```
 
-#### Opción 2: Ejecutar el script compilado
+#### Para insertar 100 clientes aleatorios:
 
 ```bash
-node dist/scripts/seed-test-data.js
+npm run seed:clients
+```
+
+#### Para crear un usuario administrador:
+
+```bash
+npm run seed:admin
 ```
 
 ### Paso 3: Verificar la ejecución
 
-El script mostrará mensajes en la consola indicando el progreso y resultado:
+Los scripts mostrarán mensajes en la consola indicando el progreso y resultado.
 
-```
-Iniciando proceso de inserción de datos de prueba...
-Conexión a la base de datos establecida correctamente
-Insertando clientes...
-Cliente con CUIT 30-71234567-0 ya existe, omitiendo...
-Cliente con CUIT 30-71234568-1 ya existe, omitiendo...
-Clientes insertados: 3
-Insertando empleados...
-Empleado con documento 25789456 ya existe, omitiendo...
-Empleados insertados: 4
-Insertando vehículos...
-Vehículo con placa AA123BB ya existe, omitiendo...
-Vehículos insertados: 5
-Insertando baños químicos...
-Baño con código interno BQ-2022-001 ya existe, omitiendo...
-Baños químicos insertados: 10
-Total de clientes en la base de datos: 5
-Total de empleados en la base de datos: 4
-Total de vehículos en la base de datos: 5
-Total de baños químicos en la base de datos: 10
-¡Datos de prueba insertados correctamente!
-Conexión a la base de datos cerrada
-Script finalizado correctamente
-```
+## Script: seed-test-data
 
-## Datos insertados
+Este script inserta:
 
 ### Clientes
 
@@ -123,27 +105,45 @@ Script finalizado correctamente
 - 10 baños químicos con modelos alternados entre: Estándar, Premium y Portátil
 - Códigos internos: BQ-2022-001 hasta BQ-2022-010
 
+## Script: seed-clients
+
+Este script inserta 100 clientes con:
+
+- Nombres de empresas generados aleatoriamente
+- CUITs únicos con formato válido
+- Direcciones con calles y ciudades de Argentina
+- Teléfonos con formato argentino
+- Emails corporativos
+- Nombres de contactos principal
+
+El script muestra el progreso cada 10 clientes insertados y al final muestra el número total de clientes en la base de datos.
+
+## Script: seed-admin
+
+Este script crea un usuario administrador con las siguientes credenciales:
+
+| Campo    | Valor         |
+| -------- | ------------- |
+| Username | admin         |
+| Password | admin123      |
+| Email    | admin@mva.com |
+| Rol      | ADMIN         |
+
+> **¡IMPORTANTE!** Recuerda cambiar la contraseña después del primer inicio de sesión.
+
 ## Personalización
 
 Si deseas modificar los datos insertados:
 
-1. Abre el archivo seed-test-data.ts
-2. Modifica los arrays de datos:
-
-   - `clientes`
-   - `empleados`
-   - `vehiculos`
-   - Para los baños químicos, ajusta el bucle for que genera 10 baños
-
+1. Abre el archivo del script correspondiente (seed-test-data.ts, seed-clients.ts, etc.)
+2. Modifica los datos según sea necesario
 3. Guarda los cambios y vuelve a ejecutar el script
 
 ## Consideraciones
 
-- El script no elimina datos existentes, solo agrega nuevos registros
-- Si un registro ya existe (basado en CUIT, documento, placa o código interno), será omitido
-- Todos los recursos se crean con estado `DISPONIBLE` por defecto
-- La fecha de contratación de los empleados se establece aproximadamente un año antes de la ejecución del script
-- La fecha de adquisición de los baños se establece aproximadamente dos años antes de la ejecución del script
+- Los scripts no eliminan datos existentes, solo agregan nuevos registros
+- Si un registro ya existe, será omitido para evitar duplicados
+- Todos los recursos se crean con estado `DISPONIBLE` o `ACTIVO` por defecto
 
 ## Resolución de problemas
 
@@ -153,7 +153,7 @@ Verifica las credenciales en el archivo .env y asegúrate de que la base de dato
 
 ### Error: "La entidad ya existe"
 
-El script ya incluye verificaciones para evitar duplicados. Si persisten los errores, considera limpiar la base de datos antes de ejecutar el script.
+Los scripts incluyen verificaciones para evitar duplicados. Si persisten los errores, considera limpiar la base de datos antes de ejecutar el script.
 
 ### Error: "Column xxx does not exist"
 
@@ -171,12 +171,8 @@ npm install
 # Compilamos el proyecto
 npm run build
 
-# Ejecutamos el script
-npx ts-node src/scripts/seed-test-data.ts
-
-# Alternativa: ejecutar la versión compilada
-# node dist/scripts/seed-test-data.js
-
-# Verificamos en la base de datos que se hayan creado los registros
-# usando algún cliente como pgAdmin o DBeaver
+# Ejecutamos todos los scripts en orden
+npm run seed:admin
+npm run seed:test-data
+npm run seed:clients
 ```
