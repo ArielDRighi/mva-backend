@@ -19,6 +19,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../roles/guards/roles.guard';
 import { Roles } from '../roles/decorators/roles.decorator';
 import { Role } from '../roles/enums/role.enum';
+import { Pagination } from 'src/common/interfaces/paginations.interface';
 
 @Controller('chemical_toilets')
 @UseGuards(JwtAuthGuard)
@@ -37,16 +38,22 @@ export class ChemicalToiletsController {
   }
 
   @Get()
-  async findAll(): Promise<ChemicalToilet[]> {
-    return this.chemicalToiletsService.findAll();
+  async findAll(
+    @Query('page') page = 1,   // Página por defecto 1
+    @Query('limit') limit = 10, // Límite por defecto 10
+  ): Promise<Pagination<ChemicalToilet>> {  // Asegúrate de que el tipo de retorno sea el adecuado
+    const paginationDto = { page, limit };
+    return this.chemicalToiletsService.findAll(paginationDto); // Llamada al servicio con paginación
   }
+  
 
   @Get('search')
-  async search(
-    @Query() filterDto: FilterChemicalToiletDto,
-  ): Promise<ChemicalToilet[]> {
-    return this.chemicalToiletsService.findAllWithFilters(filterDto);
-  }
+async search(
+  @Query() filterDto: FilterChemicalToiletDto, // Recibe todos los filtros de la query
+): Promise<Pagination<ChemicalToilet>> {         // Devolver un objeto Pagination
+  return this.chemicalToiletsService.findAllWithFilters(filterDto);
+}
+
 
   @Get(':id')
   async findById(

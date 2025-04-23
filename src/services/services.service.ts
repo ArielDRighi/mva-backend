@@ -168,7 +168,11 @@ export class ServicesService {
     }
   }
 
-  async findAll(filters?: FilterServicesDto, page: number = 1, limit: number = 10): Promise<any> {
+  async findAll(
+    filters?: FilterServicesDto, 
+    page: number = 1, 
+    limit: number = 10
+  ): Promise<any> {
     this.logger.log('Recuperando todos los servicios');
   
     const queryBuilder = this.serviceRepository
@@ -227,7 +231,7 @@ export class ServicesService {
         .getMany(),  // Get the actual paginated data
       queryBuilder.getCount(),  // Get the total count of records matching the filters
     ]);
-    
+  
     // Now you can return the paginated data and total count
     return {
       data: services,
@@ -236,6 +240,7 @@ export class ServicesService {
       totalPages: Math.ceil(total / limit),
     };
   }
+  
   
 
   async findOne(id: number): Promise<Service> {

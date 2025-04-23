@@ -34,12 +34,20 @@ export class VehiclesController {
   }
 
   @Get()
-  findAll(@Query('estado') estado?: string): Promise<Vehicle[]> {
+  async findAll(
+    @Query('estado') estado?: string,  // Filtro por estado (opcional)
+    @Query('page') page: number = 1,   // Página actual (por defecto 1)
+    @Query('limit') limit: number = 10  // Límite de registros por página (por defecto 10)
+  ): Promise<any> {
     if (estado) {
+      // Si el estado es proporcionado, filtramos por estado
       return this.vehiclesService.findByEstado(estado as ResourceState);
     }
-    return this.vehiclesService.findAll();
+  
+    // Si no hay filtro de estado, aplicamos la paginación normal
+    return this.vehiclesService.findAll(page, limit);
   }
+  
 
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number): Promise<Vehicle> {

@@ -52,7 +52,7 @@ export class EmployeesService {
 
   async findAll(page: number = 1, limit: number = 10): Promise<any> {
     this.logger.log('Recuperando todos los empleados');
-    
+  
     // Validamos que los parámetros sean válidos
     if (page < 1 || limit < 1) {
       throw new Error('Page and limit must be greater than 0');
@@ -70,6 +70,7 @@ export class EmployeesService {
       totalPages: Math.ceil(total / limit),
     };
   }
+  
   
 
   async findOne(id: number): Promise<Empleado> {
