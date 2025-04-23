@@ -5,6 +5,9 @@ import { ResourceState } from '../common/enums/resource-states.enum';
 
 dotenv.config();
 
+/**
+ * Script para insertar datos de prueba (empleados, vehículos, baños químicos y algunos clientes)
+ */
 async function seedTestData() {
   console.log('Iniciando proceso de inserción de datos de prueba...');
 
@@ -358,6 +361,7 @@ async function seedTestData() {
     console.log('¡Datos de prueba insertados correctamente!');
   } catch (error) {
     console.error('Error al insertar datos de prueba:', error);
+    throw error;
   } finally {
     if (dataSource && dataSource.isInitialized) {
       await dataSource.destroy();
