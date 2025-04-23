@@ -39,21 +39,33 @@ export class ChemicalToiletsController {
 
   @Get()
   async findAll(
-    @Query('page') page = 1,   // Página por defecto 1
-    @Query('limit') limit = 10, // Límite por defecto 10
-  ): Promise<Pagination<ChemicalToilet>> {  // Asegúrate de que el tipo de retorno sea el adecuado
-    const paginationDto = { page, limit };
-    return this.chemicalToiletsService.findAll(paginationDto); // Llamada al servicio con paginación
+    @Query('page') page = '1',
+    @Query('limit') limit = '10',
+  ): Promise<Pagination<ChemicalToilet>> {
+    const paginationDto = {
+      page: Number(page),
+      limit: Number(limit),
+    };
+    return this.chemicalToiletsService.findAll(paginationDto);
   }
+  
   
 
   @Get('search')
-async search(
-  @Query() filterDto: FilterChemicalToiletDto, // Recibe todos los filtros de la query
-): Promise<Pagination<ChemicalToilet>> {         // Devolver un objeto Pagination
-  return this.chemicalToiletsService.findAllWithFilters(filterDto);
-}
-
+  async search(
+    @Query() filterDto: FilterChemicalToiletDto,
+  ): Promise<Pagination<ChemicalToilet>> {
+    // Convertimos page y limit si vienen como strings
+    const page = filterDto.page ? Number(filterDto.page) : 1;
+    const limit = filterDto.limit ? Number(filterDto.limit) : 10;
+  
+    return this.chemicalToiletsService.findAllWithFilters({
+      ...filterDto,
+      page,
+      limit,
+    });
+  }
+  
 
   @Get(':id')
   async findById(
