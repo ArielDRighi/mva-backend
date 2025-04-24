@@ -4,12 +4,18 @@ import { FuturasLimpiezas } from './entities/futureCleanings.entity';
 import { Repository } from 'typeorm';
 import { ModifyFutureCleaningDto } from './dto/modifyFutureCleanings.dto';
 import { CreateFutureCleaningDto } from './dto/createFutureCleanings.dto';
+import { Cliente } from 'src/clients/entities/client.entity';
+import { Service } from 'src/services/entities/service.entity';
 
 @Injectable()
 export class FutureCleaningsService {
   constructor(
     @InjectRepository(FuturasLimpiezas)
     private readonly futurasLimpiezasRepository: Repository<FuturasLimpiezas>,
+    @InjectRepository(Cliente)
+    private readonly clientRepository: Repository<Cliente>,
+    @InjectRepository(Service)
+    private readonly serviceRepository: Repository<Service>,
   ) {}
   async getAll() {
     const futureCleanings = await this.futurasLimpiezasRepository.find();
@@ -54,8 +60,25 @@ export class FutureCleaningsService {
   }
 
   async createFutureCleaning(data: CreateFutureCleaningDto) {
+    const cliente = await this.clientRepository.findOne({
+      where: { clienteId: data.clientId },
+    });
+    if (!cliente) {
+      throw new BadRequestException('Client not found');
+    }
+    const service = await this.serviceRepository.findOne({
+      where: { id: data.servicioId },
+    });
+    if (!service) {
+      throw new BadRequestException('Service not found');
+    }
     try {
-      const futureCleaning = await this.futurasLimpiezasRepository.create(data);
+      const futureCleaning = this.futurasLimpiezasRepository.create({
+        cliente: cliente,
+        fecha_de_limpieza: data.fecha_de_limpieza,
+        isActive: data.isActive,
+        servicio: service,
+      });
       await this.futurasLimpiezasRepository.save(futureCleaning);
       return futureCleaning;
     } catch (error) {

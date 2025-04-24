@@ -23,6 +23,7 @@ import { Roles } from '../roles/decorators/roles.decorator';
 import { Role } from '../roles/enums/role.enum';
 import { ServiceState } from '../common/enums/resource-states.enum';
 import { ChangeServiceStatusDto } from './dto/change-service-status.dto';
+import { FutureCleaningsService } from 'src/future_cleanings/futureCleanings.service';
 
 @Controller('services')
 @UseGuards(JwtAuthGuard)

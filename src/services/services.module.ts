@@ -15,6 +15,9 @@ import { ToiletMaintenanceModule } from '../toilet_maintenance/toilet_maintenanc
 import { Empleado } from '../employees/entities/employee.entity';
 import { CondicionesContractuales } from '../contractual_conditions/entities/contractual_conditions.entity';
 import { EmployeeLeavesModule } from '../employee_leaves/employee-leaves.module';
+import { FuturasLimpiezas } from 'src/future_cleanings/entities/futureCleanings.entity';
+import { FutureCleaningsService } from 'src/future_cleanings/futureCleanings.service';
+import { Cliente } from 'src/clients/entities/client.entity';
 
 @Module({
   imports: [
@@ -25,6 +28,8 @@ import { EmployeeLeavesModule } from '../employee_leaves/employee-leaves.module'
       Vehicle,
       ChemicalToilet,
       CondicionesContractuales,
+      FuturasLimpiezas,
+      Cliente,
     ]),
     forwardRef(() => ClientsModule),
     forwardRef(() => EmployeesModule),
@@ -35,7 +40,7 @@ import { EmployeeLeavesModule } from '../employee_leaves/employee-leaves.module'
     EmployeeLeavesModule,
   ],
   controllers: [ServicesController],
-  providers: [ServicesService],
+  providers: [ServicesService, FutureCleaningsService],
   exports: [ServicesService],
 })
 export class ServicesModule {}

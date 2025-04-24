@@ -13,6 +13,7 @@ import { FilterToiletMaintenanceDto } from './dto/filter_toilet_maintenance.dto'
 import { ResourceState } from '../common/enums/resource-states.enum';
 import { ChemicalToiletsService } from '../chemical_toilets/chemical_toilets.service';
 import { Cron } from '@nestjs/schedule';
+import { Periodicidad } from 'src/contractual_conditions/entities/contractual_conditions.entity';
 
 @Injectable()
 export class ToiletMaintenanceService {
@@ -23,6 +24,69 @@ export class ToiletMaintenanceService {
     private toiletsRepository: Repository<ChemicalToilet>,
     private chemicalToiletsService: ChemicalToiletsService,
   ) {}
+
+  calculateMaintenanceDays(
+    fechaInicio: Date | null,
+    fechaFin: Date | null,
+    periodicidad: Periodicidad,
+  ): Date[] {
+    if (!fechaInicio || !fechaFin) {
+      throw new BadRequestException('Fechas de inicio o fin no válidas');
+    }
+
+    const startDate = new Date(fechaInicio);
+    const endDate = new Date(fechaFin);
+
+    // Verificar que la fecha de inicio sea anterior a la fecha de fin
+    if (startDate >= endDate) {
+      throw new BadRequestException(
+        'La fecha de inicio debe ser anterior a la fecha de fin',
+      );
+    }
+
+    const maintenanceDates: Date[] = [];
+    let currentDate = new Date(startDate);
+
+    // La primera fecha de mantenimiento es la fecha de inicio
+    maintenanceDates.push(new Date(currentDate));
+
+    // Determinar el intervalo según la periodicidad
+    let intervalDays: number;
+    switch (periodicidad) {
+      case Periodicidad.DIARIA:
+        intervalDays = 1;
+        break;
+      case Periodicidad.SEMANAL:
+        intervalDays = 7;
+        break;
+      case Periodicidad.MENSUAL:
+        intervalDays = 30; // Aproximación de un mes
+        break;
+      case Periodicidad.ANUAL:
+        intervalDays = 365; // Aproximación de un año
+        break;
+      default:
+        throw new BadRequestException('Periodicidad no válida');
+    }
+
+    // Calcular las fechas de mantenimiento siguientes
+    while (true) {
+      // Avanzar a la siguiente fecha según la periodicidad
+      const nextDate = new Date(currentDate);
+      nextDate.setDate(nextDate.getDate() + intervalDays);
+
+      // Si la siguiente fecha supera la fecha fin, terminamos
+      if (nextDate > endDate) {
+        break;
+      }
+
+      // Agregar la fecha a la lista de mantenimientos
+      maintenanceDates.push(new Date(nextDate));
+      currentDate = nextDate;
+    }
+
+    return maintenanceDates;
+  }
 
   async create(
     createMaintenanceDto: CreateToiletMaintenanceDto,

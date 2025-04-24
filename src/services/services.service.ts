@@ -40,6 +40,7 @@ import {
   CondicionesContractuales,
   EstadoContrato,
 } from '../contractual_conditions/entities/contractual_conditions.entity';
+import { FutureCleaningsService } from 'src/future_cleanings/futureCleanings.service';
 
 @Injectable()
 export class ServicesService {
@@ -64,6 +65,7 @@ export class ServicesService {
     private condicionesContractualesRepository: Repository<CondicionesContractuales>,
     private readonly employeeLeavesService: EmployeeLeavesService,
     private dataSource: DataSource,
+    private readonly futureCleaningsService: FutureCleaningsService,
   ) {}
 
   async create(createServiceDto: CreateServiceDto): Promise<Service> {
@@ -74,7 +76,7 @@ export class ServicesService {
 
     try {
       // Crear un nuevo servicio
-      const newService = new Service();
+      let newService = new Service();
       Object.assign(newService, {
         cliente: { clienteId: createServiceDto.clienteId },
         fechaProgramada: createServiceDto.fechaProgramada,
@@ -96,13 +98,15 @@ export class ServicesService {
       ) {
         // Intentar obtener la fecha fin del contrato
         if (createServiceDto.condicionContractualId) {
+          console.log('ID', createServiceDto.condicionContractualId);
           const condicionContractual =
             await this.condicionesContractualesRepository.findOne({
               where: {
                 condicionContractualId: createServiceDto.condicionContractualId,
               },
+              relations: ['cliente'],
             });
-
+          console.log('condicionContractual', condicionContractual);
           if (condicionContractual) {
             newService.condicionContractualId =
               condicionContractual.condicionContractualId;
@@ -113,6 +117,59 @@ export class ServicesService {
               // Sumar 24 horas a la fecha
               fechaFin.setTime(fechaFin.getTime() + 24 * 60 * 60 * 1000);
               newService.fechaFinAsignacion = fechaFin;
+              newService.fechaInicio = condicionContractual.fecha_inicio;
+              newService.fechaFin = condicionContractual.fecha_fin;
+              console.log('Periodicidad', condicionContractual.periodicidad);
+            }
+
+            // Aca cuando ya tenemos la fecha de Fin, fecha de inicio, y periodicidad, calculamos los dias en los que se deberia hacer un mantenimiento
+            // Reemplazar la parte donde creas las limpiezas futuras con este código:
+            if (condicionContractual.periodicidad) {
+              const periodicidad = condicionContractual.periodicidad;
+              const diasMantenimiento =
+                this.toiletMaintenanceService.calculateMaintenanceDays(
+                  newService.fechaInicio,
+                  newService.fechaFin,
+                  periodicidad,
+                );
+              console.log('diasMantenimiento', diasMantenimiento);
+
+              const cliente = condicionContractual.cliente;
+              console.log('cliente', cliente);
+              const savedServiceForCleanings =
+                await queryRunner.manager.save(newService);
+
+              // Crear una limpieza futura por cada fecha calculada
+              for (let i = 0; i < diasMantenimiento.length; i++) {
+                try {
+                  // Crear la limpieza futura directamente usando el queryRunner
+                  const newCleaning = {
+                    cliente: { clienteId: Number(cliente.clienteId) },
+                    fecha_de_limpieza: diasMantenimiento[i],
+                    numero_de_limpieza: i + 1,
+                    isActive: true,
+                    servicio: { id: savedServiceForCleanings.id }, // Asociar al servicio recién creado
+                  };
+
+                  // Crear y guardar directamente con el queryRunner
+                  await queryRunner.manager.save(
+                    'future_cleanings',
+                    newCleaning,
+                  );
+
+                  this.logger.log(
+                    `Limpieza futura #${i + 1} creada para fecha: ${diasMantenimiento[i].toISOString()}`,
+                  );
+                } catch (error) {
+                  this.logger.error(
+                    `Error al crear limpieza futura #${i + 1}: ${error.message}`,
+                  );
+                  // No lanzamos el error para que la transacción pueda continuar aunque alguna limpieza falle
+                }
+              }
+
+              // Actualizar newService con la referencia correcta para continuar el proceso
+              newService = savedServiceForCleanings;
             }
           }
         } else {

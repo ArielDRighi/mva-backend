@@ -4,10 +4,16 @@ import {
   IsNotEmpty,
   IsNumber,
   IsOptional,
+  IsString,
 } from 'class-validator';
 
 export class CreateFutureCleaningDto {
   @IsNotEmpty()
+  @IsNumber()
+  clientId: number;
+
+  @IsNotEmpty()
+  @IsDate()
   fecha_de_limpieza: Date;
 
   @IsBoolean()
@@ -16,9 +22,5 @@ export class CreateFutureCleaningDto {
 
   @IsNotEmpty()
   @IsNumber()
-  numero_de_limpieza: number;
-
-  // @IsNotEmpty()
-  // @IsNumber()
-  // id_servicio_instalacion: number;
+  servicioId: number;
 }
