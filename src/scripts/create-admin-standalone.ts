@@ -4,6 +4,9 @@ import { DataSource } from 'typeorm';
 
 dotenv.config();
 
+/**
+ * Script para crear un usuario administrador en la base de datos
+ */
 async function createAdminUser() {
   console.log('Iniciando proceso de creación de usuario administrador...');
 
@@ -15,8 +18,8 @@ async function createAdminUser() {
     username: process.env.DB_USERNAME || 'postgres',
     password: process.env.DB_PASSWORD || 'postgres',
     database: process.env.DB_DATABASE || 'mva_db',
-    // Cargar entidades desde los archivos JS compilados
-    entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
+    schema: process.env.DB_SCHEMA,
+    entities: ['dist/**/*.entity.js'],
     synchronize: false,
   });
 
@@ -35,7 +38,6 @@ async function createAdminUser() {
       console.log('¡Usuario administrador ya existe!');
       console.log(`Nombre: ${existingAdmin[0].nombre}`);
       console.log(`Email: ${existingAdmin[0].email}`);
-      await dataSource.destroy();
       return;
     }
 
@@ -81,6 +83,7 @@ async function createAdminUser() {
     );
   } catch (error) {
     console.error('Error al crear el usuario administrador:', error);
+    throw error;
   } finally {
     if (dataSource && dataSource.isInitialized) {
       await dataSource.destroy();
@@ -89,6 +92,7 @@ async function createAdminUser() {
   }
 }
 
+// Ejecutar el script
 createAdminUser()
   .then(() => {
     console.log('Script finalizado correctamente');

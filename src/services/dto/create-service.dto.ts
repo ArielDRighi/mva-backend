@@ -1,27 +1,30 @@
 import { Type } from 'class-transformer';
 import {
-  IsBoolean,
-  IsDateString,
-  IsEnum,
-  IsNotEmpty,
-  IsNumber,
-  IsOptional,
   IsString,
+  IsNumber,
+  IsDate,
+  IsOptional,
+  IsBoolean,
+  IsArray,
+  IsEnum,
+  ValidateIf,
+  ValidateNested,
   Min,
+  IsDateString,
 } from 'class-validator';
 import {
   ServiceState,
   ServiceType,
 } from '../../common/enums/resource-states.enum';
+import { CreateResourceAssignmentDto } from './create-resource-assignment.dto';
 
 export class CreateServiceDto {
   @IsNumber()
-  @IsNotEmpty({ message: 'El ID del cliente es requerido' })
   clienteId: number;
 
-  @IsDateString()
-  @IsNotEmpty({ message: 'La fecha programada es requerida' })
-  fechaProgramada: string;
+  @IsDate()
+  @Type(() => Date)
+  fechaProgramada: Date;
 
   @IsOptional()
   @IsDateString()
@@ -32,43 +35,60 @@ export class CreateServiceDto {
   fechaFin?: string;
 
   @IsEnum(ServiceType)
-  @IsNotEmpty({ message: 'El tipo de servicio es requerido' })
   tipoServicio: ServiceType;
 
   @IsOptional()
   @IsEnum(ServiceState)
-  estado?: ServiceState = ServiceState.PROGRAMADO;
+  estado?: ServiceState;
 
   @IsNumber()
-  @Min(1, { message: 'La cantidad de baños debe ser al menos 1' })
+  @Min(0)
   cantidadBanos: number;
 
-  // Nuevos campos para cantidad de recursos
-  @IsOptional()
   @IsNumber()
   @Min(1, { message: 'La cantidad de empleados debe ser al menos 1' })
-  cantidadEmpleados: number = 1; // Valor por defecto: 1
+  cantidadEmpleados: number;
+
+  @IsNumber()
+  @Min(1, { message: 'La cantidad de vehículos debe ser al menos 1' })
+  cantidadVehiculos: number;
+
+  @IsString()
+  ubicacion: string;
+
+  @IsString()
+  @IsOptional()
+  notas?: string;
+
+  @IsBoolean()
+  asignacionAutomatica: boolean;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateResourceAssignmentDto)
+  @IsOptional()
+  asignacionesManual?: CreateResourceAssignmentDto[];
+
+  @IsArray()
+  @IsOptional()
+  @ValidateIf((o: CreateServiceDto) =>
+    [
+      'LIMPIEZA',
+      'RETIRO',
+      'REEMPLAZO',
+      'MANTENIMIENTO_IN_SITU',
+      'REPARACION',
+    ].includes(o.tipoServicio),
+  )
+  banosInstalados?: number[];
 
   @IsOptional()
   @IsNumber()
-  @Min(1, { message: 'La cantidad de vehículos debe ser al menos 1' })
-  cantidadVehiculos: number = 1; // Valor por defecto: 1
-
-  @IsString()
-  @IsNotEmpty({ message: 'La ubicación del servicio es requerida' })
-  ubicacion: string;
+  condicionContractualId?: number;
 
   @IsOptional()
-  @IsString()
-  notas?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  asignacionAutomatica: boolean = true;
-
-  @IsOptional()
-  @Type(() => ResourceAssignmentDto)
-  asignacionesManual?: ResourceAssignmentDto[];
+  @IsDateString()
+  fechaFinAsignacion?: string;
 }
 
 export class ResourceAssignmentDto {

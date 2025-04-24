@@ -58,4 +58,11 @@ export class ClientController {
   async delete(@Param('id', ParseIntPipe) clienteId: number): Promise<void> {
     return this.clientService.deleteClient(clienteId);
   }
+
+  @Get(':id/active-contract')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  async getActiveContract(@Param('id', ParseIntPipe) clientId: number) {
+    return this.clientService.getActiveContract(clientId);
+  }
 }

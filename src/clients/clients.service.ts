@@ -8,7 +8,12 @@ import { CreateClientDto } from './dto/create_client.dto';
 import { UpdateClientDto } from './dto/update_client.dto';
 import { Cliente } from './entities/client.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThan } from 'typeorm';
+import { ChemicalToiletsService } from '../chemical_toilets/chemical_toilets.service';
+import {
+  CondicionesContractuales,
+  EstadoContrato,
+} from '../contractual_conditions/entities/contractual_conditions.entity';
 
 @Injectable()
 export class ClientService {
@@ -16,6 +21,9 @@ export class ClientService {
 
   constructor(
     @InjectRepository(Cliente) private clientRepository: Repository<Cliente>,
+    @InjectRepository(CondicionesContractuales)
+    private condicionesContractualesRepository: Repository<CondicionesContractuales>,
+    private chemicalToiletsService: ChemicalToiletsService,
   ) {}
 
   async create(createClientDto: CreateClientDto): Promise<Cliente> {
@@ -87,5 +95,30 @@ export class ClientService {
 
     // O Alternativa: Usar remove para entidades completas
     // await this.clientRepository.remove(client);
+  }
+
+  async getActiveContract(clientId: number) {
+    const client = await this.findOneClient(clientId);
+
+    const contratos = await this.condicionesContractualesRepository.find({
+      where: {
+        cliente: { clienteId: clientId },
+        estado: EstadoContrato.ACTIVO,
+        fecha_fin: MoreThan(new Date()),
+      },
+      order: { fecha_fin: 'DESC' },
+    });
+
+    if (!contratos || contratos.length === 0) {
+      throw new NotFoundException(
+        `No hay contratos activos para el cliente ${client.nombre}`,
+      );
+    }
+
+    return {
+      contrato: contratos[0],
+      banosAsignados:
+        await this.chemicalToiletsService.findByClientId(clientId),
+    };
   }
 }

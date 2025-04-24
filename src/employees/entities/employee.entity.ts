@@ -1,5 +1,12 @@
-import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  OneToMany,
+  OneToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { User } from '../../users/entities/user.entity';
+import { EmployeeLeave } from '../../employee_leaves/entities/employee-leave.entity';
 
 @Entity({ name: 'employees' })
 export class Empleado {
@@ -38,4 +45,7 @@ export class Empleado {
 
   @OneToOne(() => User, (user) => user.empleadoId, { nullable: true })
   usuario: User;
+
+  @OneToMany(() => EmployeeLeave, (leave) => leave.employee)
+  leaves: EmployeeLeave[];
 }
