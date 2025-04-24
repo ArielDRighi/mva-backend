@@ -13,6 +13,7 @@ import {
   BadRequestException,
   HttpException,
   HttpStatus,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto/create-service.dto';
@@ -25,7 +26,8 @@ import { Roles } from '../roles/decorators/roles.decorator';
 import { Role } from '../roles/enums/role.enum';
 import { ServiceState } from '../common/enums/resource-states.enum';
 import { ChangeServiceStatusDto } from './dto/change-service-status.dto';
-
+import { MailerInterceptor } from 'src/mailer/interceptor/mailer.interceptor';
+@UseInterceptors(MailerInterceptor)
 @Controller('services')
 @UseGuards(JwtAuthGuard)
 export class ServicesController {
@@ -40,19 +42,21 @@ export class ServicesController {
 
   @Get()
   async findAll(
-    @Query() filterDto: FilterServicesDto,  // Recibe los filtros como parámetros de consulta
-    @Query('page') page: number = 1,        // Recibe el número de página desde los parámetros de consulta
-    @Query('limit') limit: number = 10      // Recibe el límite de registros por página desde los parámetros de consulta
+    @Query() filterDto: FilterServicesDto, // Recibe los filtros como parámetros de consulta
+    @Query('page') page: number = 1, // Recibe el número de página desde los parámetros de consulta
+    @Query('limit') limit: number = 10, // Recibe el límite de registros por página desde los parámetros de consulta
   ): Promise<any> {
     try {
       // Llama al servicio con los filtros, página y límite
       return await this.servicesService.findAll(filterDto, page, limit);
     } catch (error) {
       // Manejo de errores
-      throw new HttpException('Error al obtener los servicios', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Error al obtener los servicios',
+        HttpStatus.BAD_REQUEST,
+      );
     }
   }
-  
 
   // Agrega estas rutas específicas antes de la ruta con parámetro :id
   @Get('date-range')
