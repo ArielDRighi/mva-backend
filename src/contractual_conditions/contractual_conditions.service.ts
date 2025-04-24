@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import { CreateContractualConditionDto } from './dto/create_contractual_conditions.dto';
 import { ModifyCondicionContractualDto } from './dto/modify_contractual_conditions.dto';
 import { Cliente } from 'src/clients/entities/client.entity';
+import { Pagination } from 'src/common/interfaces/paginations.interface';
 
 @Injectable()
 export class ContractualConditionsService {
@@ -18,16 +19,38 @@ export class ContractualConditionsService {
     private clientRepository: Repository<Cliente>,
   ) {}
 
-  async getAllContractualConditions() {
-    const contractualConditions =
-      await this.contractualConditionsRepository.find();
-    if (!contractualConditions) {
+  async getAllContractualConditions(
+    page: number = 1,
+    limit: number = 10
+  ): Promise<Pagination<CondicionesContractuales>> {
+    // Validamos que los parámetros sean números válidos
+    if (page < 1 || limit < 1) {
+      throw new Error('Page and limit must be greater than 0');
+    }
+  
+    // Obtener las condiciones contractuales con paginación
+    const [contractualConditions, total] = await this.contractualConditionsRepository.findAndCount({
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+  
+    if (!contractualConditions || contractualConditions.length === 0) {
       throw new NotFoundException(
-        'An error ocurred while to get the Contractual Conditions',
+        'An error occurred while trying to get the Contractual Conditions'
       );
     }
-    return contractualConditions;
+  
+    // Retornamos los resultados con información de la paginación
+    return {
+      items: contractualConditions,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
+  
+  
 
   async getContractualConditionById(contractualConditionId: number) {
     const contractualCondition =

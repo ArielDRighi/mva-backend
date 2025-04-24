@@ -174,9 +174,13 @@ export class ServicesService {
     }
   }
 
-  async findAll(filters?: FilterServicesDto): Promise<Service[]> {
+  async findAll(
+    filters?: FilterServicesDto, 
+    page: number = 1, 
+    limit: number = 10
+  ): Promise<any> {
     this.logger.log('Recuperando todos los servicios');
-
+  
     const queryBuilder = this.serviceRepository
       .createQueryBuilder('service')
       .leftJoinAndSelect('service.asignaciones', 'asignacion')
@@ -184,49 +188,66 @@ export class ServicesService {
       .leftJoinAndSelect('asignacion.empleado', 'empleado')
       .leftJoinAndSelect('asignacion.vehiculo', 'vehiculo')
       .leftJoinAndSelect('asignacion.bano', 'bano');
-
+  
     if (filters) {
       if (filters.clienteId) {
         queryBuilder.andWhere('service.clienteId = :clienteId', {
           clienteId: filters.clienteId,
         });
       }
-
+  
       if (filters.estado) {
         queryBuilder.andWhere('service.estado = :estado', {
           estado: filters.estado,
         });
       }
-
+  
       if (filters.tipoServicio) {
         queryBuilder.andWhere('service.tipoServicio = :tipoServicio', {
           tipoServicio: filters.tipoServicio,
         });
       }
-
+  
       if (filters.ubicacion) {
         queryBuilder.andWhere('service.ubicacion LIKE :ubicacion', {
           ubicacion: `%${filters.ubicacion}%`,
         });
       }
-
+  
       if (filters.fechaDesde) {
         queryBuilder.andWhere('service.fechaProgramada >= :fechaDesde', {
           fechaDesde: new Date(filters.fechaDesde),
         });
       }
-
+  
       if (filters.fechaHasta) {
         queryBuilder.andWhere('service.fechaProgramada <= :fechaHasta', {
           fechaHasta: new Date(filters.fechaHasta),
         });
       }
     }
-
+  
     queryBuilder.orderBy('service.fechaProgramada', 'ASC');
-
-    return queryBuilder.getMany();
+  
+    // Paginación
+    const [services, total] = await Promise.all([
+      queryBuilder
+        .skip((page - 1) * limit)  // Offset for pagination
+        .take(limit)  // Limit to the number of records per page
+        .getMany(),  // Get the actual paginated data
+      queryBuilder.getCount(),  // Get the total count of records matching the filters
+    ]);
+  
+    // Now you can return the paginated data and total count
+    return {
+      data: services,
+      totalItems: total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+    };
   }
+  
+  
 
   async findOne(id: number): Promise<Service> {
     this.logger.log(`Buscando servicio con id: ${id}`);

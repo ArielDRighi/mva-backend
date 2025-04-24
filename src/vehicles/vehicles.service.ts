@@ -38,10 +38,24 @@ export class VehiclesService {
     return this.vehicleRepository.save(vehicle);
   }
 
-  async findAll(): Promise<Vehicle[]> {
-    this.logger.log('Recuperando todos los vehículos');
-    return this.vehicleRepository.find();
+  async findAll(page: number, limit: number): Promise<any> {
+    // Obtener los vehículos y el total de vehículos en paralelo
+    const [vehicles, total] = await Promise.all([
+      this.vehicleRepository.find({
+        skip: (page - 1) * limit,  // Cálculo del offset
+        take: limit,  // Número de vehículos a devolver por página
+      }),
+      this.vehicleRepository.count(),  // Obtener el total de vehículos
+    ]);
+  
+    return {
+      data: vehicles,  // Vehículos paginados
+      totalItems: total,  // Total de vehículos en la base de datos
+      currentPage: page,  // Página actual
+      totalPages: Math.ceil(total / limit),  // Total de páginas
+    };
   }
+  
 
   async findOne(id: number): Promise<Vehicle> {
     this.logger.log(`Buscando vehículo con id: ${id}`);

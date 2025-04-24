@@ -11,6 +11,8 @@ import {
   UseGuards,
   Patch,
   BadRequestException,
+  HttpException,
+  HttpStatus,
   UseInterceptors,
 } from '@nestjs/common';
 import { ServicesService } from './services.service';
@@ -39,8 +41,21 @@ export class ServicesController {
   }
 
   @Get()
-  findAll(@Query() filterDto: FilterServicesDto): Promise<Service[]> {
-    return this.servicesService.findAll(filterDto);
+  async findAll(
+    @Query() filterDto: FilterServicesDto, // Recibe los filtros como parámetros de consulta
+    @Query('page') page: number = 1, // Recibe el número de página desde los parámetros de consulta
+    @Query('limit') limit: number = 10, // Recibe el límite de registros por página desde los parámetros de consulta
+  ): Promise<any> {
+    try {
+      // Llama al servicio con los filtros, página y límite
+      return await this.servicesService.findAll(filterDto, page, limit);
+    } catch (error) {
+      // Manejo de errores
+      throw new HttpException(
+        'Error al obtener los servicios',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
   }
 
   // Agrega estas rutas específicas antes de la ruta con parámetro :id

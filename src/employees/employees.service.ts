@@ -50,10 +50,28 @@ export class EmployeesService {
     return this.employeeRepository.save(employee);
   }
 
-  async findAll(): Promise<Empleado[]> {
+  async findAll(page: number = 1, limit: number = 10): Promise<any> {
     this.logger.log('Recuperando todos los empleados');
-    return this.employeeRepository.find();
+  
+    // Validamos que los parámetros sean válidos
+    if (page < 1 || limit < 1) {
+      throw new Error('Page and limit must be greater than 0');
+    }
+  
+    const [empleados, total] = await this.employeeRepository.findAndCount({
+      skip: (page - 1) * limit, // Calculamos el salto (offset) para la paginación
+      take: limit, // Número de registros a devolver por página
+    });
+  
+    return {
+      data: empleados,
+      totalItems: total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+    };
   }
+  
+  
 
   async findOne(id: number): Promise<Empleado> {
     this.logger.log(`Buscando empleado con id: ${id}`);
