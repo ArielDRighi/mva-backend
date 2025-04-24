@@ -5,7 +5,14 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not, In, IsNull, EntityManager } from 'typeorm';
+import {
+  Repository,
+  Not,
+  In,
+  IsNull,
+  EntityManager,
+  DataSource,
+} from 'typeorm';
 import { Service } from './entities/service.entity';
 import { ResourceAssignment } from './entities/resource-assignment.entity';
 import {
@@ -28,13 +35,11 @@ import { Vehicle } from '../vehicles/entities/vehicle.entity';
 import { ChemicalToilet } from '../chemical_toilets/entities/chemical_toilet.entity';
 import { VehicleMaintenanceService } from '../vehicle_maintenance/vehicle_maintenance.service';
 import { ToiletMaintenanceService } from '../toilet_maintenance/toilet_maintenance.service';
-import { sendRouteModified } from 'src/config/nodemailer';
-import { groupBy } from 'lodash';
+import { EmployeeLeavesService } from '../employee_leaves/employee-leaves.service';
 import {
   CondicionesContractuales,
   EstadoContrato,
 } from '../contractual_conditions/entities/contractual_conditions.entity';
-import { Connection } from 'typeorm';
 
 @Injectable()
 export class ServicesService {
@@ -57,12 +62,13 @@ export class ServicesService {
     private readonly toiletMaintenanceService: ToiletMaintenanceService,
     @InjectRepository(CondicionesContractuales)
     private condicionesContractualesRepository: Repository<CondicionesContractuales>,
-    private connection: Connection,
+    private readonly employeeLeavesService: EmployeeLeavesService,
+    private dataSource: DataSource,
   ) {}
 
   async create(createServiceDto: CreateServiceDto): Promise<Service> {
     // Crear un query runner para manejar la transacción
-    const queryRunner = this.connection.createQueryRunner();
+    const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
@@ -326,64 +332,6 @@ export class ServicesService {
         updateServiceDto.asignacionesManual,
       );
     }
-
-    // 👉 Enviar correo si la ruta fue modificada
-    const rutaModificada =
-      updateServiceDto.asignacionAutomatica ||
-      updateServiceDto.cantidadBanos ||
-      updateServiceDto.cantidadEmpleados ||
-      updateServiceDto.cantidadVehiculos;
-
-    if (rutaModificada) {
-      this.logger.log('Enviando correo debido a la modificación de ruta...');
-
-      // Obtener las asignaciones del servicio guardado
-      const asignaciones = savedService.asignaciones || [];
-      const asignacionesPorEmpleado = groupBy(
-        asignaciones,
-        (a) => a.empleado?.id,
-      );
-
-      for (const empleadoId in asignacionesPorEmpleado) {
-        const asignacionesEmpleado = asignacionesPorEmpleado[empleadoId];
-        const empleado = asignacionesEmpleado[0].empleado;
-
-        if (!empleado || !empleado.email) {
-          this.logger.warn(`Empleado sin email o indefinido: ${empleado?.id}`);
-          continue;
-        }
-
-        const vehicle =
-          asignacionesEmpleado[0].vehiculo?.placa || 'No asignado';
-        const toilets = asignacionesEmpleado.map(
-          (a) => a.bano?.codigo_interno || 'Baño sin código',
-        );
-        const clients = [savedService.cliente?.nombre || 'Cliente desconocido'];
-
-        // Log para verificar el tipo de servicio
-        this.logger.log(`Tipo de servicio: ${savedService.tipoServicio}`);
-
-        try {
-          await sendRouteModified(
-            empleado.email,
-            empleado.nombre,
-            vehicle,
-            toilets,
-            clients,
-            savedService.tipoServicio || 'Tipo de servicio no definido',
-            savedService.fechaProgramada.toLocaleDateString('es-CL'),
-          );
-          this.logger.log(`Correo enviado a ${empleado.email}`);
-        } catch (error) {
-          this.logger.error(
-            `Error enviando correo a ${empleado.email}: ${error.message}`,
-          );
-        }
-      }
-    } else {
-      this.logger.log('No se envió correo, ruta no modificada.');
-    }
-
     return this.findOne(savedService.id);
   }
 
@@ -818,9 +766,30 @@ export class ServicesService {
     assignmentDtos: ResourceAssignmentDto[],
     entityManager?: EntityManager,
   ): Promise<void> {
-    const service = await this.findOne(serviceId);
-
+    // Usamos un try-catch para manejar errores de manera más explícita
     try {
+      // Obtenemos el servicio usando el entity manager si está disponible
+      let service: Service;
+
+      if (entityManager) {
+        // Dentro de una transacción, usamos el entity manager para buscar el servicio
+        const foundService = await entityManager.findOne(Service, {
+          where: { id: serviceId },
+          relations: ['cliente'],
+        });
+
+        if (!foundService) {
+          throw new NotFoundException(
+            `Servicio con id ${serviceId} no encontrado durante la transacción`,
+          );
+        }
+
+        service = foundService;
+      } else {
+        // Fuera de una transacción, usamos el método findOne normal
+        service = await this.findOne(serviceId);
+      }
+
       // Verificar que el servicio existe
       const assignments: ResourceAssignment[] = [];
 
@@ -829,9 +798,24 @@ export class ServicesService {
         // Verificar empleado
         let employee: Empleado | null = null;
         if (assignmentDto.empleadoId) {
-          employee = await this.employeesService.findOne(
-            assignmentDto.empleadoId,
-          );
+          // Obtenemos el empleado usando el entity manager si está disponible
+          if (entityManager) {
+            const foundEmployee = await entityManager.findOne(Empleado, {
+              where: { id: assignmentDto.empleadoId },
+            });
+
+            if (!foundEmployee) {
+              throw new NotFoundException(
+                `Empleado con id ${assignmentDto.empleadoId} no encontrado`,
+              );
+            }
+
+            employee = foundEmployee;
+          } else {
+            employee = await this.employeesService.findOne(
+              assignmentDto.empleadoId,
+            );
+          }
 
           // Modificado: permitir tanto DISPONIBLE como ASIGNADO
           if (
@@ -843,18 +827,51 @@ export class ServicesService {
             );
           }
 
+          // Verificar si el empleado tiene licencia/vacaciones para la fecha del servicio
+          const isAvailable =
+            await this.employeeLeavesService.isEmployeeAvailable(
+              employee.id,
+              new Date(service.fechaProgramada),
+            );
+
+          if (!isAvailable) {
+            throw new BadRequestException(
+              `El empleado con ID ${employee.id} tiene licencia o vacaciones programadas para la fecha del servicio`,
+            );
+          }
+
           // Solo actualizar el estado si estaba DISPONIBLE
           if (employee.estado === ResourceState.DISPONIBLE.toString()) {
-            await this.updateResourceState(employee, ResourceState.ASIGNADO);
+            if (entityManager) {
+              employee.estado = ResourceState.ASIGNADO.toString();
+              await entityManager.save(employee);
+            } else {
+              await this.updateResourceState(employee, ResourceState.ASIGNADO);
+            }
           }
         }
 
         // Verificar vehículo
         let vehicle: Vehicle | null = null;
         if (assignmentDto.vehiculoId) {
-          vehicle = await this.vehiclesService.findOne(
-            assignmentDto.vehiculoId,
-          );
+          // Obtenemos el vehículo usando el entity manager si está disponible
+          if (entityManager) {
+            const foundVehicle = await entityManager.findOne(Vehicle, {
+              where: { id: assignmentDto.vehiculoId },
+            });
+
+            if (!foundVehicle) {
+              throw new NotFoundException(
+                `Vehículo con id ${assignmentDto.vehiculoId} no encontrado`,
+              );
+            }
+
+            vehicle = foundVehicle;
+          } else {
+            vehicle = await this.vehiclesService.findOne(
+              assignmentDto.vehiculoId,
+            );
+          }
 
           // Modificado: permitir tanto DISPONIBLE como ASIGNADO
           if (
@@ -868,7 +885,12 @@ export class ServicesService {
 
           // Solo actualizar el estado si estaba DISPONIBLE
           if (vehicle.estado === ResourceState.DISPONIBLE.toString()) {
-            await this.updateVehicleState(vehicle, ResourceState.ASIGNADO);
+            if (entityManager) {
+              vehicle.estado = ResourceState.ASIGNADO.toString();
+              await entityManager.save(vehicle);
+            } else {
+              await this.updateVehicleState(vehicle, ResourceState.ASIGNADO);
+            }
           }
         }
 
@@ -876,7 +898,25 @@ export class ServicesService {
         // todavía necesitan estar DISPONIBLE para ser asignados
         if (assignmentDto.banosIds && assignmentDto.banosIds.length > 0) {
           for (const toiletId of assignmentDto.banosIds) {
-            const toilet = await this.toiletsService.findById(toiletId);
+            let toilet: ChemicalToilet;
+
+            // Obtenemos el baño usando el entity manager si está disponible
+            if (entityManager) {
+              const foundToilet = await entityManager.findOne(ChemicalToilet, {
+                where: { baño_id: toiletId },
+              });
+
+              if (!foundToilet) {
+                throw new NotFoundException(
+                  `Baño con id ${toiletId} no encontrado`,
+                );
+              }
+
+              toilet = foundToilet;
+            } else {
+              toilet = await this.toiletsService.findById(toiletId);
+            }
+
             if (toilet.estado !== ResourceState.DISPONIBLE.toString()) {
               throw new BadRequestException(
                 `El baño con ID ${toilet.baño_id} no está disponible`,
@@ -890,7 +930,13 @@ export class ServicesService {
             toiletAssignment.bano = toilet;
 
             assignments.push(toiletAssignment);
-            await this.updateToiletState(toilet, ResourceState.ASIGNADO);
+
+            if (entityManager) {
+              toilet.estado = ResourceState.ASIGNADO.toString();
+              await entityManager.save(toilet);
+            } else {
+              await this.updateToiletState(toilet, ResourceState.ASIGNADO);
+            }
           }
         } else {
           // Si no hay baños específicos pero sí hay empleado o vehículo,
@@ -915,10 +961,12 @@ export class ServicesService {
       }
 
       // Guardar todas las asignaciones
-      if (entityManager) {
-        await entityManager.save(assignments);
-      } else {
-        await this.assignmentRepository.save(assignments);
+      if (assignments.length > 0) {
+        if (entityManager) {
+          await entityManager.save(assignments);
+        } else {
+          await this.assignmentRepository.save(assignments);
+        }
       }
     } catch (error) {
       const errorMessage =
@@ -1183,6 +1231,7 @@ export class ServicesService {
         currentServiceId: serviceId || 0, // Pasar el ID del servicio actual para excluirlo
       })
       .select(`assignment.${resourceField}`)
+      .select(`assignment.${resourceField}`)
       .getRawMany();
 
     // Extraer los IDs con tipo seguro
@@ -1370,9 +1419,43 @@ export class ServicesService {
         }
       }
 
-      // Verificar disponibilidad de empleados (igual que antes)
+      // Verificar disponibilidad de empleados
       if (employeesNeeded > 0) {
-        // Resto del código para verificar empleados
+        // Primero, obtenemos todos los empleados disponibles actualmente
+        const allEmployees = await this.employeesService.findAll();
+        const availableEmployees = allEmployees.filter(
+          (employee) =>
+            employee.estado === ResourceState.DISPONIBLE.toString() ||
+            employee.estado === ResourceState.ASIGNADO.toString(),
+        );
+
+        // Luego, filtramos los que estarán disponibles en la fecha del servicio
+        const employeesAvailableOnDate: Empleado[] = [];
+
+        for (const employee of availableEmployees) {
+          // Verificar si el empleado estará en licencia/vacaciones para la fecha del servicio
+          const isAvailable =
+            await this.employeeLeavesService.isEmployeeAvailable(
+              employee.id,
+              new Date(service.fechaProgramada),
+            );
+
+          if (isAvailable) {
+            employeesAvailableOnDate.push(employee);
+          } else {
+            this.logger.log(
+              `Empleado ${employee.id} excluido por tener licencia/vacaciones programada para la fecha del servicio`,
+            );
+          }
+        }
+
+        if (employeesAvailableOnDate.length < employeesNeeded) {
+          throw new BadRequestException(
+            `No hay suficientes empleados disponibles para la fecha. Se necesitan ${employeesNeeded}, pero solo hay ${employeesAvailableOnDate.length} disponibles.`,
+          );
+        }
+
+        // Continuar con la asignación usando employeesAvailableOnDate
       }
 
       // Verificar disponibilidad de vehículos (igual que antes)
