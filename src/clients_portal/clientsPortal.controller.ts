@@ -9,6 +9,7 @@ import {
   Post,
   Put,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ClientsPortalService } from './clientsPortal.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
@@ -18,7 +19,8 @@ import { Role } from 'src/roles/enums/role.enum';
 import { CreateClaimDto } from './dto/createClaim.dto';
 import { CreateSatisfactionSurveyDto } from './dto/createSatisfactionSurvey.dto';
 import { AskForServiceDto } from './dto/askForService.dto';
-
+import { MailerInterceptor } from 'src/mailer/interceptor/mailer.interceptor';
+@UseInterceptors(MailerInterceptor)
 @Controller('clients_portal')
 export class ClientsPortalController {
   constructor(private readonly clientsPortalService: ClientsPortalService) {}
