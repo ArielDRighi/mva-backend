@@ -9,6 +9,7 @@ import { Repository } from 'typeorm';
 import { Empleado } from './entities/employee.entity';
 import { CreateEmployeeDto } from './dto/create_employee.dto';
 import { UpdateEmployeeDto } from './dto/update_employee.dto';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Injectable()
 export class EmployeesService {
@@ -50,18 +51,26 @@ export class EmployeesService {
     return this.employeeRepository.save(employee);
   }
 
-  async findAll(page: number = 1, limit: number = 10): Promise<any> {
-    this.logger.log('Recuperando todos los empleados');
+  async findAll(paginationDto: PaginationDto): Promise<any> {
+    const { page = 1, limit = 10, search } = paginationDto;
   
-    // Validamos que los parámetros sean válidos
-    if (page < 1 || limit < 1) {
-      throw new Error('Page and limit must be greater than 0');
+    this.logger.log(`Recuperando empleados - Página: ${page}, Límite: ${limit}, Búsqueda: ${search}`);
+  
+    const query = this.employeeRepository.createQueryBuilder('empleado');
+  
+    if (search) {
+      const term = `%${search.toLowerCase()}%`;
+      query.where('LOWER(empleado.nombre) LIKE :term', { term })
+           .orWhere('LOWER(empleado.apellido) LIKE :term', { term })
+           .orWhere('LOWER(empleado.documento) LIKE :term', { term })
+           .orWhere('LOWER(empleado.cargo) LIKE :term', { term })
+           .orWhere('LOWER(empleado.estado) LIKE :term', { term });
     }
   
-    const [empleados, total] = await this.employeeRepository.findAndCount({
-      skip: (page - 1) * limit, // Calculamos el salto (offset) para la paginación
-      take: limit, // Número de registros a devolver por página
-    });
+    const [empleados, total] = await query
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
   
     return {
       data: empleados,
@@ -70,6 +79,7 @@ export class EmployeesService {
       totalPages: Math.ceil(total / limit),
     };
   }
+  
   
   
 

@@ -19,6 +19,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../roles/guards/roles.guard';
 import { Roles } from '../roles/decorators/roles.decorator';
 import { Role } from '../roles/enums/role.enum';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Controller('employees')
 @UseGuards(JwtAuthGuard)
@@ -34,17 +35,9 @@ export class EmployeesController {
 
   @Get()
   async findAll(
-    @Query('cargo') cargo?: string,      // Filtro opcional por cargo
-    @Query('page') page: number = 1,     // Número de página (por defecto 1)
-    @Query('limit') limit: number = 10,  // Límite de registros por página (por defecto 10)
+    @Query() paginationDto: PaginationDto,
   ): Promise<any> {
-    if (cargo) {
-      // Si se pasa un cargo, filtramos por cargo
-      return this.employeesService.findByCargo(cargo);
-    }
-    
-    // Si no se pasa cargo, obtenemos todos los empleados con paginación
-    return this.employeesService.findAll(page, limit);
+    return this.employeesService.findAll(paginationDto);
   }
   
 
