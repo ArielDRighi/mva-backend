@@ -46,21 +46,23 @@ export class ClientService {
   }
 
   async findAll(paginationDto: PaginationDto): Promise<Pagination<Cliente>> {
-    const { page = 1, limit = 10, nombre, cuit, email } = paginationDto;
+    const { page = 1, limit = 10, search } = paginationDto;
   
-    this.logger.log(`Recuperando clientes - Página: ${page}, Límite: ${limit}, Filtros: ${JSON.stringify({ nombre, cuit, email })}`);
+    this.logger.log(`Recuperando clientes - Página: ${page}, Límite: ${limit}, Búsqueda: ${search}`);
   
-    const where: any = {};
+    const query = this.clientRepository.createQueryBuilder('cliente');
   
-    if (nombre) where.nombre = ILike(`%${nombre}%`);
-    if (cuit) where.cuit = ILike(`%${cuit}%`);
-    if (email) where.email = ILike(`%${email}%`);
+    if (search) {
+      const term = `%${search.toLowerCase()}%`;
+      query.where('LOWER(cliente.nombre) LIKE :term', { term })
+           .orWhere('LOWER(cliente.cuit) LIKE :term', { term })
+           .orWhere('LOWER(cliente.email) LIKE :term', { term });
+    }
   
-    const [items, total] = await this.clientRepository.findAndCount({
-      where,
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+    const [items, total] = await query
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
   
     return {
       items,
@@ -70,6 +72,7 @@ export class ClientService {
       totalPages: Math.ceil(total / limit),
     };
   }
+  
   //Desde el Front esta es la forma de obtener el GETall
   //GET /clientes?limit=10&page=1&nombre=juan&email=gmail
 

@@ -1,5 +1,5 @@
-import { IsOptional, IsPositive, IsString } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type } from "class-transformer";
+import { IsOptional, IsPositive, IsString } from "class-validator";
 
 export class PaginationDto {
   @IsOptional()
@@ -12,16 +12,7 @@ export class PaginationDto {
   @IsPositive()
   page?: number;
 
-   // Nuevos filtros
-   @IsOptional()
-   @IsString()
-   nombre?: string;
- 
-   @IsOptional()
-   @IsString()
-   cuit?: string;
- 
-   @IsOptional()
-   @IsString()
-   email?: string;
+  @IsOptional()
+  @IsString()
+  search?: string;
 }
