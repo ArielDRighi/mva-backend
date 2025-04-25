@@ -8,7 +8,7 @@ import { CreateClientDto } from './dto/create_client.dto';
 import { UpdateClientDto } from './dto/update_client.dto';
 import { Cliente } from './entities/client.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan } from 'typeorm';
+import { Repository, MoreThan, ILike } from 'typeorm';
 import { ChemicalToiletsService } from '../chemical_toilets/chemical_toilets.service';
 import {
   CondicionesContractuales,
@@ -46,25 +46,33 @@ export class ClientService {
   }
 
   async findAll(paginationDto: PaginationDto): Promise<Pagination<Cliente>> {
-    const { page = 1, limit = 10 } = paginationDto;
+    const { page = 1, limit = 10, nombre, cuit, email } = paginationDto;
   
-    this.logger.log(`Recuperando clientes - Página: ${page}, Límite: ${limit}`);
+    this.logger.log(`Recuperando clientes - Página: ${page}, Límite: ${limit}, Filtros: ${JSON.stringify({ nombre, cuit, email })}`);
   
-    // Obtener los clientes con paginación
+    const where: any = {};
+  
+    if (nombre) where.nombre = ILike(`%${nombre}%`);
+    if (cuit) where.cuit = ILike(`%${cuit}%`);
+    if (email) where.email = ILike(`%${email}%`);
+  
     const [items, total] = await this.clientRepository.findAndCount({
+      where,
       skip: (page - 1) * limit,
       take: limit,
     });
   
-    // Devolver un objeto con la estructura Pagination
     return {
-      items,         // Los clientes obtenidos
-      total,         // Total de clientes
-      page,          // Página actual
-      limit,         // Límite de elementos por página
-      totalPages: Math.ceil(total / limit),  // Total de páginas
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
     };
   }
+  //Desde el Front esta es la forma de obtener el GETall
+  //GET /clientes?limit=10&page=1&nombre=juan&email=gmail
+
   
 
   async findOneClient(clienteId: number): Promise<Cliente> {
