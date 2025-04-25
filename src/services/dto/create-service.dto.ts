@@ -103,4 +103,8 @@ export class ResourceAssignmentDto {
   @IsOptional()
   @IsNumber({}, { each: true })
   banosIds?: number[];
+
+  @IsOptional()
+  @IsString()
+  search?: string;
 }

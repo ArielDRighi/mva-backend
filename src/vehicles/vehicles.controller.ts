@@ -10,6 +10,7 @@ import {
   UseGuards,
   Patch,
   Query,
+  DefaultValuePipe,
 } from '@nestjs/common';
 import { VehiclesService } from './vehicles.service';
 import { CreateVehicleDto } from './dto/create_vehicle.dto';
@@ -34,19 +35,15 @@ export class VehiclesController {
   }
 
   @Get()
-  async findAll(
-    @Query('estado') estado?: string,  // Filtro por estado (opcional)
-    @Query('page') page: number = 1,   // Página actual (por defecto 1)
-    @Query('limit') limit: number = 10  // Límite de registros por página (por defecto 10)
-  ): Promise<any> {
-    if (estado) {
-      // Si el estado es proporcionado, filtramos por estado
-      return this.vehiclesService.findByEstado(estado as ResourceState);
-    }
-  
-    // Si no hay filtro de estado, aplicamos la paginación normal
-    return this.vehiclesService.findAll(page, limit);
+  findAll(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+    @Query('search') search?: string,
+  ) {
+    return this.vehiclesService.findAll(page, limit, search); // Este nombre 'vehiclesService' debe coincidir con tu servicio
   }
+  
+  
   
 
   @Get(':id')
