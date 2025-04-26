@@ -1,6 +1,8 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { CondicionesContractuales } from '../../contractual_conditions/entities/contractual_conditions.entity';
+import { Service } from '../../services/entities/service.entity';
 
-@Entity({ name: 'clientes' }) // ✅ CORRECTO: nombre plural como en la DB
+@Entity({ name: 'clients' })
 export class Cliente {
   @PrimaryGeneratedColumn({ name: 'cliente_id' })
   clienteId: number;
@@ -11,7 +13,7 @@ export class Cliente {
   @Column({ name: 'email' })
   email: string;
 
-  @Column({ name: 'cuit' })
+  @Column({ name: 'cuit', unique: true })
   cuit: string;
 
   @Column({ name: 'direccion' })
@@ -32,4 +34,10 @@ export class Cliente {
 
   @Column({ name: 'estado', default: 'ACTIVO' })
   estado: string;
+
+  @OneToMany(() => CondicionesContractuales, (condicion) => condicion.cliente)
+  contratos: CondicionesContractuales[];
+
+  @OneToMany(() => Service, (servicio) => servicio.cliente)
+  servicios: Service[];
 }

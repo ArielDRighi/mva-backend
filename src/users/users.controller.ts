@@ -8,10 +8,11 @@ import {
   Delete,
   UseGuards,
   ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { CreateUserDto } from './dto/create_user.dto';
+import { UpdateUserDto } from './dto/update_user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { User } from './entities/user.entity';
 import { RolesGuard } from '../roles/guards/roles.guard';
@@ -32,9 +33,13 @@ export class UsersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Get()
-  findAll(): Promise<User[]> {
-    return this.usersService.findAll();
+  async findAll(
+    @Query('page') page: number = 1,   // Recibe el parámetro de la página desde la consulta
+    @Query('limit') limit: number = 10  // Recibe el parámetro del límite desde la consulta
+  ): Promise<any> {
+    return this.usersService.findAll(page, limit);  // Llama al servicio pasándole los parámetros de paginación
   }
+  
 
   @UseGuards(JwtAuthGuard)
   @Get(':id')

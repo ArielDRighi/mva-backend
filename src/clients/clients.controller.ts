@@ -8,15 +8,18 @@ import {
   Put,
   ParseIntPipe,
   UseGuards,
+  Query,
 } from '@nestjs/common';
-import { ClientService } from './client.service';
-import { CreateClientDto } from './dto/create-client.dto';
-import { UpdateClientDto } from './dto/update-client.dto';
+import { ClientService } from './clients.service';
+import { CreateClientDto } from './dto/create_client.dto';
+import { UpdateClientDto } from './dto/update_client.dto';
 import { Cliente } from './entities/client.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../roles/guards/roles.guard';
 import { Roles } from '../roles/decorators/roles.decorator';
 import { Role } from '../roles/enums/role.enum';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { Pagination } from 'src/common/interfaces/paginations.interface';
 
 @Controller('clients')
 @UseGuards(JwtAuthGuard) // Protege todos los endpoints del controlador
@@ -29,11 +32,14 @@ export class ClientController {
   create(@Body() createClientDto: CreateClientDto) {
     return this.clientService.create(createClientDto);
   }
-
   @Get()
-  async findAll(): Promise<Cliente[]> {
-    return this.clientService.findAll();
+  async findAll(
+    @Query() paginationDto: PaginationDto, // Recibe los parámetros de paginación
+  ): Promise<Pagination<Cliente>> {         // Devuelve la paginación completa de los clientes
+    return this.clientService.findAll(paginationDto);
   }
+  
+  
 
   @Get(':id')
   async findOne(
@@ -57,5 +63,12 @@ export class ClientController {
   @Delete(':id')
   async delete(@Param('id', ParseIntPipe) clienteId: number): Promise<void> {
     return this.clientService.deleteClient(clienteId);
+  }
+
+  @Get(':id/active-contract')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  async getActiveContract(@Param('id', ParseIntPipe) clientId: number) {
+    return this.clientService.getActiveContract(clientId);
   }
 }

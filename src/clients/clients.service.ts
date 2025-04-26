@@ -4,11 +4,18 @@ import {
   ConflictException,
   Logger,
 } from '@nestjs/common';
-import { CreateClientDto } from './dto/create-client.dto';
-import { UpdateClientDto } from './dto/update-client.dto';
+import { CreateClientDto } from './dto/create_client.dto';
+import { UpdateClientDto } from './dto/update_client.dto';
 import { Cliente } from './entities/client.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThan } from 'typeorm';
+import { ChemicalToiletsService } from '../chemical_toilets/chemical_toilets.service';
+import {
+  CondicionesContractuales,
+  EstadoContrato,
+} from '../contractual_conditions/entities/contractual_conditions.entity';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { Pagination } from 'src/common/interfaces/paginations.interface';
 
 @Injectable()
 export class ClientService {
@@ -16,6 +23,9 @@ export class ClientService {
 
   constructor(
     @InjectRepository(Cliente) private clientRepository: Repository<Cliente>,
+    @InjectRepository(CondicionesContractuales)
+    private condicionesContractualesRepository: Repository<CondicionesContractuales>,
+    private chemicalToiletsService: ChemicalToiletsService,
   ) {}
 
   async create(createClientDto: CreateClientDto): Promise<Cliente> {
@@ -35,10 +45,27 @@ export class ClientService {
     return this.clientRepository.save(client);
   }
 
-  async findAll(): Promise<Cliente[]> {
-    this.logger.log('Recuperando todos los clientes');
-    return this.clientRepository.find(); // Recupera todos los clientes
+  async findAll(paginationDto: PaginationDto): Promise<Pagination<Cliente>> {
+    const { page = 1, limit = 10 } = paginationDto;
+  
+    this.logger.log(`Recuperando clientes - Página: ${page}, Límite: ${limit}`);
+  
+    // Obtener los clientes con paginación
+    const [items, total] = await this.clientRepository.findAndCount({
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+  
+    // Devolver un objeto con la estructura Pagination
+    return {
+      items,         // Los clientes obtenidos
+      total,         // Total de clientes
+      page,          // Página actual
+      limit,         // Límite de elementos por página
+      totalPages: Math.ceil(total / limit),  // Total de páginas
+    };
   }
+  
 
   async findOneClient(clienteId: number): Promise<Cliente> {
     this.logger.log(`Buscando cliente con id: ${clienteId}`);
@@ -87,5 +114,30 @@ export class ClientService {
 
     // O Alternativa: Usar remove para entidades completas
     // await this.clientRepository.remove(client);
+  }
+
+  async getActiveContract(clientId: number) {
+    const client = await this.findOneClient(clientId);
+
+    const contratos = await this.condicionesContractualesRepository.find({
+      where: {
+        cliente: { clienteId: clientId },
+        estado: EstadoContrato.ACTIVO,
+        fecha_fin: MoreThan(new Date()),
+      },
+      order: { fecha_fin: 'DESC' },
+    });
+
+    if (!contratos || contratos.length === 0) {
+      throw new NotFoundException(
+        `No hay contratos activos para el cliente ${client.nombre}`,
+      );
+    }
+
+    return {
+      contrato: contratos[0],
+      banosAsignados:
+        await this.chemicalToiletsService.findByClientId(clientId),
+    };
   }
 }

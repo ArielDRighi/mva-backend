@@ -6,8 +6,8 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { CreateUserDto } from './dto/create_user.dto';
+import { UpdateUserDto } from './dto/update_user.dto';
 import * as bcrypt from 'bcrypt';
 import { Role } from '../roles/enums/role.enum';
 
@@ -18,9 +18,24 @@ export class UsersService {
     private usersRepository: Repository<User>,
   ) {}
 
-  async findAll(): Promise<User[]> {
-    return this.usersRepository.find();
+  async findAll(page: number, limit: number): Promise<any> {
+    const [users, total] = await Promise.all([
+      this.usersRepository.find({
+        skip: (page - 1) * limit,  // Cálculo del offset
+        take: limit,  // Número de registros a devolver por página
+      }),
+      this.usersRepository.count(),  // Obtener el total de usuarios
+    ]);
+  
+    return {
+      data: users,  // Datos de los usuarios paginados
+      totalItems: total,  // Total de usuarios
+      currentPage: page,  // Página actual
+      totalPages: Math.ceil(total / limit),  // Total de páginas
+    };
   }
+  
+  
 
   async findById(id: number): Promise<User> {
     const user = await this.usersRepository.findOne({ where: { id } });
