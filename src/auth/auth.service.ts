@@ -1,7 +1,13 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { LoginDto } from './dto/login.dto';
 import { UsersService } from '../users/users.service';
+import * as bcrypt from 'bcrypt';
+import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class AuthService {
@@ -54,5 +60,54 @@ export class AuthService {
         roles: user.roles || [],
       },
     };
+  }
+
+  async forgotPassword(email: string) {
+    const user = await this.usersService.findByEmail(email);
+    if (!user) {
+      throw new BadRequestException('El correo electrónico no está registrado');
+    }
+    const newPassword = this.generateRandomPassword();
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(newPassword, saltRounds);
+    await this.usersService.updatePassword(user.id, passwordHash);
+    try {
+      const name = user.nombre;
+      // Enviamos el email al usuario con la nueva contraseña
+    } catch (error) {
+      throw new BadRequestException('Error al enviar el correo electrónico');
+    }
+    return {
+      success: true,
+      message: 'Se ha enviado un correo electrónico con la nueva contraseña',
+    };
+  }
+
+  private generateRandomPassword(length = 12): string {
+    const uppercaseChars = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // Sin I, O para evitar confusiones
+    const lowercaseChars = 'abcdefghijkmnopqrstuvwxyz'; // Sin l para evitar confusiones
+    const numberChars = '23456789'; // Sin 0, 1 para evitar confusiones
+    const specialChars = '!@#$%^&*_-+=';
+
+    const allChars =
+      uppercaseChars + lowercaseChars + numberChars + specialChars;
+
+    // Asegura que la contraseña tenga al menos un carácter de cada tipo
+    let password =
+      uppercaseChars.charAt(Math.floor(Math.random() * uppercaseChars.length)) +
+      lowercaseChars.charAt(Math.floor(Math.random() * lowercaseChars.length)) +
+      numberChars.charAt(Math.floor(Math.random() * numberChars.length)) +
+      specialChars.charAt(Math.floor(Math.random() * specialChars.length));
+
+    // Completa el resto de la contraseña
+    for (let i = 4; i < length; i++) {
+      password += allChars.charAt(Math.floor(Math.random() * allChars.length));
+    }
+
+    // Mezcla los caracteres para evitar un patrón predecible
+    return password
+      .split('')
+      .sort(() => Math.random() - 0.5)
+      .join('');
   }
 }

@@ -114,4 +114,18 @@ export class UsersService {
     user.estado = estado;
     return this.usersRepository.save(user);
   }
+
+  async updatePassword(id: number, passwordHash: string) {
+    const user = await this.findById(id);
+    if (!user) {
+      throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
+    }
+    try {
+      await this.usersRepository.update(id, { password: passwordHash });
+      const updatedUser = await this.findById(id);
+      return updatedUser;
+    } catch (error) {
+      throw new ConflictException('Error al actualizar la contraseña');
+    }
+  }
 }
