@@ -552,4 +552,51 @@ export class MailerService {
       );
     }
   }
+
+  // Notificacion de recuperar contrasena
+  async sendPasswordResetEmail(
+    adminsEmails: string[],
+    supervisorsEmails: string[],
+    email: string,
+    name: string,
+    password: string,
+  ): Promise<void> {
+    const subject = 'Recupera tu contraseña 🔑';
+    const FrontUrl = process.env.FRONT_URL || 'http://localhost:3000';
+
+    const body = `
+      <p>Hola ${name}👋,</p>
+    <p>Tu nueva contraseña es: <strong>${password}</strong></p>
+    <p>Haz clic en el siguiente enlace para modificar tu contraseña:</p>
+    <p><a href=${FrontUrl} style="color: #FF69B4; text-decoration: none; font-weight: bold;">🔗 Modificar contraseña</a></p>
+    <p>Si no solicitaste este cambio, ignora este correo.</p>
+  `;
+
+    const htmlContent = this.generateEmailContent(
+      'Recupera tu contraseña 🔑',
+      body,
+    );
+
+    // Asegurarnos de que adminsEmails y supervisorsEmails sean arrays y no nulos
+    const safeAdminEmails = adminsEmails || [];
+    const safeSupervisorEmails = supervisorsEmails || [];
+
+    // Usamos array como destino para ser consistentes
+    const mailOptions: MailOptions = {
+      from: process.env.EMAIL_USER || 'notificacion@mva.com',
+      to: [...safeAdminEmails, ...safeSupervisorEmails, email],
+      subject,
+      html: htmlContent,
+    };
+
+    try {
+      console.log('Enviando correo de recuperación de contraseña...');
+      await this.sendMail(mailOptions);
+    } catch (error) {
+      console.error(
+        '❌ Error al enviar el correo de recuperar contraseña',
+        error,
+      );
+    }
+  }
 }

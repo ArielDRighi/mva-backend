@@ -10,6 +10,7 @@ import { CreateUserDto } from './dto/create_user.dto';
 import { UpdateUserDto } from './dto/update_user.dto';
 import * as bcrypt from 'bcrypt';
 import { Role } from '../roles/enums/role.enum';
+import { ForgotPasswordDto } from 'src/auth/dto/login.dto';
 
 @Injectable()
 export class UsersService {
@@ -21,21 +22,19 @@ export class UsersService {
   async findAll(page: number, limit: number): Promise<any> {
     const [users, total] = await Promise.all([
       this.usersRepository.find({
-        skip: (page - 1) * limit,  // Cálculo del offset
-        take: limit,  // Número de registros a devolver por página
+        skip: (page - 1) * limit, // Cálculo del offset
+        take: limit, // Número de registros a devolver por página
       }),
-      this.usersRepository.count(),  // Obtener el total de usuarios
+      this.usersRepository.count(), // Obtener el total de usuarios
     ]);
-  
+
     return {
-      data: users,  // Datos de los usuarios paginados
-      totalItems: total,  // Total de usuarios
-      currentPage: page,  // Página actual
-      totalPages: Math.ceil(total / limit),  // Total de páginas
+      data: users, // Datos de los usuarios paginados
+      totalItems: total, // Total de usuarios
+      currentPage: page, // Página actual
+      totalPages: Math.ceil(total / limit), // Total de páginas
     };
   }
-  
-  
 
   async findById(id: number): Promise<User> {
     const user = await this.usersRepository.findOne({ where: { id } });

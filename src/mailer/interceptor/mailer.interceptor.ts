@@ -95,6 +95,9 @@ export class MailerInterceptor implements NestInterceptor {
 
         // 6. Servicio → POST /clients_portal/ask_for_service
         await this.handleServiceRequest(method, path, req);
+
+        // 7. Reseteo de contraseña → POST /auth/forgot-password
+        await this.handlePasswordReset(method, path, data);
       }),
     );
   }
@@ -543,6 +546,58 @@ export class MailerInterceptor implements NestInterceptor {
     } catch (err) {
       console.error(
         '[MailerInterceptor] Error enviando notificación de solicitud:',
+        err,
+      );
+    }
+  }
+  /**
+   * Maneja las notificaciones para reseteo de contraseñas
+   */
+  private async handlePasswordReset(
+    method: string,
+    path: string,
+    data: any,
+  ): Promise<void> {
+    if (method !== 'POST' || !path.includes('/auth/forgot-password')) {
+      return;
+    }
+
+    console.log(
+      '[MailerInterceptor] Reseteo de contraseña detectado. Preparando notificación...',
+    );
+
+    try {
+      // Verificar que data sea un objeto válido con la información necesaria
+      if (!data || !data.user) {
+        console.warn(
+          '[MailerInterceptor] Datos de reseteo de contraseña incompletos:',
+          data,
+        );
+        return;
+      }
+
+      const user = data.user;
+      const newPassword = user.newPassword;
+
+      // Obtener correos de administradores y supervisores para control interno
+      const adminsEmails = await this.mailerService.getAdminEmails();
+      const supervisorsEmails = await this.mailerService.getSupervisorEmails();
+
+      // Enviamos email de recuperación de contraseña al usuario
+      await this.mailerService.sendPasswordResetEmail(
+        adminsEmails,
+        supervisorsEmails,
+        user.email,
+        user.nombre || 'Usuario',
+        newPassword,
+      );
+
+      console.log(
+        '[MailerInterceptor] Notificación de reseteo de contraseña enviada.',
+      );
+    } catch (err) {
+      console.error(
+        '[MailerInterceptor] Error enviando notificación de reseteo de contraseña:',
         err,
       );
     }

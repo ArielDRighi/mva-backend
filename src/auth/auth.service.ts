@@ -4,7 +4,11 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { LoginDto } from './dto/login.dto';
+import {
+  ChangePasswordDto,
+  ForgotPasswordDto,
+  LoginDto,
+} from './dto/login.dto';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -62,8 +66,8 @@ export class AuthService {
     };
   }
 
-  async forgotPassword(email: string) {
-    const user = await this.usersService.findByEmail(email);
+  async forgotPassword(email: ForgotPasswordDto) {
+    const user = await this.usersService.findByEmail(email.email);
     if (!user) {
       throw new BadRequestException('El correo electrónico no está registrado');
     }
@@ -73,13 +77,15 @@ export class AuthService {
     await this.usersService.updatePassword(user.id, passwordHash);
     try {
       const name = user.nombre;
-      // Enviamos el email al usuario con la nueva contraseña
+
+      user['newPassword'] = newPassword;
     } catch (error) {
       throw new BadRequestException('Error al enviar el correo electrónico');
     }
     return {
       success: true,
       message: 'Se ha enviado un correo electrónico con la nueva contraseña',
+      user,
     };
   }
 
@@ -109,5 +115,23 @@ export class AuthService {
       .split('')
       .sort(() => Math.random() - 0.5)
       .join('');
+  }
+
+  async resetPassword(data: ChangePasswordDto, userId: any) {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new BadRequestException('Usuario no encontrado');
+    }
+    const isPasswordValid = await user.comparePassword(data.oldPassword);
+    if (!isPasswordValid) {
+      throw new BadRequestException('Contraseña actual incorrecta');
+    }
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(data.newPassword, saltRounds);
+    await this.usersService.updatePassword(userId, passwordHash);
+    return {
+      success: true,
+      message: 'Contraseña actualizada correctamente',
+    };
   }
 }
