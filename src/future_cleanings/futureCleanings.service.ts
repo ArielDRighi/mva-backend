@@ -18,7 +18,9 @@ export class FutureCleaningsService {
     private readonly serviceRepository: Repository<Service>,
   ) {}
   async getAll() {
-    const futureCleanings = await this.futurasLimpiezasRepository.find();
+    const futureCleanings = await this.futurasLimpiezasRepository.find({
+      relations: ['cliente', 'servicio'],
+    });
     if (!futureCleanings) {
       throw new BadRequestException('No future cleanings found');
     }
@@ -28,6 +30,7 @@ export class FutureCleaningsService {
   async getById(id: number) {
     const futureCleaning = await this.futurasLimpiezasRepository.findOne({
       where: { id: id },
+      relations: ['cliente', 'servicio'],
     });
     if (!futureCleaning) {
       throw new BadRequestException('Future cleaning not found');
