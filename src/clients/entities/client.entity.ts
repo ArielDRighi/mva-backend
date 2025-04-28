@@ -1,6 +1,7 @@
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { CondicionesContractuales } from '../../contractual_conditions/entities/contractual_conditions.entity';
 import { Service } from '../../services/entities/service.entity';
+import { FuturasLimpiezas } from 'src/future_cleanings/entities/futureCleanings.entity';
 
 @Entity({ name: 'clients' })
 export class Cliente {
@@ -40,4 +41,7 @@ export class Cliente {
 
   @OneToMany(() => Service, (servicio) => servicio.cliente)
   servicios: Service[];
+
+  @OneToMany(() => FuturasLimpiezas, (futuraLimpieza) => futuraLimpieza.cliente)
+  futurasLimpiezas: FuturasLimpiezas[];
 }
