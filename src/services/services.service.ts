@@ -231,7 +231,11 @@ export class ServicesService {
     }
   }
 
-  async findAll(filters?: FilterServicesDto): Promise<Service[]> {
+  async findAll(
+    filters?: FilterServicesDto,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<any> {
     this.logger.log('Recuperando todos los servicios');
 
     const queryBuilder = this.serviceRepository
@@ -282,7 +286,22 @@ export class ServicesService {
 
     queryBuilder.orderBy('service.fechaProgramada', 'ASC');
 
-    return queryBuilder.getMany();
+    // Paginación
+    const [services, total] = await Promise.all([
+      queryBuilder
+        .skip((page - 1) * limit) // Offset for pagination
+        .take(limit) // Limit to the number of records per page
+        .getMany(), // Get the actual paginated data
+      queryBuilder.getCount(), // Get the total count of records matching the filters
+    ]);
+
+    // Now you can return the paginated data and total count
+    return {
+      data: services,
+      totalItems: total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async findOne(id: number): Promise<Service> {
@@ -658,7 +677,10 @@ export class ServicesService {
 
       if (additionalEmployees > 0) {
         // Modificado para incluir empleados ASIGNADOS
-        const allEmployees = await this.employeesService.findAll();
+        const employeesResponse = await this.employeesService.findAll();
+        // Acceder a la propiedad 'data' que contiene el array de empleados
+        const allEmployees = employeesResponse.data || [];
+
         const availableEmployees = allEmployees.filter(
           (employee) =>
             employee.estado === ResourceState.DISPONIBLE.toString() ||
@@ -1458,7 +1480,10 @@ export class ServicesService {
       // Verificar disponibilidad de empleados
       if (employeesNeeded > 0) {
         // Primero, obtenemos todos los empleados disponibles actualmente
-        const allEmployees = await this.employeesService.findAll();
+        const employeesResponse = await this.employeesService.findAll();
+        // Accedemos a la propiedad 'data' que contiene el array de empleados
+        const allEmployees = employeesResponse.data || [];
+
         const availableEmployees = allEmployees.filter(
           (employee) =>
             employee.estado === ResourceState.DISPONIBLE.toString() ||

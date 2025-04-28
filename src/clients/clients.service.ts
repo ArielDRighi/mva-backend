@@ -14,6 +14,8 @@ import {
   CondicionesContractuales,
   EstadoContrato,
 } from '../contractual_conditions/entities/contractual_conditions.entity';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { Pagination } from 'src/common/interfaces/paginations.interface';
 
 @Injectable()
 export class ClientService {
@@ -43,10 +45,27 @@ export class ClientService {
     return this.clientRepository.save(client);
   }
 
-  async findAll(): Promise<Cliente[]> {
-    this.logger.log('Recuperando todos los clientes');
-    return this.clientRepository.find(); // Recupera todos los clientes
+  async findAll(paginationDto: PaginationDto): Promise<Pagination<Cliente>> {
+    const { page = 1, limit = 10 } = paginationDto;
+  
+    this.logger.log(`Recuperando clientes - Página: ${page}, Límite: ${limit}`);
+  
+    // Obtener los clientes con paginación
+    const [items, total] = await this.clientRepository.findAndCount({
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+  
+    // Devolver un objeto con la estructura Pagination
+    return {
+      items,         // Los clientes obtenidos
+      total,         // Total de clientes
+      page,          // Página actual
+      limit,         // Límite de elementos por página
+      totalPages: Math.ceil(total / limit),  // Total de páginas
+    };
   }
+  
 
   async findOneClient(clienteId: number): Promise<Cliente> {
     this.logger.log(`Buscando cliente con id: ${clienteId}`);

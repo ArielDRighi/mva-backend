@@ -18,6 +18,7 @@ import { EmployeeLeavesModule } from '../employee_leaves/employee-leaves.module'
 import { FuturasLimpiezas } from 'src/future_cleanings/entities/futureCleanings.entity';
 import { FutureCleaningsService } from 'src/future_cleanings/futureCleanings.service';
 import { Cliente } from 'src/clients/entities/client.entity';
+import { MailerModule } from 'src/mailer/mailer.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { Cliente } from 'src/clients/entities/client.entity';
     forwardRef(() => VehicleMaintenanceModule),
     forwardRef(() => ToiletMaintenanceModule),
     EmployeeLeavesModule,
+    MailerModule,
   ],
   controllers: [ServicesController],
   providers: [ServicesService, FutureCleaningsService],

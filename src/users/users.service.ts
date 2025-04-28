@@ -18,9 +18,24 @@ export class UsersService {
     private usersRepository: Repository<User>,
   ) {}
 
-  async findAll(): Promise<User[]> {
-    return this.usersRepository.find();
+  async findAll(page: number, limit: number): Promise<any> {
+    const [users, total] = await Promise.all([
+      this.usersRepository.find({
+        skip: (page - 1) * limit,  // Cálculo del offset
+        take: limit,  // Número de registros a devolver por página
+      }),
+      this.usersRepository.count(),  // Obtener el total de usuarios
+    ]);
+  
+    return {
+      data: users,  // Datos de los usuarios paginados
+      totalItems: total,  // Total de usuarios
+      currentPage: page,  // Página actual
+      totalPages: Math.ceil(total / limit),  // Total de páginas
+    };
   }
+  
+  
 
   async findById(id: number): Promise<User> {
     const user = await this.usersRepository.findOne({ where: { id } });

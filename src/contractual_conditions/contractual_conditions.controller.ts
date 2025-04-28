@@ -13,9 +13,12 @@ import {
   ParseIntPipe,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { Pagination } from 'src/common/interfaces/paginations.interface';
+import { CondicionesContractuales } from './entities/contractual_conditions.entity';
 
 @Controller('contractual_conditions')
 @UseGuards(JwtAuthGuard)
@@ -26,15 +29,20 @@ export class ContractualConditionsController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  getAllContractualConditions() {
+  async getAllContractualConditions(
+    @Query('page') page: number = 1,        // Recibe el número de página desde la URL
+    @Query('limit') limit: number = 10,     // Recibe el límite de registros por página desde la URL
+  ): Promise<Pagination<CondicionesContractuales>> {
     try {
-      return this.contractualConditionsService.getAllContractualConditions();
+      // Llamamos al servicio pasando los parámetros de paginación
+      return await this.contractualConditionsService.getAllContractualConditions(page, limit);
     } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : 'Unknown error occurred';
+      // Si ocurre un error, lo lanzamos con un mensaje adecuado
+      const message = error instanceof Error ? error.message : 'Unknown error occurred';
       throw new HttpException(message, HttpStatus.BAD_REQUEST);
     }
   }
+  
   @Get('id/:id')
   @HttpCode(HttpStatus.OK)
   getContractualConditionById(

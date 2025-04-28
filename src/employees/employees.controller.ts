@@ -33,12 +33,20 @@ export class EmployeesController {
   }
 
   @Get()
-  findAll(@Query('cargo') cargo?: string): Promise<Empleado[]> {
+  async findAll(
+    @Query('cargo') cargo?: string,      // Filtro opcional por cargo
+    @Query('page') page: number = 1,     // Número de página (por defecto 1)
+    @Query('limit') limit: number = 10,  // Límite de registros por página (por defecto 10)
+  ): Promise<any> {
     if (cargo) {
+      // Si se pasa un cargo, filtramos por cargo
       return this.employeesService.findByCargo(cargo);
     }
-    return this.employeesService.findAll();
+    
+    // Si no se pasa cargo, obtenemos todos los empleados con paginación
+    return this.employeesService.findAll(page, limit);
   }
+  
 
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number): Promise<Empleado> {
