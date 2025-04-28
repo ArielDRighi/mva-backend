@@ -34,11 +34,13 @@ export class UsersController {
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Get()
   async findAll(
-    @Query('page') page: number = 1,   // Recibe el parámetro de la página desde la consulta
-    @Query('limit') limit: number = 10  // Recibe el parámetro del límite desde la consulta
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+    @Query('search') search?: string,  // 👈 acá lo agregás
   ): Promise<any> {
-    return this.usersService.findAll(page, limit);  // Llama al servicio pasándole los parámetros de paginación
+    return this.usersService.findAll(page, limit, search);  // 👈 y lo pasás
   }
+  
   
 
   @UseGuards(JwtAuthGuard)

@@ -18,22 +18,35 @@ export class UsersService {
     private usersRepository: Repository<User>,
   ) {}
 
-  async findAll(page: number, limit: number): Promise<any> {
+  async findAll(page = 1, limit = 10, search?: string): Promise<any> {
+    const query = this.usersRepository.createQueryBuilder('user');
+  
+    if (search) {
+      const searchTerm = `%${search.toLowerCase()}%`;
+  
+      query.where(
+        `LOWER(user.nombre) LIKE :searchTerm
+        OR LOWER(user.email) LIKE :searchTerm
+        OR LOWER(user.estado) LIKE :searchTerm`,
+        { searchTerm },
+      );
+    }
+  
+    query.skip((page - 1) * limit).take(limit);
+  
     const [users, total] = await Promise.all([
-      this.usersRepository.find({
-        skip: (page - 1) * limit,  // Cálculo del offset
-        take: limit,  // Número de registros a devolver por página
-      }),
-      this.usersRepository.count(),  // Obtener el total de usuarios
+      query.getMany(),
+      query.getCount(),
     ]);
   
     return {
-      data: users,  // Datos de los usuarios paginados
-      totalItems: total,  // Total de usuarios
-      currentPage: page,  // Página actual
-      totalPages: Math.ceil(total / limit),  // Total de páginas
+      data: users,
+      totalItems: total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
     };
   }
+  
   
   
 

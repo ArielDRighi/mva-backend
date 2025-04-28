@@ -18,7 +18,6 @@ import {
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
-import { FilterServicesDto } from './dto/filter-services.dto';
 import { Service } from './entities/service.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../roles/guards/roles.guard';
@@ -27,6 +26,7 @@ import { Role } from '../roles/enums/role.enum';
 import { ServiceState } from '../common/enums/resource-states.enum';
 import { ChangeServiceStatusDto } from './dto/change-service-status.dto';
 import { MailerInterceptor } from 'src/mailer/interceptor/mailer.interceptor';
+import { FilterServicesDto } from './dto/filter-service.dto';
 @UseInterceptors(MailerInterceptor)
 @Controller('services')
 @UseGuards(JwtAuthGuard)

@@ -8,7 +8,7 @@ import { CreateClientDto } from './dto/create_client.dto';
 import { UpdateClientDto } from './dto/update_client.dto';
 import { Cliente } from './entities/client.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan } from 'typeorm';
+import { Repository, MoreThan, ILike } from 'typeorm';
 import { ChemicalToiletsService } from '../chemical_toilets/chemical_toilets.service';
 import {
   CondicionesContractuales,
@@ -46,25 +46,36 @@ export class ClientService {
   }
 
   async findAll(paginationDto: PaginationDto): Promise<Pagination<Cliente>> {
-    const { page = 1, limit = 10 } = paginationDto;
+    const { page = 1, limit = 10, search } = paginationDto;
   
-    this.logger.log(`Recuperando clientes - Página: ${page}, Límite: ${limit}`);
+    this.logger.log(`Recuperando clientes - Página: ${page}, Límite: ${limit}, Búsqueda: ${search}`);
   
-    // Obtener los clientes con paginación
-    const [items, total] = await this.clientRepository.findAndCount({
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+    const query = this.clientRepository.createQueryBuilder('cliente');
   
-    // Devolver un objeto con la estructura Pagination
+    if (search) {
+      const term = `%${search.toLowerCase()}%`;
+      query.where('LOWER(cliente.nombre) LIKE :term', { term })
+           .orWhere('LOWER(cliente.cuit) LIKE :term', { term })
+           .orWhere('LOWER(cliente.email) LIKE :term', { term });
+    }
+  
+    const [items, total] = await query
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+  
     return {
-      items,         // Los clientes obtenidos
-      total,         // Total de clientes
-      page,          // Página actual
-      limit,         // Límite de elementos por página
-      totalPages: Math.ceil(total / limit),  // Total de páginas
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
     };
   }
+  
+  //Desde el Front esta es la forma de obtener el GETall
+  //GET /clientes?limit=10&page=1&nombre=juan&email=gmail
+
   
 
   async findOneClient(clienteId: number): Promise<Cliente> {

@@ -41,13 +41,16 @@ export class ChemicalToiletsController {
   async findAll(
     @Query('page') page = '1',
     @Query('limit') limit = '10',
+    @Query('search') search?: string,  // 👈 lo agregás acá
   ): Promise<Pagination<ChemicalToilet>> {
     const paginationDto = {
       page: Number(page),
       limit: Number(limit),
     };
-    return this.chemicalToiletsService.findAll(paginationDto);
+  
+    return this.chemicalToiletsService.findAll(paginationDto, search);  // 👈 lo pasás acá
   }
+  
   
   
 

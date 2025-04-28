@@ -17,7 +17,7 @@ export class VehiclesService {
 
   constructor(
     @InjectRepository(Vehicle)
-    private vehicleRepository: Repository<Vehicle>,
+    private vehicleRepository: Repository<Vehicle>, // Asegurarse de que se llama 'vehicleRepository' aquí
   ) {}
 
   async create(createVehicleDto: CreateVehicleDto): Promise<Vehicle> {
@@ -38,24 +38,30 @@ export class VehiclesService {
     return this.vehicleRepository.save(vehicle);
   }
 
-  async findAll(page: number, limit: number): Promise<any> {
-    // Obtener los vehículos y el total de vehículos en paralelo
+  async findAll(page = 1, limit = 10, search?: string): Promise<any> {
+    this.logger.log('Recuperando todos los vehículos');
+
+    const queryBuilder = this.vehicleRepository.createQueryBuilder('vehicle'); // Aquí corregimos 'vehiclesRepository' por 'vehicleRepository'
+
+    if (search) {
+      const searchTerm = `%${search.toLowerCase()}%`;
+      queryBuilder.where('LOWER(vehicle.estado) LIKE :searchTerm', { searchTerm });
+    }
+
+    queryBuilder.orderBy('vehicle.vehiculo_id', 'ASC');
+
     const [vehicles, total] = await Promise.all([
-      this.vehicleRepository.find({
-        skip: (page - 1) * limit,  // Cálculo del offset
-        take: limit,  // Número de vehículos a devolver por página
-      }),
-      this.vehicleRepository.count(),  // Obtener el total de vehículos
+      queryBuilder.skip((page - 1) * limit).take(limit).getMany(),
+      queryBuilder.getCount(),
     ]);
-  
+
     return {
-      data: vehicles,  // Vehículos paginados
-      totalItems: total,  // Total de vehículos en la base de datos
-      currentPage: page,  // Página actual
-      totalPages: Math.ceil(total / limit),  // Total de páginas
+      data: vehicles,
+      totalItems: total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
     };
   }
-  
 
   async findOne(id: number): Promise<Vehicle> {
     this.logger.log(`Buscando vehículo con id: ${id}`);
