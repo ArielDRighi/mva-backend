@@ -66,72 +66,67 @@ export class AuthService {
     };
   }
 
-  async forgotPassword(email: ForgotPasswordDto) {
-    const user = await this.usersService.findByEmail(email.email);
-    if (!user) {
-      throw new BadRequestException('El correo electrónico no está registrado');
-    }
-    const newPassword = this.generateRandomPassword();
-    const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(newPassword, saltRounds);
-    await this.usersService.updatePassword(user.id, passwordHash);
-    try {
-      const name = user.nombre;
+  async forgotPassword(emailDto: ForgotPasswordDto) {
+    const { email } = emailDto;
 
-      user['newPassword'] = newPassword;
-    } catch (error) {
-      throw new BadRequestException('Error al enviar el correo electrónico');
+    // 1. Buscar el usuario por email
+    const user = await this.usersService.findByEmail(email);
+    if (!user) {
+      throw new UnauthorizedException('Usuario no encontrado');
     }
+
+    // 2. Generar una nueva contraseña
+    const newPassword = this.generateRandomPassword();
+
+    // 3. Actualizar el password en base de datos
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await this.usersService.updatePassword(user.id, hashedPassword);
+
+    // 4. Devolver el objeto esperado por el interceptor
     return {
-      success: true,
-      message: 'Se ha enviado un correo electrónico con la nueva contraseña',
-      user,
+      user: {
+        email: user.email,
+        nombre: user.nombre, // o name
+        newPassword, // nueva contraseña generada
+      },
     };
   }
 
-  private generateRandomPassword(length = 12): string {
-    const uppercaseChars = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // Sin I, O para evitar confusiones
-    const lowercaseChars = 'abcdefghijkmnopqrstuvwxyz'; // Sin l para evitar confusiones
-    const numberChars = '23456789'; // Sin 0, 1 para evitar confusiones
-    const specialChars = '!@#$%^&*_-+=';
+  async resetPassword(data: ChangePasswordDto, userId: number) {
+    const { oldPassword, newPassword } = data;
 
-    const allChars =
-      uppercaseChars + lowercaseChars + numberChars + specialChars;
-
-    // Asegura que la contraseña tenga al menos un carácter de cada tipo
-    let password =
-      uppercaseChars.charAt(Math.floor(Math.random() * uppercaseChars.length)) +
-      lowercaseChars.charAt(Math.floor(Math.random() * lowercaseChars.length)) +
-      numberChars.charAt(Math.floor(Math.random() * numberChars.length)) +
-      specialChars.charAt(Math.floor(Math.random() * specialChars.length));
-
-    // Completa el resto de la contraseña
-    for (let i = 4; i < length; i++) {
-      password += allChars.charAt(Math.floor(Math.random() * allChars.length));
-    }
-
-    // Mezcla los caracteres para evitar un patrón predecible
-    return password
-      .split('')
-      .sort(() => Math.random() - 0.5)
-      .join('');
-  }
-
-  async resetPassword(data: ChangePasswordDto, userId: any) {
+    // 1. Buscar el usuario por id
     const user = await this.usersService.findById(userId);
     if (!user) {
-      throw new BadRequestException('Usuario no encontrado');
+      throw new UnauthorizedException('Usuario no encontrado');
     }
-    const isPasswordValid = await user.comparePassword(data.oldPassword);
-    if (!isPasswordValid) {
-      throw new BadRequestException('Contraseña actual incorrecta');
+
+    // 2. Verificar que la contraseña vieja coincida
+    const passwordMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!passwordMatch) {
+      throw new UnauthorizedException('Contraseña anterior incorrecta');
     }
-    const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(data.newPassword, saltRounds);
-    await this.usersService.updatePassword(userId, passwordHash);
+
+    // 3. Actualizar con la nueva contraseña
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    await this.usersService.updatePassword(user.id, hashedNewPassword);
+
+    // 4. Devolver el objeto esperado por el interceptor
     return {
-      success: true,
-      message: 'Contraseña actualizada correctamente',
+      user: {
+        email: user.email,
+        nombre: user.nombre,
+        newPassword, // en este caso, el que envió el cliente
+      },
     };
+  }
+
+  private generateRandomPassword(): string {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let password = '';
+    for (let i = 0; i < 10; i++) {
+      password += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    return password;
   }
 }

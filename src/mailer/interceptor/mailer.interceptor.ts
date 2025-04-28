@@ -558,9 +558,10 @@ export class MailerInterceptor implements NestInterceptor {
     path: string,
     data: any,
   ): Promise<void> {
-    if (method !== 'POST' || !path.includes('/auth/forgot-password')) {
+    if (!['PUT', 'POST'].includes(method) || !(path.includes('/auth/forgot_password') || path.includes('/auth/change_password'))) {
       return;
     }
+    
 
     console.log(
       '[MailerInterceptor] Reseteo de contraseña detectado. Preparando notificación...',
