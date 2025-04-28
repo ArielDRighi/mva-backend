@@ -53,7 +53,8 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() data: ChangePasswordDto, @Req() req: any) {
     try {
-      const userId = req.user.id;
+      const userId = req.user.userId;
+      console.log('userId', userId);
       return this.authService.resetPassword(data, userId);
     } catch (error) {
       throw new UnauthorizedException('Error al restablecer la contraseña');

@@ -87,7 +87,7 @@ export class AuthService {
       user: {
         email: user.email,
         nombre: user.nombre, // o name
-        newPassword, // nueva contraseña generada
+        hashedPassword, // nueva contraseña generada
       },
     };
   }
@@ -100,6 +100,10 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('Usuario no encontrado');
     }
+    console.log('user', user);
+    console.log('oldPassword', oldPassword);
+    console.log('user.password', user.password);
+    console.log('newPassword', newPassword);
 
     // 2. Verificar que la contraseña vieja coincida
     const passwordMatch = await bcrypt.compare(oldPassword, user.password);
@@ -116,16 +120,19 @@ export class AuthService {
       user: {
         email: user.email,
         nombre: user.nombre,
-        newPassword, // en este caso, el que envió el cliente
+        hashedNewPassword, // en este caso, el que envió el cliente
       },
     };
   }
 
   private generateRandomPassword(): string {
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const characters =
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let password = '';
     for (let i = 0; i < 10; i++) {
-      password += characters.charAt(Math.floor(Math.random() * characters.length));
+      password += characters.charAt(
+        Math.floor(Math.random() * characters.length),
+      );
     }
     return password;
   }
