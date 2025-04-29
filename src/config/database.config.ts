@@ -10,6 +10,12 @@ export default registerAs('database', () => ({
   schema: process.env.DB_SCHEMA,
   entities: ['dist/**/*.entity{.ts,.js}'],
   synchronize: process.env.NODE_ENV !== 'production',
-  logging: process.env.NODE_ENV !== 'production',
+  logging: false,
   dropSchema: false,
+
+  timezone: 'UTC',
+  extra: {
+    parseInputDatesAsUTC: true,
+    writeDatesAsUTC: true,
+  },
 }));

@@ -2,7 +2,7 @@ import { Entity, Column, PrimaryGeneratedColumn, Index } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { Role } from '../../roles/enums/role.enum';
 
-@Entity('usuarios')
+@Entity('users')
 export class User {
   @PrimaryGeneratedColumn({ name: 'usuario_id' })
   id: number;

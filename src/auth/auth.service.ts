@@ -1,7 +1,17 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { LoginDto } from './dto/login.dto';
+import {
+  ChangePasswordDto,
+  ForgotPasswordDto,
+  LoginDto,
+} from './dto/login.dto';
 import { UsersService } from '../users/users.service';
+import * as bcrypt from 'bcrypt';
+import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class AuthService {
@@ -54,5 +64,76 @@ export class AuthService {
         roles: user.roles || [],
       },
     };
+  }
+
+  async forgotPassword(emailDto: ForgotPasswordDto) {
+    const { email } = emailDto;
+
+    // 1. Buscar el usuario por email
+    const user = await this.usersService.findByEmail(email);
+    if (!user) {
+      throw new UnauthorizedException('Usuario no encontrado');
+    }
+
+    // 2. Generar una nueva contraseña
+    const newPassword = this.generateRandomPassword();
+
+    // 3. Actualizar el password en base de datos
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await this.usersService.updatePassword(user.id, hashedPassword);
+
+    // 4. Devolver el objeto esperado por el interceptor
+    return {
+      user: {
+        email: user.email,
+        nombre: user.nombre, // o name
+        newPassword, // nueva contraseña generada
+      },
+    };
+  }
+
+  async resetPassword(data: ChangePasswordDto, userId: number) {
+    const { oldPassword, newPassword } = data;
+
+    // 1. Buscar el usuario por id
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException('Usuario no encontrado');
+    }
+    console.log('user', user);
+    console.log('oldPassword', oldPassword);
+    console.log('user.password', user.password);
+    console.log('newPassword', newPassword);
+
+    // 2. Verificar que la contraseña vieja coincida
+    const passwordMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!passwordMatch) {
+      throw new UnauthorizedException('Contraseña anterior incorrecta');
+    }
+
+    // 3. Actualizar con la nueva contraseña
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    await this.usersService.updatePassword(user.id, hashedNewPassword);
+
+    // 4. Devolver el objeto esperado por el interceptor
+    return {
+      user: {
+        email: user.email,
+        nombre: user.nombre,
+        newPassword, // en este caso, el que envió el cliente
+      },
+    };
+  }
+
+  private generateRandomPassword(): string {
+    const characters =
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let password = '';
+    for (let i = 0; i < 10; i++) {
+      password += characters.charAt(
+        Math.floor(Math.random() * characters.length),
+      );
+    }
+    return password;
   }
 }

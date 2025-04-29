@@ -6,10 +6,11 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { CreateUserDto } from './dto/create_user.dto';
+import { UpdateUserDto } from './dto/update_user.dto';
 import * as bcrypt from 'bcrypt';
 import { Role } from '../roles/enums/role.enum';
+import { ForgotPasswordDto } from 'src/auth/dto/login.dto';
 
 @Injectable()
 export class UsersService {
@@ -18,8 +19,33 @@ export class UsersService {
     private usersRepository: Repository<User>,
   ) {}
 
-  async findAll(): Promise<User[]> {
-    return this.usersRepository.find();
+  async findAll(page = 1, limit = 10, search?: string): Promise<any> {
+    const query = this.usersRepository.createQueryBuilder('user');
+
+    if (search) {
+      const searchTerm = `%${search.toLowerCase()}%`;
+
+      query.where(
+        `LOWER(user.nombre) LIKE :searchTerm
+        OR LOWER(user.email) LIKE :searchTerm
+        OR LOWER(user.estado) LIKE :searchTerm`,
+        { searchTerm },
+      );
+    }
+
+    query.skip((page - 1) * limit).take(limit);
+
+    const [users, total] = await Promise.all([
+      query.getMany(),
+      query.getCount(),
+    ]);
+  
+    return {
+      data: users,
+      totalItems: total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async findById(id: number): Promise<User> {
@@ -113,5 +139,19 @@ export class UsersService {
     const user = await this.findById(id);
     user.estado = estado;
     return this.usersRepository.save(user);
+  }
+
+  async updatePassword(id: number, passwordHash: string) {
+    const user = await this.findById(id);
+    if (!user) {
+      throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
+    }
+    try {
+      await this.usersRepository.update(id, { password: passwordHash });
+      const updatedUser = await this.findById(id);
+      return updatedUser;
+    } catch (error) {
+      throw new ConflictException('Error al actualizar la contraseña');
+    }
   }
 }
