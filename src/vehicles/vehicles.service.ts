@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
   Logger,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -41,17 +42,38 @@ export class VehiclesService {
   async findAll(page = 1, limit = 10, search?: string): Promise<any> {
     this.logger.log('Recuperando todos los vehículos');
 
-    const queryBuilder = this.vehicleRepository.createQueryBuilder('vehicle'); // Aquí corregimos 'vehiclesRepository' por 'vehicleRepository'
+    const queryBuilder = this.vehicleRepository.createQueryBuilder('vehicle');
 
     if (search) {
-      const searchTerm = `%${search.toLowerCase()}%`;
-      queryBuilder.where('LOWER(vehicle.estado) LIKE :searchTerm', { searchTerm });
+      const searchTerms = search.toLowerCase().split(' ');
+
+      queryBuilder.where(
+        `(LOWER(UNACCENT(vehicle.placa)) LIKE :searchTerm
+        OR LOWER(UNACCENT(vehicle.marca)) LIKE :searchTerm
+        OR LOWER(UNACCENT(vehicle.modelo)) LIKE :searchTerm
+        OR LOWER(UNACCENT(vehicle.estado)) LIKE :searchTerm)`,
+        { searchTerm: `%${search.toLowerCase()}%` },
+      );
+
+      // Add additional terms as separate AND conditions
+      for (let i = 1; i < searchTerms.length; i++) {
+        queryBuilder.andWhere(
+          `(LOWER(UNACCENT(vehicle.placa)) LIKE :searchTerm${i}
+          OR LOWER(UNACCENT(vehicle.marca)) LIKE :searchTerm${i}
+          OR LOWER(UNACCENT(vehicle.modelo)) LIKE :searchTerm${i}
+          OR LOWER(UNACCENT(vehicle.estado)) LIKE :searchTerm${i})`,
+          { [`searchTerm${i}`]: `%${searchTerms[i]}%` },
+        );
+      }
     }
 
-    queryBuilder.orderBy('vehicle.vehiculo_id', 'ASC');
+    queryBuilder.orderBy('vehicle.id', 'ASC');
 
     const [vehicles, total] = await Promise.all([
-      queryBuilder.skip((page - 1) * limit).take(limit).getMany(),
+      queryBuilder
+        .skip((page - 1) * limit)
+        .take(limit)
+        .getMany(),
       queryBuilder.getCount(),
     ]);
 
@@ -117,6 +139,40 @@ export class VehiclesService {
   async remove(id: number): Promise<void> {
     this.logger.log(`Eliminando vehículo con id: ${id}`);
     const vehicle = await this.findOne(id);
+
+    // Check if the vehicle is assigned to any active service
+    const vehicleWithAssignments = await this.vehicleRepository
+      .createQueryBuilder('vehicle')
+      .leftJoinAndSelect(
+        'asignacion_recursos',
+        'asignacion',
+        'asignacion.vehiculo_id = vehicle.id',
+      )
+      .leftJoinAndSelect(
+        'servicios',
+        'servicio',
+        'asignacion.servicio_id = servicio.servicio_id',
+      )
+      .where('vehicle.id = :id', { id })
+      .andWhere('asignacion.vehiculo_id IS NOT NULL')
+      .getOne();
+
+    if (vehicleWithAssignments) {
+      throw new BadRequestException(
+        `El vehículo no puede ser eliminado ya que se encuentra asignado a uno o más servicios.`,
+      );
+    }
+
+    // Check if the vehicle has scheduled maintenance
+    if (
+      vehicle.maintenanceRecords &&
+      vehicle.maintenanceRecords.some((record) => !record.completado)
+    ) {
+      throw new BadRequestException(
+        `El vehículo no puede ser eliminado ya que tiene mantenimientos programados pendientes.`,
+      );
+    }
+
     await this.vehicleRepository.remove(vehicle);
   }
 

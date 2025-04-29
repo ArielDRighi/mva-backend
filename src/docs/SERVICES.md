@@ -324,14 +324,6 @@ GET /api/services?fechaDesde=2025-05-01T00:00:00.000Z&fechaHasta=2025-06-01T00:0
 }
 ```
 
-#### E. Actualizar Condición Contractual
-
-```json
-{
-  "condicionContractualId": 2
-}
-```
-
 #### Respuesta Exitosa (200 OK)
 
 ```json
