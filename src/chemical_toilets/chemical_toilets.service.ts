@@ -29,65 +29,21 @@ export class ChemicalToiletsService {
     return await this.chemicalToiletRepository.save(newToilet);
   }
 
-  async findAll(paginationDto: PaginationDto): Promise<Pagination<ChemicalToilet>> {
+  async findAll(paginationDto: PaginationDto, search?: string): Promise<Pagination<ChemicalToilet>> {
     const { limit = 10, page = 1 } = paginationDto;
-  
-    const [items, total] = await this.chemicalToiletRepository.findAndCount({
-      skip: (page - 1) * limit,
-      take: limit,
-    });
-  
-    return {
-      items,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
-  }
-
-  async findAllWithFilters(
-    filterDto: FilterChemicalToiletDto,
-  ): Promise<Pagination<ChemicalToilet>> {
-    const {
-      estado,
-      modelo,
-      codigoInterno,
-      fechaDesde,
-      fechaHasta,
-      page = 1,
-      limit = 10,
-    } = filterDto;
   
     const query = this.chemicalToiletRepository
       .createQueryBuilder('toilet');
   
-    if (estado) {
-      query.andWhere('toilet.estado = :estado', { estado });
-    }
+    if (search) {
+      const searchTerm = `%${search.toLowerCase()}%`;
   
-    if (modelo) {
-      query.andWhere('toilet.modelo LIKE :modelo', {
-        modelo: `%${modelo}%`,
-      });
-    }
-  
-    if (codigoInterno) {
-      query.andWhere('toilet.codigo_interno LIKE :codigoInterno', {
-        codigoInterno: `%${codigoInterno}%`,
-      });
-    }
-  
-    if (fechaDesde) {
-      query.andWhere('toilet.fecha_adquisicion >= :fechaDesde', {
-        fechaDesde,
-      });
-    }
-  
-    if (fechaHasta) {
-      query.andWhere('toilet.fecha_adquisicion <= :fechaHasta', {
-        fechaHasta,
-      });
+      query.where(
+        `LOWER(toilet.estado) LIKE :searchTerm
+        OR LOWER(toilet.modelo) LIKE :searchTerm
+        OR LOWER(toilet.codigo_interno) LIKE :searchTerm`,
+        { searchTerm },
+      );
     }
   
     query.skip((page - 1) * limit).take(limit);
@@ -102,6 +58,67 @@ export class ChemicalToiletsService {
       totalPages: Math.ceil(total / limit),
     };
   }
+  
+
+  async findAllWithFilters(
+  filterDto: FilterChemicalToiletDto,
+): Promise<Pagination<ChemicalToilet>> {
+  const {
+    estado,
+    modelo,
+    codigoInterno,
+    fechaDesde,
+    fechaHasta,
+    page = 1,
+    limit = 10,
+  } = filterDto;
+
+  const query = this.chemicalToiletRepository
+    .createQueryBuilder('toilet');
+
+  if (estado) {
+    query.andWhere('LOWER(toilet.estado) LIKE :estado', {
+      estado: `%${estado.toLowerCase()}%`,
+    });
+  }
+
+  if (modelo) {
+    query.andWhere('LOWER(toilet.modelo) LIKE :modelo', {
+      modelo: `%${modelo.toLowerCase()}%`,
+    });
+  }
+
+  if (codigoInterno) {
+    query.andWhere('LOWER(toilet.codigo_interno) LIKE :codigoInterno', {
+      codigoInterno: `%${codigoInterno.toLowerCase()}%`,
+    });
+  }
+
+  if (fechaDesde) {
+    query.andWhere('toilet.fecha_adquisicion >= :fechaDesde', {
+      fechaDesde,
+    });
+  }
+
+  if (fechaHasta) {
+    query.andWhere('toilet.fecha_adquisicion <= :fechaHasta', {
+      fechaHasta,
+    });
+  }
+
+  query.skip((page - 1) * limit).take(limit);
+
+  const [items, total] = await query.getManyAndCount();
+
+  return {
+    items,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
+}
+
 
   async findAllByState(
     estado: ResourceState,

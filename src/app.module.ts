@@ -16,6 +16,7 @@ import { ContractualConditionsModule } from './contractual_conditions/contractua
 import { EmployeesModule } from './employees/employees.module';
 import { ServicesModule } from './services/services.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { FutureCleaningsModule } from './future_cleanings/futureCleanings.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
 import { ClientsPortalModule } from './clients_portal/clientsPortal.module';
 import { EmployeeLeavesModule } from './employee_leaves/employee-leaves.module';
@@ -42,6 +43,7 @@ import { MailerModule } from './mailer/mailer.module';
     EmployeesModule,
     ServicesModule,
     ScheduleModule.forRoot(),
+    FutureCleaningsModule,
     SchedulerModule,
     ClientsPortalModule,
     EmployeeLeavesModule,

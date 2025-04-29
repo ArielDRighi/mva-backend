@@ -13,6 +13,7 @@ import {
   ServiceType,
 } from '../../common/enums/resource-states.enum';
 import { ResourceAssignment } from './resource-assignment.entity';
+import { FuturasLimpiezas } from 'src/future_cleanings/entities/futureCleanings.entity';
 
 @Entity({ name: 'servicios' })
 export class Service {
@@ -85,4 +86,10 @@ export class Service {
     cascade: ['insert', 'update'],
   })
   asignaciones: ResourceAssignment[];
+
+  @OneToMany(
+    () => FuturasLimpiezas,
+    (futuraLimpieza) => futuraLimpieza.servicio,
+  )
+  futurasLimpiezas: FuturasLimpiezas[];
 }

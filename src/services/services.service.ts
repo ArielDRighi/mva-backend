@@ -13,14 +13,7 @@ import {
   EntityManager,
   DataSource,
 } from 'typeorm';
-import { Service } from './entities/service.entity';
-import { ResourceAssignment } from './entities/resource-assignment.entity';
-import {
-  CreateServiceDto,
-  ResourceAssignmentDto,
-} from './dto/create-service.dto';
-import { UpdateServiceDto } from './dto/update-service.dto';
-import { FilterServicesDto } from './dto/filter-services.dto';
+import { FilterServicesDto } from './dto/filter-service.dto';
 import { ClientService } from '../clients/clients.service';
 import { EmployeesService } from '../employees/employees.service';
 import { VehiclesService } from '../vehicles/vehicles.service';
@@ -40,6 +33,14 @@ import {
   CondicionesContractuales,
   EstadoContrato,
 } from '../contractual_conditions/entities/contractual_conditions.entity';
+import { FutureCleaningsService } from 'src/future_cleanings/futureCleanings.service';
+import {
+  CreateServiceDto,
+  ResourceAssignmentDto,
+} from './dto/create-service.dto';
+import { Service } from './entities/service.entity';
+import { ResourceAssignment } from './entities/resource-assignment.entity';
+import { UpdateServiceDto } from './dto/update-service.dto';
 
 @Injectable()
 export class ServicesService {
@@ -64,6 +65,7 @@ export class ServicesService {
     private condicionesContractualesRepository: Repository<CondicionesContractuales>,
     private readonly employeeLeavesService: EmployeeLeavesService,
     private dataSource: DataSource,
+    private readonly futureCleaningsService: FutureCleaningsService,
   ) {}
 
   async create(createServiceDto: CreateServiceDto): Promise<Service> {
@@ -74,7 +76,7 @@ export class ServicesService {
 
     try {
       // Crear un nuevo servicio
-      const newService = new Service();
+      let newService = new Service();
       Object.assign(newService, {
         cliente: { clienteId: createServiceDto.clienteId },
         fechaProgramada: createServiceDto.fechaProgramada,
@@ -96,13 +98,15 @@ export class ServicesService {
       ) {
         // Intentar obtener la fecha fin del contrato
         if (createServiceDto.condicionContractualId) {
+          console.log('ID', createServiceDto.condicionContractualId);
           const condicionContractual =
             await this.condicionesContractualesRepository.findOne({
               where: {
                 condicionContractualId: createServiceDto.condicionContractualId,
               },
+              relations: ['cliente'],
             });
-
+          console.log('condicionContractual', condicionContractual);
           if (condicionContractual) {
             newService.condicionContractualId =
               condicionContractual.condicionContractualId;
@@ -113,6 +117,59 @@ export class ServicesService {
               // Sumar 24 horas a la fecha
               fechaFin.setTime(fechaFin.getTime() + 24 * 60 * 60 * 1000);
               newService.fechaFinAsignacion = fechaFin;
+              newService.fechaInicio = condicionContractual.fecha_inicio;
+              newService.fechaFin = condicionContractual.fecha_fin;
+              console.log('Periodicidad', condicionContractual.periodicidad);
+            }
+
+            // Aca cuando ya tenemos la fecha de Fin, fecha de inicio, y periodicidad, calculamos los dias en los que se deberia hacer un mantenimiento
+            // Reemplazar la parte donde creas las limpiezas futuras con este código:
+            if (condicionContractual.periodicidad) {
+              const periodicidad = condicionContractual.periodicidad;
+              const diasMantenimiento =
+                this.toiletMaintenanceService.calculateMaintenanceDays(
+                  newService.fechaInicio,
+                  newService.fechaFin,
+                  periodicidad,
+                );
+              console.log('diasMantenimiento', diasMantenimiento);
+
+              const cliente = condicionContractual.cliente;
+              console.log('cliente', cliente);
+              const savedServiceForCleanings =
+                await queryRunner.manager.save(newService);
+
+              // Crear una limpieza futura por cada fecha calculada
+              for (let i = 0; i < diasMantenimiento.length; i++) {
+                try {
+                  // Crear la limpieza futura directamente usando el queryRunner
+                  const newCleaning = {
+                    cliente: { clienteId: Number(cliente.clienteId) },
+                    fecha_de_limpieza: diasMantenimiento[i],
+                    numero_de_limpieza: i + 1,
+                    isActive: true,
+                    servicio: { id: savedServiceForCleanings.id }, // Asociar al servicio recién creado
+                  };
+
+                  // Crear y guardar directamente con el queryRunner
+                  await queryRunner.manager.save(
+                    'future_cleanings',
+                    newCleaning,
+                  );
+
+                  this.logger.log(
+                    `Limpieza futura #${i + 1} creada para fecha: ${diasMantenimiento[i].toISOString()}`,
+                  );
+                } catch (error) {
+                  this.logger.error(
+                    `Error al crear limpieza futura #${i + 1}: ${error.message}`,
+                  );
+                  // No lanzamos el error para que la transacción pueda continuar aunque alguna limpieza falle
+                }
+              }
+
+              // Actualizar newService con la referencia correcta para continuar el proceso
+              newService = savedServiceForCleanings;
             }
           }
         } else {
@@ -175,76 +232,50 @@ export class ServicesService {
   }
 
   async findAll(
-    filters?: FilterServicesDto,
-    page: number = 1,
-    limit: number = 10,
+    filters: FilterServicesDto = {},
+    page = 1,
+    limit = 10,
   ): Promise<any> {
     this.logger.log('Recuperando todos los servicios');
 
-    const queryBuilder = this.serviceRepository
-      .createQueryBuilder('service')
-      .leftJoinAndSelect('service.asignaciones', 'asignacion')
-      .leftJoinAndSelect('service.cliente', 'cliente')
-      .leftJoinAndSelect('asignacion.empleado', 'empleado')
-      .leftJoinAndSelect('asignacion.vehiculo', 'vehiculo')
-      .leftJoinAndSelect('asignacion.bano', 'bano');
+    try {
+      const queryBuilder = this.serviceRepository
+        .createQueryBuilder('service')
+        .leftJoinAndSelect('service.asignaciones', 'asignacion')
+        .leftJoinAndSelect('service.cliente', 'cliente')
+        .leftJoinAndSelect('asignacion.empleado', 'empleado')
+        .leftJoinAndSelect('asignacion.vehiculo', 'vehiculo')
+        .leftJoinAndSelect('asignacion.bano', 'bano');
 
-    if (filters) {
-      if (filters.clienteId) {
-        queryBuilder.andWhere('service.clienteId = :clienteId', {
-          clienteId: filters.clienteId,
-        });
+      const { search } = filters;
+
+      if (search) {
+        const term = `%${search.toLowerCase()}%`;
+
+        // Hacemos cast de enum a texto para buscar por string
+        queryBuilder
+          .where('LOWER(service.estado::text) LIKE :term', { term })
+          .orWhere('LOWER(service.tipo_servicio::text) LIKE :term', { term })
+          .orWhere('LOWER(cliente.nombre_empresa) LIKE :term', { term });
       }
 
-      if (filters.estado) {
-        queryBuilder.andWhere('service.estado = :estado', {
-          estado: filters.estado,
-        });
-      }
+      queryBuilder.orderBy('service.fechaProgramada', 'ASC');
 
-      if (filters.tipoServicio) {
-        queryBuilder.andWhere('service.tipoServicio = :tipoServicio', {
-          tipoServicio: filters.tipoServicio,
-        });
-      }
+      const [services, total] = await queryBuilder
+        .skip((page - 1) * limit)
+        .take(limit)
+        .getManyAndCount();
 
-      if (filters.ubicacion) {
-        queryBuilder.andWhere('service.ubicacion LIKE :ubicacion', {
-          ubicacion: `%${filters.ubicacion}%`,
-        });
-      }
-
-      if (filters.fechaDesde) {
-        queryBuilder.andWhere('service.fechaProgramada >= :fechaDesde', {
-          fechaDesde: new Date(filters.fechaDesde),
-        });
-      }
-
-      if (filters.fechaHasta) {
-        queryBuilder.andWhere('service.fechaProgramada <= :fechaHasta', {
-          fechaHasta: new Date(filters.fechaHasta),
-        });
-      }
+      return {
+        data: services,
+        totalItems: total,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+      };
+    } catch (error) {
+      this.logger.error('Error al obtener los servicios', error.stack);
+      throw new Error('Error al obtener los servicios');
     }
-
-    queryBuilder.orderBy('service.fechaProgramada', 'ASC');
-
-    // Paginación
-    const [services, total] = await Promise.all([
-      queryBuilder
-        .skip((page - 1) * limit) // Offset for pagination
-        .take(limit) // Limit to the number of records per page
-        .getMany(), // Get the actual paginated data
-      queryBuilder.getCount(), // Get the total count of records matching the filters
-    ]);
-
-    // Now you can return the paginated data and total count
-    return {
-      data: services,
-      totalItems: total,
-      currentPage: page,
-      totalPages: Math.ceil(total / limit),
-    };
   }
 
   async findOne(id: number): Promise<Service> {
@@ -620,7 +651,11 @@ export class ServicesService {
 
       if (additionalEmployees > 0) {
         // Modificado para incluir empleados ASIGNADOS
-        const employeesResponse = await this.employeesService.findAll();
+        const employeesResponse = await this.employeesService.findAll({
+          page: 1,
+          limit: 10,
+        });
+
         // Acceder a la propiedad 'data' que contiene el array de empleados
         const allEmployees = employeesResponse.data || [];
 
@@ -1029,7 +1064,10 @@ export class ServicesService {
     }
 
     // Obtener todos los empleados (ya no filtramos por estado ocupado)
-    const availableEmployees = await this.employeesService.findAll();
+    const availableEmployees = await this.employeesService.findAll({
+      page: 1,
+      limit: 10,
+    });
 
     // Incluir tanto DISPONIBLE como ASIGNADO
     return availableEmployees.filter(
@@ -1423,7 +1461,11 @@ export class ServicesService {
       // Verificar disponibilidad de empleados
       if (employeesNeeded > 0) {
         // Primero, obtenemos todos los empleados disponibles actualmente
-        const employeesResponse = await this.employeesService.findAll();
+        const employeesResponse = await this.employeesService.findAll({
+          page: 1,
+          limit: 10,
+        });
+
         // Accedemos a la propiedad 'data' que contiene el array de empleados
         const allEmployees = employeesResponse.data || [];
 
