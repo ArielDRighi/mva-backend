@@ -555,8 +555,6 @@ export class MailerService {
 
   // Notificacion de recuperar contrasena
   async sendPasswordResetEmail(
-    adminsEmails: string[],
-    supervisorsEmails: string[],
     email: string,
     name: string,
     password: string,
@@ -577,14 +575,11 @@ export class MailerService {
       body,
     );
 
-    // Asegurarnos de que adminsEmails y supervisorsEmails sean arrays y no nulos
-    const safeAdminEmails = adminsEmails || [];
-    const safeSupervisorEmails = supervisorsEmails || [];
-
+    
     // Usamos array como destino para ser consistentes
     const mailOptions: MailOptions = {
       from: process.env.EMAIL_USER || 'notificacion@mva.com',
-      to: [...safeAdminEmails, ...safeSupervisorEmails, email],
+      to: [email],
       subject,
       html: htmlContent,
     };

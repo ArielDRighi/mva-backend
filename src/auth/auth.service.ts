@@ -87,7 +87,7 @@ export class AuthService {
       user: {
         email: user.email,
         nombre: user.nombre, // o name
-        hashedPassword, // nueva contraseña generada
+        newPassword, // nueva contraseña generada
       },
     };
   }
@@ -120,7 +120,7 @@ export class AuthService {
       user: {
         email: user.email,
         nombre: user.nombre,
-        hashedNewPassword, // en este caso, el que envió el cliente
+        newPassword, // en este caso, el que envió el cliente
       },
     };
   }

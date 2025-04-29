@@ -580,14 +580,8 @@ export class MailerInterceptor implements NestInterceptor {
       const user = data.user;
       const newPassword = user.newPassword;
 
-      // Obtener correos de administradores y supervisores para control interno
-      const adminsEmails = await this.mailerService.getAdminEmails();
-      const supervisorsEmails = await this.mailerService.getSupervisorEmails();
-
       // Enviamos email de recuperación de contraseña al usuario
       await this.mailerService.sendPasswordResetEmail(
-        adminsEmails,
-        supervisorsEmails,
         user.email,
         user.nombre || 'Usuario',
         newPassword,
