@@ -558,43 +558,32 @@ export class MailerInterceptor implements NestInterceptor {
     path: string,
     data: any,
   ): Promise<void> {
-    if (!['PUT', 'POST'].includes(method) || !(path.includes('/auth/forgot_password') || path.includes('/auth/change_password'))) {
+    if (
+      !['PUT', 'POST'].includes(method) ||
+      !(path.includes('/auth/forgot_password') || path.includes('/auth/change_password'))
+    ) {
       return;
     }
-    
-
-    console.log(
-      '[MailerInterceptor] Reseteo de contraseña detectado. Preparando notificación...',
-    );
-
+  
     try {
-      // Verificar que data sea un objeto válido con la información necesaria
-      if (!data || !data.user) {
-        console.warn(
-          '[MailerInterceptor] Datos de reseteo de contraseña incompletos:',
-          data,
-        );
+      if (!data || !data.user || !data.user.newPassword) {
+        console.warn('[MailerInterceptor] Datos incompletos para envío de mail:', data);
         return;
       }
-
-      const user = data.user;
-      const newPassword = user.newPassword;
-
-      // Enviamos email de recuperación de contraseña al usuario
-      await this.mailerService.sendPasswordResetEmail(
-        user.email,
-        user.nombre || 'Usuario',
-        newPassword,
-      );
-
-      console.log(
-        '[MailerInterceptor] Notificación de reseteo de contraseña enviada.',
-      );
+  
+      const { email, nombre, newPassword } = data.user;
+  
+      if (path.includes('/auth/forgot_password')) {
+        // 📧 Correo de recuperación
+        await this.mailerService.sendPasswordResetEmail(email, nombre || 'Usuario', newPassword);
+      } else if (path.includes('/auth/change_password')) {
+        // 📧 Correo de confirmación de cambio de contraseña
+        await this.mailerService.sendPasswordChangeConfirmationEmail(email, nombre || 'Usuario', newPassword);
+      }
+  
+      console.log('[MailerInterceptor] Correo de contraseña enviado.');
     } catch (err) {
-      console.error(
-        '[MailerInterceptor] Error enviando notificación de reseteo de contraseña:',
-        err,
-      );
+      console.error('[MailerInterceptor] Error al enviar correo:', err);
     }
-  }
+  }  
 }

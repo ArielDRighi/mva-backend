@@ -594,4 +594,41 @@ export class MailerService {
       );
     }
   }
+  async sendPasswordChangeConfirmationEmail(
+    email: string,
+    name: string,
+    password: string,
+  ): Promise<void> {
+    const subject = 'Tu contraseña fue modificada 🛡️';
+    const currentDate = new Date().toLocaleString('es-AR', {
+      dateStyle: 'long',
+      timeStyle: 'short',
+    });
+  
+    const body = `
+      <p>Hola ${name}👋,</p>
+      <p>Te informamos que en el día de la fecha (<strong>${currentDate}</strong>) realizaste una modificación de contraseña en tu cuenta.</p>
+      <p>Tu nueva contraseña es: <strong>${password}</strong></p>
+      <p>Te recomendamos recordar esta contraseña o almacenarla en un lugar seguro.</p>
+      <p>Si no realizaste esta acción, comunícate de inmediato con nuestro equipo de soporte.</p>
+      <p>Saludos,<br>El equipo de soporte</p>
+    `;
+  
+    const htmlContent = this.generateEmailContent(subject, body);
+  
+    const mailOptions: MailOptions = {
+      from: process.env.EMAIL_USER || 'notificacion@mva.com',
+      to: email,
+      subject,
+      html: htmlContent,
+    };
+  
+    try {
+      console.log('📧 Enviando correo de confirmación de cambio de contraseña...');
+      await this.sendMail(mailOptions);
+    } catch (error) {
+      console.error('❌ Error al enviar correo de cambio de contraseña', error);
+    }
+  }
+  
 }
