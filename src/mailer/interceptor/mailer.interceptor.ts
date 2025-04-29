@@ -95,6 +95,9 @@ export class MailerInterceptor implements NestInterceptor {
 
         // 6. Servicio → POST /clients_portal/ask_for_service
         await this.handleServiceRequest(method, path, req);
+
+        // 7. Reseteo de contraseña → POST /auth/forgot-password
+        await this.handlePasswordReset(method, path, data);
       }),
     );
   }
@@ -547,4 +550,40 @@ export class MailerInterceptor implements NestInterceptor {
       );
     }
   }
+  /**
+   * Maneja las notificaciones para reseteo de contraseñas
+   */
+  private async handlePasswordReset(
+    method: string,
+    path: string,
+    data: any,
+  ): Promise<void> {
+    if (
+      !['PUT', 'POST'].includes(method) ||
+      !(path.includes('/auth/forgot_password') || path.includes('/auth/change_password'))
+    ) {
+      return;
+    }
+  
+    try {
+      if (!data || !data.user || !data.user.newPassword) {
+        console.warn('[MailerInterceptor] Datos incompletos para envío de mail:', data);
+        return;
+      }
+  
+      const { email, nombre, newPassword } = data.user;
+  
+      if (path.includes('/auth/forgot_password')) {
+        // 📧 Correo de recuperación
+        await this.mailerService.sendPasswordResetEmail(email, nombre || 'Usuario', newPassword);
+      } else if (path.includes('/auth/change_password')) {
+        // 📧 Correo de confirmación de cambio de contraseña
+        await this.mailerService.sendPasswordChangeConfirmationEmail(email, nombre || 'Usuario', newPassword);
+      }
+  
+      console.log('[MailerInterceptor] Correo de contraseña enviado.');
+    } catch (err) {
+      console.error('[MailerInterceptor] Error al enviar correo:', err);
+    }
+  }  
 }
