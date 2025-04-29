@@ -15,11 +15,11 @@ export class ForgotPasswordDto {
 }
 
 export class ChangePasswordDto {
-  @IsNotEmpty({ message: 'La contraseña es requerida' })
-  @IsString({ message: 'La contraseña debe ser una cadena' })
+  @IsNotEmpty({ message: 'La contraseña actual es requerida' })
+  @IsString({ message: 'La contraseña actual debe ser una cadena' })
   oldPassword: string;
 
-  @IsNotEmpty({ message: 'El nuevo correo electrónico es requerido' })
+  @IsNotEmpty({ message: 'La nueva contraseña es requerida' }) // ✅ Mensaje corregido
   @IsString({ message: 'La nueva contraseña debe ser una cadena' })
   @Matches(/[a-z]/, {
     message: 'La contraseña debe contener al menos una letra minúscula',
@@ -27,7 +27,9 @@ export class ChangePasswordDto {
   @Matches(/[A-Z]/, {
     message: 'La contraseña debe contener al menos una letra mayúscula',
   })
-  @Matches(/\d/, { message: 'La contraseña debe contener al menos un número' })
+  @Matches(/\d/, {
+    message: 'La contraseña debe contener al menos un número',
+  })
   @Matches(/^.{8,}$/, {
     message: 'La contraseña debe tener al menos 8 caracteres',
   })
