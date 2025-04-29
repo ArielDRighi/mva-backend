@@ -36,15 +36,10 @@ export class UsersService {
     query.skip((page - 1) * limit).take(limit);
 
     const [users, total] = await Promise.all([
-      this.usersRepository.find({
-        skip: (page - 1) * limit, // Cálculo del offset
-        take: limit, // Número de registros a devolver por página
-      }),
-      this.usersRepository.count(), // Obtener el total de usuarios
       query.getMany(),
       query.getCount(),
     ]);
-
+  
     return {
       data: users,
       totalItems: total,
