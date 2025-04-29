@@ -89,22 +89,28 @@ Content-Type: application/json
 }
 ```
 
-### 2. Obtener Todos los Vehículos
-
-**Endpoint:** `GET /api/vehicles`  
-**Roles permitidos:** Todos los usuarios autenticados
+## 2. Obtener Vehículos##
+**Endpoint: GET /api/vehicles**
+**Roles permitidos: Todos los usuarios autenticados**
+**Descripción: Recupera todos los vehículos registrados en el sistema. Permite filtrar por estado y realizar paginación.**
 
 **Parámetros de consulta opcionales:**
 
 | Parámetro | Tipo   | Descripción                                                                          |
-| --------- | ------ | ------------------------------------------------------------------------------------ |
-| estado    | string | Filtrar por estado (DISPONIBLE, ASIGNADO, EN_MANTENIMIENTO, FUERA_DE_SERVICIO, BAJA) |
+|-----------|--------|--------------------------------------------------------------------------------------|
+| search    | string | Búsqueda parcial por estado del vehículo (no distingue mayúsculas/minúsculas)       |
+| page      | number | Número de página a recuperar (por defecto: 1)                                        |
+| limit     | number | Cantidad de resultados por página (por defecto: 10)                                  |
+
+El parámetro search filtra vehículos según el valor del campo estado, que puede ser:
+DISPONIBLE, ASIGNADO, EN_MANTENIMIENTO, FUERA_DE_SERVICIO o BAJA.
 
 **Ejemplos:**
 
 ```
 GET /api/vehicles
-GET /api/vehicles?estado=DISPONIBLE
+GET /api/vehicles?search=disponible
+GET /api/vehicles?search=baja&page=2&limit=5
 ```
 
 **Respuesta Exitosa (200 OK):**
@@ -112,23 +118,32 @@ GET /api/vehicles?estado=DISPONIBLE
 ```json
 [
   {
-    "id": 1,
-    "placa": "AA123BB",
-    "marca": "Ford",
-    "modelo": "F-100",
-    "anio": 2020,
-    "capacidadCarga": "1500.00",
-    "estado": "DISPONIBLE"
-  },
-  {
-    "id": 2,
-    "placa": "AC456DD",
-    "marca": "Chevrolet",
-    "modelo": "S10",
-    "anio": 2021,
-    "capacidadCarga": "1200.00",
-    "estado": "ASIGNADO"
-  }
+  "data": [
+    {
+      "id": 1,
+      "placa": "AA123BB",
+      "marca": "Ford",
+      "modelo": "F-100",
+      "anio": 2020,
+      "capacidadCarga": "1500.00",
+      "estado": "DISPONIBLE"
+    },
+    {
+      "id": 2,
+      "placa": "AC456DD",
+      "marca": "Chevrolet",
+      "modelo": "S10",
+      "anio": 2021,
+      "capacidadCarga": "1200.00",
+      "estado": "ASIGNADO"
+    }
+    // Más vehículos...
+  ],
+  "totalItems": 12,
+  "currentPage": 1,
+  "totalPages": 2
+}
+
 ]
 ```
 

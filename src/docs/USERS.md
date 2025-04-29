@@ -203,6 +203,53 @@ Content-Type: application/json
   "empleadoId": 5
 }
 ```
+### Obtener Usuarios ###
+**Endpoint: GET /api/users**
+**Roles permitidos: Todos los usuarios autenticados con permisos de administración**
+**Descripción: Recupera los usuarios registrados en el sistema. Se permite realizar búsquedas por nombre, email o estado, y paginar los resultados.**
+
+**Parámetros de Query Opcionales:**
+| Parámetro | Tipo   | Descripción                                                                 |
+|-----------|--------|-----------------------------------------------------------------------------|
+| search    | string | Búsqueda parcial por nombre, correo electrónico o estado del usuario        |
+| page      | number | Número de página a recuperar (por defecto: 1)                               |
+| limit     | number | Cantidad de resultados por página (por defecto: 10)                         |
+
+El parámetro search no distingue entre mayúsculas y minúsculas y aplica búsqueda parcial sobre nombre, email y estado.
+
+**Ejemplos:**
+GET /api/users
+GET /api/users?search=admin
+GET /api/users?search=inactivo&page=2&limit=5
+
+**Respuesta Exitosa (200 OK):**
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "nombre": "Juan Admin",
+      "email": "juan.admin@example.com",
+      "estado": "ACTIVO",
+      "rol": "ADMIN",
+      "fecha_creacion": "2025-01-10T12:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "nombre": "Lucía Operadora",
+      "email": "lucia@example.com",
+      "estado": "INACTIVO",
+      "rol": "OPERADOR",
+      "fecha_creacion": "2025-02-20T15:30:00.000Z"
+    }
+    // Más usuarios...
+  ],
+  "totalItems": 8,
+  "currentPage": 1,
+  "totalPages": 1
+}
+```
+
 
 ### Actualización de Usuario
 
