@@ -104,6 +104,8 @@ Content-Type: application/json
 | page      | number | Número de página a recuperar (por defecto: 1)                               |
 | limit     | number | Cantidad de resultados por página (por defecto: 10)                         |
 
+**Nota sobre filtros:** Los filtros (como el parámetro `estado`) son insensibles a mayúsculas/minúsculas, tildes y caracteres especiales. Por ejemplo, "activo", "ACTIVO", "Activo" o "áctivo" funcionarán de la misma manera.
+
 **Ejemplos:**
 
 GET /api/clients

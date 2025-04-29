@@ -30,19 +30,23 @@ export class ContractualConditionsController {
   @Get()
   @HttpCode(HttpStatus.OK)
   async getAllContractualConditions(
-    @Query('page') page: number = 1,        // Recibe el número de página desde la URL
-    @Query('limit') limit: number = 10,     // Recibe el límite de registros por página desde la URL
+    @Query('page') page: number = 1, // Recibe el número de página desde la URL
+    @Query('limit') limit: number = 10, // Recibe el límite de registros por página desde la URL
   ): Promise<Pagination<CondicionesContractuales>> {
     try {
       // Llamamos al servicio pasando los parámetros de paginación
-      return await this.contractualConditionsService.getAllContractualConditions(page, limit);
+      return await this.contractualConditionsService.getAllContractualConditions(
+        page,
+        limit,
+      );
     } catch (error: unknown) {
       // Si ocurre un error, lo lanzamos con un mensaje adecuado
-      const message = error instanceof Error ? error.message : 'Unknown error occurred';
+      const message =
+        error instanceof Error ? error.message : 'Unknown error occurred';
       throw new HttpException(message, HttpStatus.BAD_REQUEST);
     }
   }
-  
+
   @Get('id/:id')
   @HttpCode(HttpStatus.OK)
   getContractualConditionById(
@@ -58,10 +62,10 @@ export class ContractualConditionsController {
       throw new HttpException(message, HttpStatus.BAD_REQUEST);
     }
   }
-  @Get('client-name/:clientName')
+  @Get('client-id/:clientId')
   @HttpCode(HttpStatus.OK)
   getContractualConditionsByClient(
-    @Param('clientName', ParseIntPipe) clientId: number,
+    @Param('clientId', ParseIntPipe) clientId: number,
   ) {
     try {
       return this.contractualConditionsService.getContractualConditionsByClient(

@@ -10,7 +10,6 @@ import { CreateUserDto } from './dto/create_user.dto';
 import { UpdateUserDto } from './dto/update_user.dto';
 import * as bcrypt from 'bcrypt';
 import { Role } from '../roles/enums/role.enum';
-import { ForgotPasswordDto } from 'src/auth/dto/login.dto';
 
 @Injectable()
 export class UsersService {
@@ -39,7 +38,7 @@ export class UsersService {
       query.getMany(),
       query.getCount(),
     ]);
-  
+
     return {
       data: users,
       totalItems: total,
@@ -150,7 +149,7 @@ export class UsersService {
       await this.usersRepository.update(id, { password: passwordHash });
       const updatedUser = await this.findById(id);
       return updatedUser;
-    } catch (error) {
+    } catch {
       throw new ConflictException('Error al actualizar la contraseña');
     }
   }

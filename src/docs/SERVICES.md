@@ -337,14 +337,6 @@ GET /api/services?search=constructora&page=2&limit=5
 }
 ```
 
-#### E. Actualizar Condición Contractual
-
-```json
-{
-  "condicionContractualId": 2
-}
-```
-
 #### Respuesta Exitosa (200 OK)
 
 ```json

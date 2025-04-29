@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
   Logger,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -53,25 +54,44 @@ export class EmployeesService {
 
   async findAll(paginationDto: PaginationDto): Promise<any> {
     const { page = 1, limit = 10, search } = paginationDto;
-  
-    this.logger.log(`Recuperando empleados - Página: ${page}, Límite: ${limit}, Búsqueda: ${search}`);
-  
+
+    this.logger.log(
+      `Recuperando empleados - Página: ${page}, Límite: ${limit}, Búsqueda: ${search}`,
+    );
+
     const query = this.employeeRepository.createQueryBuilder('empleado');
-  
+
     if (search) {
-      const term = `%${search.toLowerCase()}%`;
-      query.where('LOWER(empleado.nombre) LIKE :term', { term })
-           .orWhere('LOWER(empleado.apellido) LIKE :term', { term })
-           .orWhere('LOWER(empleado.documento) LIKE :term', { term })
-           .orWhere('LOWER(empleado.cargo) LIKE :term', { term })
-           .orWhere('LOWER(empleado.estado) LIKE :term', { term });
+      const searchTerms = search.toLowerCase().split(' ');
+
+      // First term uses WHERE
+      query.where(
+        `LOWER(UNACCENT(empleado.nombre)) LIKE :term
+        OR LOWER(UNACCENT(empleado.apellido)) LIKE :term
+        OR LOWER(UNACCENT(empleado.documento)) LIKE :term
+        OR LOWER(UNACCENT(empleado.cargo)) LIKE :term
+        OR LOWER(UNACCENT(empleado.estado)) LIKE :term`,
+        { term: `%${searchTerms[0]}%` },
+      );
+
+      // Additional terms use AND
+      for (let i = 1; i < searchTerms.length; i++) {
+        query.andWhere(
+          `LOWER(UNACCENT(empleado.nombre)) LIKE :term${i}
+          OR LOWER(UNACCENT(empleado.apellido)) LIKE :term${i}
+          OR LOWER(UNACCENT(empleado.documento)) LIKE :term${i}
+          OR LOWER(UNACCENT(empleado.cargo)) LIKE :term${i}
+          OR LOWER(UNACCENT(empleado.estado)) LIKE :term${i}`,
+          { [`term${i}`]: `%${searchTerms[i]}%` },
+        );
+      }
     }
-  
+
     const [empleados, total] = await query
       .skip((page - 1) * limit)
       .take(limit)
       .getManyAndCount();
-  
+
     return {
       data: empleados,
       totalItems: total,
@@ -79,9 +99,6 @@ export class EmployeesService {
       totalPages: Math.ceil(total / limit),
     };
   }
-  
-  
-  
 
   async findOne(id: number): Promise<Empleado> {
     this.logger.log(`Buscando empleado con id: ${id}`);
@@ -154,6 +171,30 @@ export class EmployeesService {
   async remove(id: number): Promise<{ message: string }> {
     this.logger.log(`Eliminando empleado con id: ${id}`);
     const employee = await this.findOne(id);
+
+    // Check if the employee is assigned to any active service
+    const employeeWithAssignments = await this.employeeRepository
+      .createQueryBuilder('empleado')
+      .leftJoinAndSelect(
+        'asignacion_recursos',
+        'asignacion',
+        'asignacion.empleado_id = empleado.id',
+      )
+      .leftJoinAndSelect(
+        'servicios',
+        'servicio',
+        'asignacion.servicio_id = servicio.servicio_id',
+      )
+      .where('empleado.id = :id', { id })
+      .andWhere('asignacion.empleado_id IS NOT NULL')
+      .getOne();
+
+    if (employeeWithAssignments) {
+      throw new BadRequestException(
+        `El empleado no puede ser eliminado ya que se encuentra asignado a uno o más servicios.`,
+      );
+    }
+
     const nombre = `${employee.nombre} ${employee.apellido}`;
     await this.employeeRepository.remove(employee);
     return { message: `Empleado ${nombre} eliminado correctamente` };
