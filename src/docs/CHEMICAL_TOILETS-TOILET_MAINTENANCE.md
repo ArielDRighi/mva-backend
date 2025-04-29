@@ -114,7 +114,8 @@ Content-Type: application/json
 
 ### 3. Buscar Baños Químicos con Filtros
 
-**Endpoint:** `GET /api/chemical_toilets/search`  
+**Endpoint:** `GET /api/chemical_toilets?search=`  
+**Busqueda:** Tiene dos endpoints uno que tiene filtro solamente para estado (findAll) y otro con los filtros abajo mencionados(findAllWithFilters)
 **Roles permitidos:** Todos los usuarios autenticados
 
 **Parámetros de consulta opcionales:**

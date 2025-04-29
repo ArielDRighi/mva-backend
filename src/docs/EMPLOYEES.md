@@ -96,55 +96,64 @@ Content-Type: application/json
 }
 ```
 
-### 2. Obtener Todos los Empleados
-
-**Endpoint:** `GET /api/employees`  
-**Roles permitidos:** Todos los usuarios autenticados
+## 2. Obtener Empleados ##
+**Endpoint: GET /api/employees**
+**Roles permitidos: Todos los usuarios autenticados**
+**Descripción: Recupera la lista de empleados registrados en el sistema, con soporte para búsqueda por múltiples campos y resultados paginados.**
 
 **Parámetros de consulta opcionales:**
-
-| Parámetro | Tipo   | Descripción                                               |
-| --------- | ------ | --------------------------------------------------------- |
-| cargo     | string | Filtrar por cargo (ejemplo: "/employees?cargo=Conductor") |
+| Parámetro | Tipo   | Descripción                                                                 |
+|-----------|--------|-----------------------------------------------------------------------------|
+| search    | string | Búsqueda parcial por nombre, apellido, documento, cargo o estado (no sensible a mayúsculas/minúsculas) |
+| page      | number | Número de página a recuperar (por defecto: 1)                               |
+| limit     | number | Cantidad de resultados por página (por defecto: 10)                         |
 
 **Ejemplos:**
 
-```
 GET /api/employees
-GET /api/employees?cargo=Conductor
-```
+GET /api/employees?search=Conductor
+GET /api/employees?search=gomez
+GET /api/employees?search=DISPONIBLE&page=2&limit=5
+
 
 **Respuesta Exitosa (200 OK):**
 
 ```json
-[
-  {
-    "id": 1,
-    "nombre": "Juan",
-    "apellido": "Pérez",
-    "documento": "12345678",
-    "telefono": "123456789",
-    "email": "juan.perez@example.com",
-    "direccion": "Calle Principal 123",
-    "fecha_nacimiento": "1990-01-01",
-    "fecha_contratacion": "2023-01-01",
-    "cargo": "Conductor",
-    "estado": "DISPONIBLE"
-  },
-  {
-    "id": 2,
-    "nombre": "María",
-    "apellido": "Gómez",
-    "documento": "87654321",
-    "telefono": "987654321",
-    "email": "maria.gomez@example.com",
-    "direccion": "Avenida Segunda 456",
-    "fecha_nacimiento": "1992-05-15",
-    "fecha_contratacion": "2023-02-15",
-    "cargo": "Técnico",
-    "estado": "ASIGNADO"
-  }
-]
+{
+  "data": [
+    {
+      "id": 1,
+      "nombre": "Juan",
+      "apellido": "Pérez",
+      "documento": "12345678",
+      "telefono": "123456789",
+      "email": "juan.perez@example.com",
+      "direccion": "Calle Principal 123",
+      "fecha_nacimiento": "1990-01-01",
+      "fecha_contratacion": "2023-01-01",
+      "cargo": "Conductor",
+      "estado": "DISPONIBLE"
+    },
+    {
+      "id": 2,
+      "nombre": "María",
+      "apellido": "Gómez",
+      "documento": "87654321",
+      "telefono": "987654321",
+      "email": "maria.gomez@example.com",
+      "direccion": "Avenida Segunda 456",
+      "fecha_nacimiento": "1992-05-15",
+      "fecha_contratacion": "2023-02-15",
+      "cargo": "Técnico",
+      "estado": "ASIGNADO"
+    }
+    // Más empleados...
+  ],
+  "totalItems": 25,
+  "currentPage": 1,
+  "totalPages": 3
+}
+
 ```
 
 ### 3. Obtener un Empleado Específico

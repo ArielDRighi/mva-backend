@@ -166,59 +166,72 @@ Para servicios que operan sobre baños ya instalados en el cliente:
 }
 ```
 
-### 2. Obtener Servicios
-
-**Endpoint:** `GET /api/services`
+## 2. Obtener Servicios ##
+**Endpoint: GET /api/services**
+**Roles permitidos: Todos los usuarios autenticados**
+**Descripción: Recupera los servicios registrados en el sistema. Se permite filtrar por estado, cliente, fechas y tipo de servicio, así como buscar por texto libre y paginar los resultados.**
 
 **Parámetros de Query:**
 
-| Parámetro    | Tipo               | Descripción                     |
-| ------------ | ------------------ | ------------------------------- |
-| estado       | string             | Filtrar por estado del servicio |
-| clienteId    | number             | Filtrar por cliente             |
-| fechaDesde   | string (fecha ISO) | Filtrar desde esta fecha        |
-| fechaHasta   | string (fecha ISO) | Filtrar hasta esta fecha        |
-| tipoServicio | string             | Filtrar por tipo de servicio    |
+| Parámetro     | Tipo               | Descripción                                                                 |
+|---------------|--------------------|-----------------------------------------------------------------------------|
+| estado        | string             | Filtra por estado del servicio (ej: `PROGRAMADO`, `EN_CURSO`, `FINALIZADO`) |
+| clienteId     | number             | Filtra por ID del cliente asociado                                          |
+| tipoServicio  | string             | Filtra por tipo de servicio (`INSTALACION`, `RETIRO`, etc.)                |
+| fechaDesde    | string (ISO 8601)  | Filtra servicios cuya fecha programada sea igual o posterior a esta fecha  |
+| fechaHasta    | string (ISO 8601)  | Filtra servicios cuya fecha programada sea igual o anterior a esta fecha   |
+| search        | string             | Búsqueda parcial por estado, tipo de servicio o nombre del cliente         |
+| page          | number             | Número de página a recuperar (por defecto: 1)                               |
+| limit         | number             | Cantidad de resultados por página (por defecto: 10)                         |
 
 #### Ejemplos
 
 ```
 GET /api/services
 GET /api/services?estado=PROGRAMADO
-GET /api/services?clienteId=1&estado=PROGRAMADO
+GET /api/services?clienteId=1&estado=FINALIZADO
+GET /api/services?tipoServicio=INSTALACION
+GET /api/services?search=instalacion
 GET /api/services?fechaDesde=2025-05-01T00:00:00.000Z&fechaHasta=2025-06-01T00:00:00.000Z
+GET /api/services?search=constructora&page=2&limit=5
 ```
 
 #### Respuesta Exitosa (200 OK)
 
 ```json
-[
-  {
-    "id": 1,
-    "clienteId": 1,
-    "cliente": {
-      /* datos del cliente */
-    },
-    "fechaProgramada": "2025-05-15T10:00:00.000Z",
-    "fechaInicio": null,
-    "fechaFin": null,
-    "fechaFinAsignacion": "2025-12-31T00:00:00.000Z",
-    "tipoServicio": "INSTALACION",
-    "estado": "PROGRAMADO",
-    "cantidadBanos": 2,
-    "cantidadEmpleados": 2,
-    "cantidadVehiculos": 1,
-    "ubicacion": "Av. Corrientes 1234, Buenos Aires",
-    "notas": "Entregar antes de las 9am",
-    "asignacionAutomatica": true,
-    "condicionContractualId": 1,
-    "fechaCreacion": "2025-04-10T15:30:00.000Z",
-    "asignaciones": [
-      // Detalles de las asignaciones
-    ]
-  }
-  // Más servicios...
-]
+{
+  "data": [
+    {
+      "id": 1,
+      "clienteId": 1,
+      "cliente": {
+        // datos del cliente
+      },
+      "fechaProgramada": "2025-05-15T10:00:00.000Z",
+      "fechaInicio": null,
+      "fechaFin": null,
+      "fechaFinAsignacion": "2025-12-31T00:00:00.000Z",
+      "tipoServicio": "INSTALACION",
+      "estado": "PROGRAMADO",
+      "cantidadBanos": 2,
+      "cantidadEmpleados": 2,
+      "cantidadVehiculos": 1,
+      "ubicacion": "Av. Corrientes 1234, Buenos Aires",
+      "notas": "Entregar antes de las 9am",
+      "asignacionAutomatica": true,
+      "condicionContractualId": 1,
+      "fechaCreacion": "2025-04-10T15:30:00.000Z",
+      "asignaciones": [
+        // Detalles de asignaciones (empleados, vehículos, baños)
+      ]
+    }
+    // Más servicios...
+  ],
+  "totalItems": 15,
+  "currentPage": 1,
+  "totalPages": 2
+}
+
 ```
 
 ### 3. Obtener un Servicio Específico

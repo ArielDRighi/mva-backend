@@ -90,57 +90,65 @@ Content-Type: application/json
 }
 ```
 
-### 2. Obtener Todos los Clientes
-
-**Endpoint:** `GET /api/clients`  
-**Roles permitidos:** Todos los usuarios autenticados  
-**Descripción:** Recupera todos los clientes registrados en el sistema.
+## 2. Obtener Clientes ##
+**Endpoint: GET /api/clients**
+**Roles permitidos: Todos los usuarios autenticados**
+**Descripción: Recupera los clientes registrados en el sistema, con opciones de búsqueda, filtrado por estado y paginación.**
 
 **Parámetros de Query Opcionales:**
 
-| Parámetro | Tipo   | Descripción        |
-| --------- | ------ | ------------------ |
-| estado    | string | Filtrar por estado |
+| Parámetro | Tipo   | Descripción                                                                 |
+|-----------|--------|-----------------------------------------------------------------------------|
+| estado    | string | Filtra por estado del cliente (ej. `ACTIVO`, `INACTIVO`)                    |
+| search    | string | Búsqueda parcial por nombre, CUIT o email (no sensible a mayúsculas/minúsculas) |
+| page      | number | Número de página a recuperar (por defecto: 1)                               |
+| limit     | number | Cantidad de resultados por página (por defecto: 10)                         |
 
 **Ejemplos:**
 
-```
 GET /api/clients
 GET /api/clients?estado=ACTIVO
-```
+GET /api/clients?search=constructora
+GET /api/clients?estado=ACTIVO&search=30-71234567-0&page=2&limit=5
+
 
 **Respuesta Exitosa (200 OK):**
 
 ```json
-[
-  {
-    "clienteId": 1,
-    "nombre": "Constructora ABC",
-    "cuit": "30-71234567-0",
-    "direccion": "Av. Principal 123, Buenos Aires",
-    "telefono": "011-4567-8901",
-    "email": "contacto@constructoraabc.com",
-    "contacto_principal": "Juan Pérez",
-    "fecha_registro": "2025-01-15T08:30:00.000Z",
-    "estado": "ACTIVO"
-  },
-  {
-    "clienteId": 2,
-    "nombre": "Eventos del Sur",
-    "cuit": "30-71234568-1",
-    "direccion": "Calle Sur 456, Córdoba",
-    "telefono": "0351-456-7890",
-    "email": "info@eventosdelsur.com",
-    "contacto_principal": "María González",
-    "fecha_registro": "2025-01-20T09:45:00.000Z",
-    "estado": "ACTIVO"
-  }
-  // Más clientes...
-]
+{
+  "items": [
+    {
+      "clienteId": 1,
+      "nombre": "Constructora ABC",
+      "cuit": "30-71234567-0",
+      "direccion": "Av. Principal 123, Buenos Aires",
+      "telefono": "011-4567-8901",
+      "email": "contacto@constructoraabc.com",
+      "contacto_principal": "Juan Pérez",
+      "fecha_registro": "2025-01-15T08:30:00.000Z",
+      "estado": "ACTIVO"
+    },
+    {
+      "clienteId": 2,
+      "nombre": "Eventos del Sur",
+      "cuit": "30-71234568-1",
+      "direccion": "Calle Sur 456, Córdoba",
+      "telefono": "0351-456-7890",
+      "email": "info@eventosdelsur.com",
+      "contacto_principal": "María González",
+      "fecha_registro": "2025-01-20T09:45:00.000Z",
+      "estado": "ACTIVO"
+    }
+    // Más clientes...
+  ],
+  "total": 25,
+  "page": 1,
+  "limit": 10,
+  "totalPages": 3
+}
 ```
 
-### 3. Obtener un Cliente Específico
-
+### 3. Obtener un Cliente Específico ###
 **Endpoint:** `GET /api/clients/{id}`  
 **Roles permitidos:** Todos los usuarios autenticados  
 **Descripción:** Recupera la información de un cliente específico por su ID.
