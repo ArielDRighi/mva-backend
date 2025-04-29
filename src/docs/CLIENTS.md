@@ -102,6 +102,8 @@ Content-Type: application/json
 | --------- | ------ | ------------------ |
 | estado    | string | Filtrar por estado |
 
+**Nota sobre filtros:** Los filtros (como el parámetro `estado`) son insensibles a mayúsculas/minúsculas, tildes y caracteres especiales. Por ejemplo, "activo", "ACTIVO", "Activo" o "áctivo" funcionarán de la misma manera.
+
 **Ejemplos:**
 
 ```

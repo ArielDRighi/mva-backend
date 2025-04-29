@@ -35,11 +35,10 @@ export class ClientController {
   @Get()
   async findAll(
     @Query() paginationDto: PaginationDto, // Recibe los parámetros de paginación
-  ): Promise<Pagination<Cliente>> {         // Devuelve la paginación completa de los clientes
+  ): Promise<Pagination<Cliente>> {
+    // Devuelve la paginación completa de los clientes
     return this.clientService.findAll(paginationDto);
   }
-  
-  
 
   @Get(':id')
   async findOne(
