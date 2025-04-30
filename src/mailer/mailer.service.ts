@@ -630,5 +630,100 @@ export class MailerService {
       console.error('❌ Error al enviar correo de cambio de contraseña', error);
     }
   }
+  async sendSalaryAdvanceRequestToAdmins(data: any): Promise<void> {
+    const { employee, monto, motivo, fecha } = data;
+    const adminEmails = await this.getAdminEmails();
+  
+    if (!employee?.name || !employee?.email || !monto || !fecha) {
+      console.warn('[MailerService] Datos insuficientes para enviar solicitud de adelanto');
+      return;
+    }
+  
+    const subject = 'Nueva solicitud de adelanto salarial 📩';
+    const formattedDate = new Date(fecha).toLocaleString('es-AR', {
+      dateStyle: 'long',
+      timeStyle: 'short',
+    });
+  
+    const body = `
+      <p>Hola equipo,</p>
+      <p>El empleado <strong>${employee.name}</strong> (<a href="mailto:${employee.email}">${employee.email}</a>) ha solicitado un adelanto salarial.</p>
+      <ul>
+        <li><strong>Monto solicitado:</strong> $${parseFloat(monto).toFixed(2)}</li>
+        <li><strong>Motivo:</strong> ${motivo}</li>
+        <li><strong>Fecha de solicitud:</strong> ${formattedDate}</li>
+      </ul>
+      <p>Por favor, gestionen esta solicitud a la brevedad.</p>
+      <p>Saludos,<br>El sistema de notificaciones</p>
+    `;
+  
+    const htmlContent = this.generateEmailContent(subject, body);
+  
+    const mailOptions: MailOptions = {
+      from: process.env.EMAIL_USER || 'notificacion@mva.com',
+      to: adminEmails.join(','),
+      subject,
+      html: htmlContent,
+    };
+  
+    try {
+      console.log('📧 Enviando correo de solicitud de adelanto salarial a administradores...');
+      await this.sendMail(mailOptions);
+    } catch (error) {
+      console.error('❌ Error al enviar correo de adelanto salarial a administradores', error);
+    }
+  }
+  
+  async sendSalaryAdvanceResponseToEmployee(data: any): Promise<void> {
+    const { employee, estado, motivo, respuesta } = data;
+  
+    if (!employee?.email) {
+      console.warn('[MailerService] No se encontró el email del empleado');
+      return;
+    }
+  
+    const subject = 'Respuesta a tu solicitud de adelanto salarial 💼';
+    const currentDate = new Date().toLocaleString('es-AR', {
+      dateStyle: 'long',
+      timeStyle: 'short',
+    });
+  
+    const estadoFormatted =
+      estado === 'aprobado'
+        ? '✅ <strong>Aprobado</strong>'
+        : estado === 'rechazado'
+        ? '❌ <strong>Rechazado</strong>'
+        : `<strong>${estado}</strong>`;
+  
+    const body = `
+      <p>Hola ${employee.name || ''},</p>
+      <p>Tu solicitud de adelanto salarial ha sido evaluada. A continuación, los detalles:</p>
+      <ul>
+        <li><strong>Estado:</strong> ${estadoFormatted}</li>
+        <li><strong>Motivo de tu solicitud:</strong> ${motivo}</li>
+        <li><strong>Respuesta del equipo:</strong> ${respuesta}</li>
+        <li><strong>Fecha de respuesta:</strong> ${currentDate}</li>
+      </ul>
+      <p>Gracias por utilizar nuestro sistema.</p>
+      <p>Saludos,<br>El equipo de soporte</p>
+    `;
+  
+    const htmlContent = this.generateEmailContent(subject, body);
+  
+    const mailOptions: MailOptions = {
+      from: process.env.EMAIL_USER || 'notificacion@mva.com',
+      to: employee.email,
+      subject,
+      html: htmlContent,
+    };
+  
+    try {
+      console.log('📧 Enviando correo de respuesta al adelanto salarial al empleado...');
+      await this.sendMail(mailOptions);
+    } catch (error) {
+      console.error('❌ Error al enviar correo de respuesta al adelanto salarial', error);
+    }
+  }
+  
   
 }
