@@ -681,12 +681,10 @@ if (!adminEmails || adminEmails.length === 0) {
   }
   
   async sendSalaryAdvanceResponseToEmployee(data: any): Promise<void> {
-    console.log('[MailerService] Enviando respuesta al empleado:', data);
   
-    const { employee, status, updatedAt, comentario } = data;
+    const { employee, status, updatedAt, reason } = data;
   
     if (!employee?.nombre || !employee?.email || !status || !updatedAt) {
-      console.warn('[MailerService] Datos insuficientes para enviar respuesta de adelanto');
       return;
     }
   
@@ -709,9 +707,9 @@ if (!adminEmails || adminEmails.length === 0) {
       <p><strong>Fecha de respuesta:</strong> ${formattedDate}</p>
     `;
   
-    if (comentario) {
+    if (reason) {
       body += `
-        <p><strong>Comentario del administrador:</strong> ${comentario}</p>
+        <p><strong>Comentario del administrador:</strong> ${reason}</p>
       `;
     }
   

@@ -18,7 +18,6 @@ export class SalaryAdvanceService {
 
   // Función para crear un adelanto salarial
   async createAdvance(dto: CreateAdvanceDto, user: any): Promise<SalaryAdvance> {
-    console.log('Empleado ID:', user.empleadoId);
 
     // Obtener el empleado asociado con el token (usuario logueado)
     const employee = await this.employeeRepository.findOne({
@@ -57,7 +56,6 @@ export class SalaryAdvanceService {
         where: { id: parseInt(id, 10) },
         relations: ['employee']  // Asegurarse de obtener la relación con el empleado
     });
-    console.log('request', request);
     
     if (!request || request.status !== 'pending') {
         return null;  // Si no se encuentra la solicitud o no está pendiente, retornar null

@@ -34,20 +34,13 @@ export class SalaryAdvanceController {
     @Body() dto: ApproveAdvanceDto,
     @Req() req: any
   ) {
-    console.log('Controller reached');
-    
-    // Verificar el contenido de req.user
-    console.log('User from request:', req.user);
-  
+      
     // Cambiar sub a userId
     const adminId = req.user?.userId;  // Ahora accedemos a userId en lugar de sub
     if (!adminId) {
-      console.warn('No adminId found in request');
       throw new UnauthorizedException();
     }
-  
-    console.log('adminId:', adminId);
-    
+      
     if (dto.status === 'approved') {
       console.log('Approving advance');
       return this.advanceService.approve(id, adminId);
