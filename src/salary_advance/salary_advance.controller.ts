@@ -1,9 +1,15 @@
-import { Controller, Get, Post, Body, Param, Request, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Request, UseGuards, UseInterceptors, Patch, Req, UnauthorizedException } from '@nestjs/common';
 import { SalaryAdvanceService } from './salary_advance.service';
 import { CreateAdvanceDto } from './dto/create-salary_advance.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { MailerInterceptor } from 'src/mailer/interceptor/mailer.interceptor';
+import { ApproveAdvanceDto } from './dto/approve-advance.dto';
+import { Roles } from 'src/roles/decorators/roles.decorator';
+import { Role } from 'src/roles/enums/role.enum';
+import { RolesGuard } from 'src/roles/guards/roles.guard';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 @UseInterceptors(MailerInterceptor)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('salary-advances')
 export class SalaryAdvanceController {
   constructor(private readonly advanceService: SalaryAdvanceService) {}
@@ -16,19 +22,39 @@ export class SalaryAdvanceController {
   }
 
 
-
   @Get()
   findAll() {
     return this.advanceService.getAll();
   }
-
-  @Post(':id/approve')
-  approve(@Param('id') id: string, @Body() dto: any) {
-    return this.advanceService.approve(id, dto.adminId);
+ 
+  @Roles(Role.ADMIN)
+  @Patch(':id')
+  approveOrRejectAdvance(
+    @Param('id') id: string,
+    @Body() dto: ApproveAdvanceDto,
+    @Req() req: any
+  ) {
+    console.log('Controller reached');
+    
+    // Verificar el contenido de req.user
+    console.log('User from request:', req.user);
+  
+    // Cambiar sub a userId
+    const adminId = req.user?.userId;  // Ahora accedemos a userId en lugar de sub
+    if (!adminId) {
+      console.warn('No adminId found in request');
+      throw new UnauthorizedException();
+    }
+  
+    console.log('adminId:', adminId);
+    
+    if (dto.status === 'approved') {
+      console.log('Approving advance');
+      return this.advanceService.approve(id, adminId);
+    } else {
+      console.log('Rejecting advance');
+      return this.advanceService.reject(id);
+    }
   }
-
-  @Post(':id/reject')
-  reject(@Param('id') id: string) {
-    return this.advanceService.reject(id);
-  }
+    
 }

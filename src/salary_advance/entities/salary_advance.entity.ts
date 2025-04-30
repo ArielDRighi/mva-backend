@@ -24,4 +24,10 @@ export class SalaryAdvance {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @Column({ nullable: true })
+  approvedBy: string;
+
+  @Column({ nullable: true })
+  approvedAt: Date;
 }

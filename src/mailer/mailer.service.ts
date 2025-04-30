@@ -631,26 +631,32 @@ export class MailerService {
     }
   }
   async sendSalaryAdvanceRequestToAdmins(data: any): Promise<void> {
-    const { employee, monto, motivo, fecha } = data;
+    console.log('[MailerService] Datos recibidos para solicitud:', data);
+    const { employee, amount, reason, createdAt } = data;
     const adminEmails = await this.getAdminEmails();
+    console.log('[MailerService] Correos de administradores:', adminEmails);
+if (!adminEmails || adminEmails.length === 0) {
+  console.warn('[MailerService] No se encontraron correos de administradores');
+  return;
+}
   
-    if (!employee?.name || !employee?.email || !monto || !fecha) {
+    if (!employee?.nombre || !employee?.apellido ||!employee?.email || !amount || !createdAt) {
       console.warn('[MailerService] Datos insuficientes para enviar solicitud de adelanto');
       return;
     }
   
     const subject = 'Nueva solicitud de adelanto salarial 📩';
-    const formattedDate = new Date(fecha).toLocaleString('es-AR', {
+    const formattedDate = new Date(createdAt).toLocaleString('es-AR', {
       dateStyle: 'long',
       timeStyle: 'short',
     });
   
     const body = `
       <p>Hola equipo,</p>
-      <p>El empleado <strong>${employee.name}</strong> (<a href="mailto:${employee.email}">${employee.email}</a>) ha solicitado un adelanto salarial.</p>
+      <p>El empleado <strong>${employee.nombre} ${employee.apellido}</strong> (<a href="mailto:${employee.email}">${employee.email}</a>) ha solicitado un adelanto salarial.</p>
       <ul>
-        <li><strong>Monto solicitado:</strong> $${parseFloat(monto).toFixed(2)}</li>
-        <li><strong>Motivo:</strong> ${motivo}</li>
+        <li><strong>Monto solicitado:</strong> $${parseFloat(amount).toFixed(2)}</li>
+        <li><strong>Motivo:</strong> ${reason}</li>
         <li><strong>Fecha de solicitud:</strong> ${formattedDate}</li>
       </ul>
       <p>Por favor, gestionen esta solicitud a la brevedad.</p>
@@ -658,14 +664,14 @@ export class MailerService {
     `;
   
     const htmlContent = this.generateEmailContent(subject, body);
-  
+    console.log('[MailerService] Contenido del correo:', htmlContent);
     const mailOptions: MailOptions = {
       from: process.env.EMAIL_USER || 'notificacion@mva.com',
       to: adminEmails.join(','),
       subject,
       html: htmlContent,
     };
-  
+    console.log('[MailerService] Opciones de correo:', mailOptions); 
     try {
       console.log('📧 Enviando correo de solicitud de adelanto salarial a administradores...');
       await this.sendMail(mailOptions);
@@ -675,37 +681,43 @@ export class MailerService {
   }
   
   async sendSalaryAdvanceResponseToEmployee(data: any): Promise<void> {
-    const { employee, estado, motivo, respuesta } = data;
+    console.log('[MailerService] Enviando respuesta al empleado:', data);
   
-    if (!employee?.email) {
-      console.warn('[MailerService] No se encontró el email del empleado');
+    const { employee, status, updatedAt, comentario } = data;
+  
+    if (!employee?.nombre || !employee?.email || !status || !updatedAt) {
+      console.warn('[MailerService] Datos insuficientes para enviar respuesta de adelanto');
       return;
     }
   
-    const subject = 'Respuesta a tu solicitud de adelanto salarial 💼';
-    const currentDate = new Date().toLocaleString('es-AR', {
+    const subject = 'Respuesta a tu solicitud de adelanto salarial 💬';
+    const formattedDate = new Date(updatedAt).toLocaleString('es-AR', {
       dateStyle: 'long',
       timeStyle: 'short',
     });
   
-    const estadoFormatted =
-      estado === 'aprobado'
-        ? '✅ <strong>Aprobado</strong>'
-        : estado === 'rechazado'
-        ? '❌ <strong>Rechazado</strong>'
-        : `<strong>${estado}</strong>`;
+    const statusText =
+      status === 'approved'
+        ? 'Aprobada ✅'
+        : status === 'rejected'
+        ? 'Rechazada ❌'
+        : 'Pendiente ⏳';
   
-    const body = `
-      <p>Hola ${employee.name || ''},</p>
-      <p>Tu solicitud de adelanto salarial ha sido evaluada. A continuación, los detalles:</p>
-      <ul>
-        <li><strong>Estado:</strong> ${estadoFormatted}</li>
-        <li><strong>Motivo de tu solicitud:</strong> ${motivo}</li>
-        <li><strong>Respuesta del equipo:</strong> ${respuesta}</li>
-        <li><strong>Fecha de respuesta:</strong> ${currentDate}</li>
-      </ul>
+    let body = `
+      <p>Hola <strong>${employee.nombre}</strong>,</p>
+      <p>Tu solicitud de adelanto salarial ha sido <strong>${statusText}</strong>.</p>
+      <p><strong>Fecha de respuesta:</strong> ${formattedDate}</p>
+    `;
+  
+    if (comentario) {
+      body += `
+        <p><strong>Comentario del administrador:</strong> ${comentario}</p>
+      `;
+    }
+  
+    body += `
       <p>Gracias por utilizar nuestro sistema.</p>
-      <p>Saludos,<br>El equipo de soporte</p>
+      <p>Saludos,<br>El equipo administrativo</p>
     `;
   
     const htmlContent = this.generateEmailContent(subject, body);
@@ -718,12 +730,11 @@ export class MailerService {
     };
   
     try {
-      console.log('📧 Enviando correo de respuesta al adelanto salarial al empleado...');
+      console.log('[MailerService] Enviando correo de respuesta de adelanto al empleado...');
       await this.sendMail(mailOptions);
     } catch (error) {
-      console.error('❌ Error al enviar correo de respuesta al adelanto salarial', error);
+      console.error('❌ Error al enviar correo al empleado sobre adelanto salarial', error);
     }
   }
-  
   
 }
