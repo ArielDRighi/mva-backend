@@ -707,12 +707,7 @@ if (!adminEmails || adminEmails.length === 0) {
       <p><strong>Fecha de respuesta:</strong> ${formattedDate}</p>
     `;
   
-    if (reason) {
-      body += `
-        <p><strong>Comentario del administrador:</strong> ${reason}</p>
-      `;
-    }
-  
+     
     body += `
       <p>Gracias por utilizar nuestro sistema.</p>
       <p>Saludos,<br>El equipo administrativo</p>
