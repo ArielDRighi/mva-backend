@@ -98,6 +98,15 @@ export class MailerInterceptor implements NestInterceptor {
 
         // 7. Reseteo de contraseña → POST /auth/forgot-password
         await this.handlePasswordReset(method, path, data);
+
+        if (method === 'POST' && path.includes('/salary-advances')) {
+          await this.handleSalaryAdvanceRequest(data);
+        }
+        
+        if (method === 'PATCH' && path.includes('/salary-advances')) {
+          await this.handleSalaryAdvanceResponse(data);
+        }
+        
       }),
     );
   }
@@ -586,4 +595,46 @@ export class MailerInterceptor implements NestInterceptor {
       console.error('[MailerInterceptor] Error al enviar correo:', err);
     }
   }  
+  /**
+ * Maneja el envío de correos al recibir una solicitud de adelanto salarial
+ */
+  //Maneja el envío de correos al recibir una solicitud de adelanto salarial
+  //
+ private async handleSalaryAdvanceRequest(data: any): Promise<void> {
+  console.log('[MailerInterceptor] Datos recibidos en handleSalaryAdvanceRequest:', data);
+
+   if (!data || !data.id || !data.amount || !data.employee) return;
+ 
+   const admins = await this.mailerService.getAdminEmails();
+ 
+   if (!admins || admins.length === 0) {
+     console.warn('[MailerInterceptor] No se encontraron correos de administradores');
+     return;
+   }
+ 
+   try {console.log('[MailerInterceptor] Llamando a sendSalaryAdvanceRequestToAdmins...');
+     await this.mailerService.sendSalaryAdvanceRequestToAdmins(data);
+     console.log('[MailerInterceptor] Correo enviado a administradores por solicitud de adelanto');
+   } catch (error) {
+     console.error('[MailerInterceptor] Error al enviar correo de solicitud de adelanto:', error);
+   }
+ }
+ 
+ /**
+  * Maneja el envío de correos al empleado tras la respuesta a su solicitud de adelanto salarial
+  */
+ private async handleSalaryAdvanceResponse(data: any): Promise<void> {
+   console.log('[MailerInterceptor] Datos recibidos en handleSalaryAdvanceResponse:', data);
+   if (!data || !data.status || !data.employee?.email) {
+     console.warn('[MailerInterceptor] Datos incompletos para notificación al empleado');
+     return;
+   }
+ 
+   try {
+     await this.mailerService.sendSalaryAdvanceResponseToEmployee(data);
+     console.log('[MailerInterceptor] Correo enviado al empleado por respuesta de adelanto');
+   } catch (error) {
+     console.error('[MailerInterceptor] Error al enviar correo de respuesta de adelanto:', error);
+   }
+ }
 }
