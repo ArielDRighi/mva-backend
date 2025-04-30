@@ -32,7 +32,7 @@ export class EmployeesController {
   create(@Body() createEmployeeDto: CreateEmployeeDto): Promise<Empleado> {
     return this.employeesService.create(createEmployeeDto);
   }
-
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Get()
   async findAll(
     @Query() paginationDto: PaginationDto,
@@ -40,12 +40,13 @@ export class EmployeesController {
     return this.employeesService.findAll(paginationDto);
   }
   
-
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number): Promise<Empleado> {
     return this.employeesService.findOne(id);
   }
 
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Get('documento/:documento')
   findByDocumento(@Param('documento') documento: string): Promise<Empleado> {
     return this.employeesService.findByDocumento(documento);

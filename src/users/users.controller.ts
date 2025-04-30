@@ -57,13 +57,13 @@ export class UsersController {
   ): Promise<User> {
     return this.usersService.update(id, updateUserDto);
   }
-
+  @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
     return this.usersService.remove(id);
   }
-
+  @Roles(Role.ADMIN, Role.SUPERVISOR)    
   @UseGuards(JwtAuthGuard)
   @Patch(':id/status')
   changeStatus(
