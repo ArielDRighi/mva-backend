@@ -42,9 +42,13 @@ export class SalaryAdvanceService {
   }
 
   // Función para obtener todos los adelantos (puedes personalizarla más tarde)
-  getAll(): AdvanceRequest[] {
-    return this.advanceRequests;
+  async getAll(): Promise<SalaryAdvance[]> {
+    return await this.salaryAdvanceRepository.find({
+      relations: ['employee'], // Incluye los datos del empleado
+      order: { createdAt: 'DESC' },
+    });
   }
+  
 
   // Función para aprobar un adelanto salarial
   async approve(id: string, adminId: string): Promise<SalaryAdvance | null> {
