@@ -23,7 +23,6 @@ export class EmployeeLeavesController {
   constructor(private readonly leavesService: EmployeeLeavesService) {}
 
   @Post()
-  @Roles(Role.ADMIN, Role.SUPERVISOR)
   create(@Body() createLeaveDto: CreateEmployeeLeaveDto) {
     return this.leavesService.create(createLeaveDto);
   }
@@ -59,7 +58,7 @@ export class EmployeeLeavesController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Roles(Role.ADMIN)
   remove(@Param('id') id: string) {
     return this.leavesService.remove(+id);
   }

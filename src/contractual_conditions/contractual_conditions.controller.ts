@@ -19,6 +19,8 @@ import {
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { Pagination } from 'src/common/interfaces/paginations.interface';
 import { CondicionesContractuales } from './entities/contractual_conditions.entity';
+import { Roles } from 'src/roles/decorators/roles.decorator';
+import { Role } from 'src/roles/enums/role.enum';
 
 @Controller('contractual_conditions')
 @UseGuards(JwtAuthGuard)
@@ -26,7 +28,7 @@ export class ContractualConditionsController {
   constructor(
     private readonly contractualConditionsService: ContractualConditionsService,
   ) {}
-
+  @Roles(Role.ADMIN)
   @Get()
   @HttpCode(HttpStatus.OK)
   async getAllContractualConditions(
@@ -47,6 +49,7 @@ export class ContractualConditionsController {
     }
   }
 
+  @Roles(Role.ADMIN)
   @Get('id/:id')
   @HttpCode(HttpStatus.OK)
   getContractualConditionById(
@@ -62,6 +65,7 @@ export class ContractualConditionsController {
       throw new HttpException(message, HttpStatus.BAD_REQUEST);
     }
   }
+  @Roles(Role.ADMIN)
   @Get('client-id/:clientId')
   @HttpCode(HttpStatus.OK)
   getContractualConditionsByClient(
@@ -77,6 +81,7 @@ export class ContractualConditionsController {
       throw new HttpException(message, HttpStatus.BAD_REQUEST);
     }
   }
+  @Roles(Role.ADMIN)
   @Post('create')
   @HttpCode(HttpStatus.OK)
   createContractualCondition(
@@ -92,6 +97,7 @@ export class ContractualConditionsController {
       throw new HttpException(message, HttpStatus.BAD_REQUEST);
     }
   }
+  @Roles(Role.ADMIN)
   @Put('modify/:id')
   @HttpCode(HttpStatus.OK)
   modifyContractualCondition(
@@ -109,6 +115,7 @@ export class ContractualConditionsController {
       throw new HttpException(message, HttpStatus.CREATED);
     }
   }
+  @Roles(Role.ADMIN)
   @Delete('delete/:id')
   @HttpCode(HttpStatus.OK)
   deleteContractualCondition(@Param('id', ParseIntPipe) id: number) {
