@@ -42,9 +42,6 @@ export class VehiclesController {
   ) {
     return this.vehiclesService.findAll(page, limit, search); // Este nombre 'vehiclesService' debe coincidir con tu servicio
   }
-  
-  
-  
 
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number): Promise<Vehicle> {
@@ -69,7 +66,7 @@ export class VehiclesController {
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
+  remove(@Param('id', ParseIntPipe) id: number): Promise<{ message: string }> {
     return this.vehiclesService.remove(id);
   }
 
