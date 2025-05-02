@@ -329,12 +329,12 @@ export class ServicesService {
     const service = await this.findOne(id);
 
     // Verificar si el servicio es de tipo CAPACITACION o si se está cambiando a ese tipo
-    const isOrWillBeCapacitacion =
+    const esServicioCapacitacion =
       service.tipoServicio === ServiceType.CAPACITACION ||
       updateServiceDto.tipoServicio === ServiceType.CAPACITACION;
 
     // Si es un servicio de capacitación, verificar que la asignación sea manual
-    if (isOrWillBeCapacitacion) {
+    if (esServicioCapacitacion) {
       if (updateServiceDto.asignacionAutomatica) {
         throw new BadRequestException(
           `Para servicios de CAPACITACION, la asignación de empleados debe ser manual (asignacionAutomatica debe ser false)`,
@@ -413,7 +413,7 @@ export class ServicesService {
     this.logger.log(`Servicio actualizado: ${JSON.stringify(savedService)}`);
 
     // Reasignar recursos si es necesario
-    if (updateServiceDto.asignacionAutomatica && !isOrWillBeCapacitacion) {
+    if (updateServiceDto.asignacionAutomatica && !esServicioCapacitacion) {
       await this.assignResourcesAutomatically(savedService, true);
     } else if (updateServiceDto.asignacionesManual?.length) {
       await this.assignResourcesManually(
@@ -578,7 +578,7 @@ export class ServicesService {
         ServiceType.REUBICACION,
       ].includes(service.tipoServicio);
 
-      // Comprobar si es un servicio de capacitación
+      // Comprobar si es un servicio de capacitación usando una variable auxiliar
       const esServicioCapacitacion =
         service.tipoServicio === ServiceType.CAPACITACION;
 
@@ -897,7 +897,7 @@ export class ServicesService {
       // Verificar que el servicio existe
       const assignments: ResourceAssignment[] = [];
 
-      // Comprobar si es un servicio de capacitación
+      // Comprobar si es un servicio de capacitación - usando la variable auxiliar
       const esServicioCapacitacion =
         service.tipoServicio === ServiceType.CAPACITACION;
 
