@@ -823,147 +823,43 @@ export class ServicesService {
         }
       }
 
-      // Crear nuevas asignaciones para los recursos
+      // Modificación: simplificar las asignaciones, sin vincular los recursos específicamente a los empleados
 
-      // Primero intentamos asignar vehículos a los empleados
-      const vehiclesForAssignment = [...currentVehicles, ...newVehicles];
-
-      // Crear asignación para el empleado A si existe
+      // 1. Crear asignaciones para los empleados (siempre 2)
       if (empleadoA) {
         const assignmentA = new ResourceAssignment();
         assignmentA.servicio = service;
         assignmentA.empleado = empleadoA;
-
-        // Asignar un vehículo si está disponible
-        if (vehiclesForAssignment.length > 0) {
-          assignmentA.vehiculo = vehiclesForAssignment.shift() || null;
-        }
-
         assignments.push(assignmentA);
       }
 
-      // Crear asignación para el empleado B si existe
       if (empleadoB) {
         const assignmentB = new ResourceAssignment();
         assignmentB.servicio = service;
         assignmentB.empleado = empleadoB;
-
-        // Asignar un vehículo si está disponible
-        if (vehiclesForAssignment.length > 0) {
-          assignmentB.vehiculo = vehiclesForAssignment.shift() || null;
-        }
-
         assignments.push(assignmentB);
       }
 
-      // Para vehículos adicionales que quedaron sin asignar
-      for (const vehicle of vehiclesForAssignment) {
-        const vehAssignment = new ResourceAssignment();
-        vehAssignment.servicio = service;
-        vehAssignment.vehiculo = vehicle;
-
-        assignments.push(vehAssignment);
+      // 2. Crear asignaciones para todos los vehículos
+      const allVehicles = [...currentVehicles, ...newVehicles];
+      for (const vehicle of allVehicles) {
+        const vehicleAssignment = new ResourceAssignment();
+        vehicleAssignment.servicio = service;
+        vehicleAssignment.vehiculo = vehicle;
+        assignments.push(vehicleAssignment);
       }
 
-      // Todos los baños (actuales y nuevos)
+      // 3. Crear asignaciones para todos los baños
       const allToilets = [...currentToilets, ...newToilets];
-
-      // Intentamos distribuir los baños equitativamente entre los empleados
-      if (allToilets.length > 0 && (empleadoA || empleadoB)) {
-        const toiletsPerEmployee = Math.ceil(allToilets.length / 2); // Redondear hacia arriba
-
-        // Asignar baños a empleadoA
-        if (empleadoA) {
-          const toiletsForA = allToilets.splice(0, toiletsPerEmployee);
-          for (const toilet of toiletsForA) {
-            // Buscar si ya existe una asignación para este empleado
-            const existingAssignment = assignments.find(
-              (a) => a.empleado === empleadoA,
-            );
-
-            if (existingAssignment) {
-              // Si ya existe asignación para este empleado, asignar baño a esa asignación
-              // Esta parte es conceptual, no se puede hacer directamente porque la relación es 1:1
-              // Entonces creamos una nueva asignación
-              const toiletAssignment = new ResourceAssignment();
-              toiletAssignment.servicio = service;
-              toiletAssignment.empleado = empleadoA;
-              toiletAssignment.bano = toilet;
-
-              if (toilet.estado !== ResourceState.ASIGNADO.toString()) {
-                await this.updateToiletState(toilet, ResourceState.ASIGNADO);
-                toilet.estado = ResourceState.ASIGNADO.toString();
-              }
-
-              assignments.push(toiletAssignment);
-            } else {
-              // Si no hay asignación para este empleado, crear una nueva
-              const toiletAssignment = new ResourceAssignment();
-              toiletAssignment.servicio = service;
-              toiletAssignment.empleado = empleadoA;
-              toiletAssignment.bano = toilet;
-
-              if (toilet.estado !== ResourceState.ASIGNADO.toString()) {
-                await this.updateToiletState(toilet, ResourceState.ASIGNADO);
-                toilet.estado = ResourceState.ASIGNADO.toString();
-              }
-
-              assignments.push(toiletAssignment);
-            }
-          }
-        }
-
-        // Asignar baños restantes a empleadoB
-        if (empleadoB) {
-          const toiletsForB = allToilets.splice(0, allToilets.length);
-          for (const toilet of toiletsForB) {
-            // Buscar si ya existe una asignación para este empleado
-            const existingAssignment = assignments.find(
-              (a) => a.empleado === empleadoB,
-            );
-
-            if (existingAssignment) {
-              // Crear una nueva asignación para este baño
-              const toiletAssignment = new ResourceAssignment();
-              toiletAssignment.servicio = service;
-              toiletAssignment.empleado = empleadoB;
-              toiletAssignment.bano = toilet;
-
-              if (toilet.estado !== ResourceState.ASIGNADO.toString()) {
-                await this.updateToiletState(toilet, ResourceState.ASIGNADO);
-                toilet.estado = ResourceState.ASIGNADO.toString();
-              }
-
-              assignments.push(toiletAssignment);
-            } else {
-              // Si no hay asignación para este empleado, crear una nueva
-              const toiletAssignment = new ResourceAssignment();
-              toiletAssignment.servicio = service;
-              toiletAssignment.empleado = empleadoB;
-              toiletAssignment.bano = toilet;
-
-              if (toilet.estado !== ResourceState.ASIGNADO.toString()) {
-                await this.updateToiletState(toilet, ResourceState.ASIGNADO);
-                toilet.estado = ResourceState.ASIGNADO.toString();
-              }
-
-              assignments.push(toiletAssignment);
-            }
-          }
-        }
-      }
-
-      // Si quedaron baños sin asignar a empleados, los asignamos solos
       for (const toilet of allToilets) {
-        const toiletAssignment = new ResourceAssignment();
-        toiletAssignment.servicio = service;
-        toiletAssignment.bano = toilet;
-
         if (toilet.estado !== ResourceState.ASIGNADO.toString()) {
           await this.updateToiletState(toilet, ResourceState.ASIGNADO);
           toilet.estado = ResourceState.ASIGNADO.toString();
         }
 
+        const toiletAssignment = new ResourceAssignment();
+        toiletAssignment.servicio = service;
+        toiletAssignment.bano = toilet;
         assignments.push(toiletAssignment);
       }
 
@@ -1611,8 +1507,8 @@ export class ServicesService {
         ServiceType.REPARACION,
       ].includes(service.tipoServicio);
 
-      // Cálculo de recursos necesarios
-      const employeesNeeded = service.cantidadEmpleados;
+      // Cálculo de recursos necesarios - Para empleados siempre son 2
+      const employeesNeeded = 2; // Siempre necesitamos 2 empleados
       const vehiclesNeeded = service.cantidadVehiculos;
       const toiletsNeeded = requiereNuevosBanos ? service.cantidadBanos : 0;
 
@@ -1770,11 +1666,13 @@ export class ServicesService {
         );
       }
 
-      if (service.cantidadEmpleados <= 0) {
-        throw new BadRequestException(
-          `Para servicios de ${service.tipoServicio}, la cantidad de empleados debe ser mayor a 0`,
-        );
-      }
+      // Ya no necesitamos verificar cantidadEmpleados porque ahora siempre es 2
+      // Removemos esta validación:
+      // if (service.cantidadEmpleados <= 0) {
+      //   throw new BadRequestException(
+      //     `Para servicios de ${service.tipoServicio}, la cantidad de empleados debe ser mayor a 0`,
+      //   );
+      // }
 
       if (service.banosInstalados && service.banosInstalados.length > 0) {
         throw new BadRequestException(

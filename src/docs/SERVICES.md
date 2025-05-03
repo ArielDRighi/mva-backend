@@ -21,8 +21,9 @@
 5. Estados de Servicio
 6. Estados de Recursos
 7. Integración con Condiciones Contractuales
-8. Manejo de Errores
-9. Ejemplos de Flujos Completos
+8. Estructura de Respuesta JSON
+9. Manejo de Errores
+10. Ejemplos de Flujos Completos
 
 ## Introducción
 
@@ -62,7 +63,6 @@ Content-Type: application/json
   "fechaProgramada": "2025-05-15T10:00:00.000Z",
   "tipoServicio": "INSTALACION",
   "cantidadBanos": 2,
-  "cantidadEmpleados": 2,
   "cantidadVehiculos": 1,
   "ubicacion": "Av. Corrientes 1234, Buenos Aires",
   "notas": "Entregar antes de las 9am",
@@ -79,10 +79,11 @@ Content-Type: application/json
   "fechaProgramada": "2025-05-16T10:00:00.000Z",
   "tipoServicio": "INSTALACION",
   "cantidadBanos": 2,
-  "cantidadEmpleados": 2,
   "cantidadVehiculos": 2,
   "ubicacion": "Av. Santa Fe 5678, Buenos Aires",
   "asignacionAutomatica": false,
+  "empleadoAId": 1,
+  "empleadoBId": 2,
   "asignacionesManual": [
     {
       "empleadoId": 1,
@@ -109,7 +110,6 @@ Para servicios que operan sobre baños ya instalados en el cliente:
   "fechaProgramada": "2025-05-16T10:00:00.000Z",
   "tipoServicio": "LIMPIEZA",
   "cantidadBanos": 0,
-  "cantidadEmpleados": 2,
   "cantidadVehiculos": 1,
   "ubicacion": "Av. Santa Fe 5678, Buenos Aires",
   "asignacionAutomatica": true,
@@ -126,18 +126,13 @@ Para servicios de capacitación que solo requieren empleados:
   "fechaProgramada": "2025-05-20T09:00:00.000Z",
   "tipoServicio": "CAPACITACION",
   "cantidadBanos": 0,
-  "cantidadEmpleados": 5,
   "cantidadVehiculos": 0,
   "ubicacion": "Sede Central, Av. Rivadavia, Buenos Aires",
   "notas": "Capacitación sobre manejo de equipos nuevos",
   "asignacionAutomatica": false,
-  "asignacionesManual": [
-    { "empleadoId": 1 },
-    { "empleadoId": 2 },
-    { "empleadoId": 3 },
-    { "empleadoId": 4 },
-    { "empleadoId": 5 }
-  ]
+  "empleadoAId": 1,
+  "empleadoBId": 2,
+  "asignacionesManual": [{ "empleadoId": 1 }, { "empleadoId": 2 }]
 }
 ```
 
@@ -147,8 +142,9 @@ Para servicios de capacitación que solo requieren empleados:
 | fechaProgramada        | string (fecha ISO) | Sí        | Fecha programada del servicio                                                                     |
 | tipoServicio           | string             | Sí        | INSTALACION, RETIRO, LIMPIEZA, MANTENIMIENTO, CAPACITACION, etc.                                  |
 | cantidadBanos          | number             | Sí        | Cantidad de baños requeridos (0 para servicios de tipo LIMPIEZA, REEMPLAZO, RETIRO, CAPACITACION) |
-| cantidadEmpleados      | number             | Sí        | Cantidad de empleados requeridos                                                                  |
 | cantidadVehiculos      | number             | Sí        | Cantidad de vehículos requeridos (0 para servicios de tipo CAPACITACION)                          |
+| empleadoAId            | number             | No        | ID específico para el primer empleado (empleado A)                                                |
+| empleadoBId            | number             | No        | ID específico para el segundo empleado (empleado B)                                               |
 | ubicacion              | string             | Sí        | Ubicación del servicio                                                                            |
 | notas                  | string             | No        | Notas adicionales                                                                                 |
 | asignacionAutomatica   | boolean            | Sí        | Si es true, el sistema asigna recursos; si es false, asignación manual                            |
@@ -180,6 +176,8 @@ Para servicios de capacitación que solo requieren empleados:
   "estado": "PROGRAMADO",
   "cantidadBanos": 2,
   "cantidadEmpleados": 2,
+  "empleadoAId": 1,
+  "empleadoBId": 2,
   "cantidadVehiculos": 1,
   "ubicacion": "Av. Corrientes 1234, Buenos Aires",
   "notas": "Entregar antes de las 9am",
@@ -244,6 +242,8 @@ GET /api/services?search=constructora&page=2&limit=5
       "estado": "PROGRAMADO",
       "cantidadBanos": 2,
       "cantidadEmpleados": 2,
+      "empleadoAId": 1,
+      "empleadoBId": 2,
       "cantidadVehiculos": 1,
       "ubicacion": "Av. Corrientes 1234, Buenos Aires",
       "notas": "Entregar antes de las 9am",
@@ -283,6 +283,8 @@ GET /api/services?search=constructora&page=2&limit=5
   "estado": "PROGRAMADO",
   "cantidadBanos": 2,
   "cantidadEmpleados": 2,
+  "empleadoAId": 1,
+  "empleadoBId": 2,
   "cantidadVehiculos": 1,
   "ubicacion": "Av. Corrientes 1234, Buenos Aires",
   "notas": "Entregar antes de las 9am",
@@ -296,18 +298,40 @@ GET /api/services?search=constructora&page=2&limit=5
       "empleadoId": 1,
       "empleado": {
         /* datos del empleado */
-      },
+      }
+    },
+    {
+      "id": 2,
+      "servicioId": 1,
+      "empleadoId": 2,
+      "empleado": {
+        /* datos del empleado */
+      }
+    },
+    {
+      "id": 3,
+      "servicioId": 1,
       "vehiculoId": 1,
       "vehiculo": {
         /* datos del vehículo */
-      },
+      }
+    },
+    {
+      "id": 4,
+      "servicioId": 1,
       "banoId": 1,
       "bano": {
         /* datos del baño */
-      },
-      "fechaAsignacion": "2025-04-10T15:30:00.000Z"
+      }
+    },
+    {
+      "id": 5,
+      "servicioId": 1,
+      "banoId": 2,
+      "bano": {
+        /* datos del baño */
+      }
     }
-    // Más asignaciones...
   ]
 }
 ```
@@ -330,7 +354,6 @@ GET /api/services?search=constructora&page=2&limit=5
 ```json
 {
   "cantidadBanos": 3,
-  "cantidadEmpleados": 3,
   "cantidadVehiculos": 2,
   "asignacionAutomatica": true
 }
@@ -370,7 +393,6 @@ GET /api/services?search=constructora&page=2&limit=5
 ```json
 {
   "tipoServicio": "CAPACITACION",
-  "cantidadEmpleados": 8,
   "cantidadBanos": 0,
   "cantidadVehiculos": 0,
   "asignacionAutomatica": true,
@@ -453,11 +475,12 @@ No devuelve contenido.
 
 Cuando `asignacionAutomatica` es `true`, el sistema:
 
-1. Busca recursos disponibles (empleados, vehículos y baños)
-2. Verifica que no estén asignados a otros servicios en la misma fecha
-3. Verifica que no tengan mantenimientos programados para esa fecha
-4. Los asigna automáticamente según las cantidades especificadas
-5. Cambia el estado de los recursos según el tipo de servicio:
+1. Asigna exactamente 2 empleados (empleadoA y empleadoB)
+2. Busca recursos disponibles (empleados, vehículos y baños)
+3. Verifica que no estén asignados a otros servicios en la misma fecha
+4. Verifica que no tengan mantenimientos programados para esa fecha
+5. Los asigna automáticamente según las cantidades especificadas
+6. Cambia el estado de los recursos según el tipo de servicio:
    - Para servicios de `CAPACITACION`, los empleados pasan a estado `EN_CAPACITACION`
    - Para otros tipos de servicios, los recursos pasan a estado `ASIGNADO`
 
@@ -535,18 +558,18 @@ GET /api/chemical_toilets/by-client/{clientId}
 El servicio de tipo `CAPACITACION` tiene características específicas:
 
 1. Solo requiere empleados, no utiliza vehículos ni baños
-2. Los empleados asignados cambian su estado a `EN_CAPACITACION` en lugar de `ASIGNADO`
-3. Los empleados en estado `EN_CAPACITACION` no están disponibles para ser asignados a otros servicios
-4. **La asignación de empleados siempre debe ser manual** (no se permite asignación automática)
-5. Para crear un servicio de capacitación:
+2. Siempre requiere exactamente 2 empleados (empleadoA y empleadoB)
+3. Los empleados asignados cambian su estado a `EN_CAPACITACION` en lugar de `ASIGNADO`
+4. Los empleados en estado `EN_CAPACITACION` no están disponibles para ser asignados a otros servicios
+5. **La asignación de empleados siempre debe ser manual** (no se permite asignación automática)
+6. Para crear un servicio de capacitación:
    - `asignacionAutomatica` debe ser `false`
    - Se deben especificar manualmente los empleados en `asignacionesManual`
    - `cantidadBanos` debe ser `0`
    - `cantidadVehiculos` debe ser `0`
-   - `cantidadEmpleados` debe ser mayor que `0`
    - No se debe especificar el campo `banosInstalados`
    - El servicio puede ser interno (sin cliente) o asociado a un cliente específico
-6. Al completar o cancelar el servicio, los empleados vuelven al estado `DISPONIBLE`
+7. Al completar o cancelar el servicio, los empleados vuelven al estado `DISPONIBLE`
 
 ## Estados de Servicio
 
@@ -592,6 +615,120 @@ Los servicios de tipo `INSTALACION` pueden estar asociados a condiciones contrac
 3. Esta fecha indica cuándo los baños deben ser retirados automáticamente o programarse un servicio de `RETIRO`.
 
 Si no se especifica un `condicionContractualId`, el sistema intentará buscar un contrato activo para el cliente y utilizará su fecha de finalización.
+
+## Estructura de Respuesta JSON
+
+Las respuestas JSON del sistema están optimizadas para incluir solo campos relevantes. En particular, las asignaciones de recursos mostrarán únicamente los recursos que están efectivamente asignados, evitando campos nulos.
+
+### Ejemplo de Asignación de Empleado
+
+```json
+{
+  "id": 1,
+  "servicioId": 3,
+  "empleadoId": 1,
+  "empleado": {
+    "id": 1,
+    "nombre": "Carlos",
+    "apellido": "Rodríguez",
+    "documento": "25789456",
+    "telefono": "1145678901",
+    "email": "carlos.rodriguez@example.com",
+    "cargo": "Conductor",
+    "estado": "ASIGNADO"
+  },
+  "fechaAsignacion": "2025-05-03T18:08:54.286Z"
+}
+```
+
+### Ejemplo de Asignación de Vehículo
+
+```json
+{
+  "id": 9,
+  "servicioId": 3,
+  "vehiculoId": 3,
+  "vehiculo": {
+    "id": 3,
+    "numeroInterno": "VH-003",
+    "placa": "AD789FF",
+    "marca": "Toyota",
+    "modelo": "Hilux",
+    "anio": 2022,
+    "tipoCabina": "doble",
+    "fechaVencimientoVTV": "2026-07-19",
+    "fechaVencimientoSeguro": "2026-09-24",
+    "esExterno": false,
+    "estado": "ASIGNADO"
+  },
+  "fechaAsignacion": "2025-05-03T18:01:06.513Z"
+}
+```
+
+### Ejemplo de Asignación de Baño
+
+```json
+{
+  "id": 10,
+  "servicioId": 3,
+  "banoId": 5,
+  "bano": {
+    "baño_id": 5,
+    "codigo_interno": "BQ-2022-005",
+    "modelo": "Portátil",
+    "fecha_adquisicion": "2023-10-03T20:46:34.178Z",
+    "estado": "ASIGNADO"
+  },
+  "fechaAsignacion": "2025-05-03T18:01:06.513Z"
+}
+```
+
+### Ejemplo de Asignación Combinada
+
+Si una asignación incluye varios tipos de recursos, todos aparecerán en la misma estructura:
+
+```json
+{
+  "id": 6,
+  "servicioId": 3,
+  "empleadoId": 1,
+  "empleado": {
+    "id": 1,
+    "nombre": "Carlos",
+    "apellido": "Rodríguez",
+    "documento": "25789456",
+    "telefono": "1145678901",
+    "email": "carlos.rodriguez@example.com",
+    "cargo": "Conductor",
+    "estado": "ASIGNADO"
+  },
+  "vehiculoId": 1,
+  "vehiculo": {
+    "id": 1,
+    "numeroInterno": "VH-001",
+    "placa": "AA123BB",
+    "marca": "Ford",
+    "modelo": "F-100",
+    "anio": 2020,
+    "tipoCabina": "simple",
+    "fechaVencimientoVTV": "2026-05-14",
+    "fechaVencimientoSeguro": "2026-07-19",
+    "esExterno": false,
+    "estado": "ASIGNADO"
+  },
+  "banoId": 4,
+  "bano": {
+    "baño_id": 4,
+    "codigo_interno": "BQ-2022-004",
+    "modelo": "Premium",
+    "fecha_adquisicion": "2023-09-03T21:07:04.531Z",
+    "estado": "ASIGNADO"
+  },
+  "fechaAsignacion": "2025-05-03T18:08:54.286Z"
+}
+```
+
+Esta optimización reduce el tamaño de la respuesta JSON y facilita el procesamiento de los datos en el cliente.
 
 ## Manejo de Errores
 
@@ -645,7 +782,6 @@ La API devuelve códigos de error HTTP estándar junto con mensajes descriptivos
      "fechaProgramada": "2025-05-01T10:00:00.000Z",
      "tipoServicio": "INSTALACION",
      "cantidadBanos": 2,
-     "cantidadEmpleados": 2,
      "cantidadVehiculos": 1,
      "ubicacion": "Av. 9 de Julio 1000",
      "asignacionAutomatica": true,
@@ -686,7 +822,6 @@ La API devuelve códigos de error HTTP estándar junto con mensajes descriptivos
      "fechaProgramada": "2025-05-15T10:00:00.000Z",
      "tipoServicio": "LIMPIEZA",
      "cantidadBanos": 0,
-     "cantidadEmpleados": 2,
      "cantidadVehiculos": 1,
      "ubicacion": "Av. 9 de Julio 1000",
      "asignacionAutomatica": true,
@@ -703,7 +838,6 @@ La API devuelve códigos de error HTTP estándar junto con mensajes descriptivos
      "fechaProgramada": "2025-06-30T10:00:00.000Z",
      "tipoServicio": "RETIRO",
      "cantidadBanos": 0,
-     "cantidadEmpleados": 2,
      "cantidadVehiculos": 1,
      "ubicacion": "Av. 9 de Julio 1000",
      "asignacionAutomatica": true,
@@ -722,7 +856,6 @@ La API devuelve códigos de error HTTP estándar junto con mensajes descriptivos
      "fechaProgramada": "2025-05-10T09:00:00.000Z",
      "tipoServicio": "CAPACITACION",
      "cantidadBanos": 0,
-     "cantidadEmpleados": 5,
      "cantidadVehiculos": 0,
      "ubicacion": "Sede central, Sala de conferencias",
      "notas": "Capacitación en nuevos procedimientos operativos",
@@ -772,7 +905,6 @@ La API devuelve códigos de error HTTP estándar junto con mensajes descriptivos
      "fechaProgramada": "2025-07-15T10:00:00.000Z",
      "tipoServicio": "INSTALACION",
      "cantidadBanos": 1,
-     "cantidadEmpleados": 1,
      "cantidadVehiculos": 1,
      "ubicacion": "Av. Sarmiento 500",
      "asignacionAutomatica": true
@@ -785,7 +917,6 @@ La API devuelve códigos de error HTTP estándar junto con mensajes descriptivos
    PUT /api/services/{id}
    {
      "cantidadBanos": 2,
-     "cantidadEmpleados": 2,
      "cantidadVehiculos": 1,
      "asignacionAutomatica": true
    }
@@ -803,7 +934,6 @@ La API devuelve códigos de error HTTP estándar junto con mensajes descriptivos
    PUT /api/services/{id}
    {
      "cantidadBanos": 1,
-     "cantidadEmpleados": 1,
      "cantidadVehiculos": 1,
      "asignacionAutomatica": true
    }
@@ -825,7 +955,6 @@ La API devuelve códigos de error HTTP estándar junto con mensajes descriptivos
      "fechaProgramada": "2025-06-10T08:00:00.000Z",
      "tipoServicio": "INSTALACION",
      "cantidadBanos": 2,
-     "cantidadEmpleados": 1,
      "cantidadVehiculos": 1,
      "ubicacion": "Av. Libertador 1500",
      "asignacionAutomatica": true
@@ -847,7 +976,6 @@ La API devuelve códigos de error HTTP estándar junto con mensajes descriptivos
      "fechaProgramada": "2025-06-10T14:00:00.000Z",
      "tipoServicio": "INSTALACION",
      "cantidadBanos": 1,
-     "cantidadEmpleados": 1,
      "cantidadVehiculos": 1,
      "ubicacion": "Av. Callao 500",
      "asignacionAutomatica": false,
@@ -910,7 +1038,6 @@ La API devuelve códigos de error HTTP estándar junto con mensajes descriptivos
      "fechaProgramada": "2025-06-15T09:00:00.000Z",
      "tipoServicio": "LIMPIEZA",
      "cantidadBanos": 0,
-     "cantidadEmpleados": 2,
      "cantidadVehiculos": 1,
      "ubicacion": "Av. Belgrano 2500",
      "asignacionAutomatica": true,
@@ -927,7 +1054,6 @@ La API devuelve códigos de error HTTP estándar junto con mensajes descriptivos
      "fechaProgramada": "2025-07-01T10:00:00.000Z",
      "tipoServicio": "RETIRO",
      "cantidadBanos": 0,
-     "cantidadEmpleados": 2,
      "cantidadVehiculos": 1,
      "ubicacion": "Av. Belgrano 2500",
      "asignacionAutomatica": true,

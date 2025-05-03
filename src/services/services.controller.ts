@@ -14,6 +14,7 @@ import {
   HttpException,
   HttpStatus,
   UseInterceptors,
+  ClassSerializerInterceptor,
 } from '@nestjs/common';
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto/create-service.dto';
@@ -28,7 +29,9 @@ import { ChangeServiceStatusDto } from './dto/change-service-status.dto';
 
 import { MailerInterceptor } from 'src/mailer/interceptor/mailer.interceptor';
 import { FilterServicesDto } from './dto/filter-service.dto';
-@UseInterceptors(MailerInterceptor)
+
+// Añadimos el ClassSerializerInterceptor para aplicar las transformaciones
+@UseInterceptors(MailerInterceptor, ClassSerializerInterceptor)
 @Controller('services')
 @UseGuards(JwtAuthGuard)
 export class ServicesController {
