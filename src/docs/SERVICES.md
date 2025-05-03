@@ -166,23 +166,24 @@ Para servicios que operan sobre baños ya instalados en el cliente:
 }
 ```
 
-## 2. Obtener Servicios ##
+## 2. Obtener Servicios
+
 **Endpoint: GET /api/services**
 **Roles permitidos: Todos los usuarios autenticados**
 **Descripción: Recupera los servicios registrados en el sistema. Se permite filtrar por estado, cliente, fechas y tipo de servicio, así como buscar por texto libre y paginar los resultados.**
 
 **Parámetros de Query:**
 
-| Parámetro     | Tipo               | Descripción                                                                 |
-|---------------|--------------------|-----------------------------------------------------------------------------|
-| estado        | string             | Filtra por estado del servicio (ej: `PROGRAMADO`, `EN_CURSO`, `FINALIZADO`) |
-| clienteId     | number             | Filtra por ID del cliente asociado                                          |
-| tipoServicio  | string             | Filtra por tipo de servicio (`INSTALACION`, `RETIRO`, etc.)                |
-| fechaDesde    | string (ISO 8601)  | Filtra servicios cuya fecha programada sea igual o posterior a esta fecha  |
-| fechaHasta    | string (ISO 8601)  | Filtra servicios cuya fecha programada sea igual o anterior a esta fecha   |
-| search        | string             | Búsqueda parcial por estado, tipo de servicio o nombre del cliente         |
-| page          | number             | Número de página a recuperar (por defecto: 1)                               |
-| limit         | number             | Cantidad de resultados por página (por defecto: 10)                         |
+| Parámetro    | Tipo              | Descripción                                                                 |
+| ------------ | ----------------- | --------------------------------------------------------------------------- |
+| estado       | string            | Filtra por estado del servicio (ej: `PROGRAMADO`, `EN_CURSO`, `FINALIZADO`) |
+| clienteId    | number            | Filtra por ID del cliente asociado                                          |
+| tipoServicio | string            | Filtra por tipo de servicio (`INSTALACION`, `RETIRO`, etc.)                 |
+| fechaDesde   | string (ISO 8601) | Filtra servicios cuya fecha programada sea igual o posterior a esta fecha   |
+| fechaHasta   | string (ISO 8601) | Filtra servicios cuya fecha programada sea igual o anterior a esta fecha    |
+| search       | string            | Búsqueda parcial por estado, tipo de servicio o nombre del cliente          |
+| page         | number            | Número de página a recuperar (por defecto: 1)                               |
+| limit        | number            | Cantidad de resultados por página (por defecto: 10)                         |
 
 #### Ejemplos
 
@@ -231,7 +232,6 @@ GET /api/services?search=constructora&page=2&limit=5
   "currentPage": 1,
   "totalPages": 2
 }
-
 ```
 
 ### 3. Obtener un Servicio Específico
@@ -355,13 +355,30 @@ GET /api/services?search=constructora&page=2&limit=5
 
 **Endpoint:** `PATCH /api/services/{id}/estado`
 
+#### Cambiar a estado regular
+
 ```json
 {
   "estado": "EN_PROGRESO"
 }
 ```
 
-**Estados Válidos:** `PROGRAMADO`, `EN_PROGRESO`, `COMPLETADO`, `CANCELADO`, `SUSPENDIDO`
+#### Cambiar a estado INCOMPLETO (requiere comentario obligatorio)
+
+```json
+{
+  "estado": "INCOMPLETO",
+  "comentarioIncompleto": "No se pudo completar el servicio debido a falta de acceso al sitio"
+}
+```
+
+**Estados Válidos:** `PROGRAMADO`, `EN_PROGRESO`, `COMPLETADO`, `CANCELADO`, `SUSPENDIDO`, `INCOMPLETO`
+
+**Notas Importantes:**
+
+- El estado `INCOMPLETO` solo puede aplicarse a servicios que están en estado `EN_PROGRESO`
+- Al cambiar a estado `INCOMPLETO` es obligatorio proporcionar un comentario en el campo `comentarioIncompleto`
+- Los estados `COMPLETADO`, `CANCELADO` e `INCOMPLETO` son estados finales y no permiten transiciones a otros estados
 
 #### Respuesta Exitosa (200 OK)
 
@@ -469,13 +486,14 @@ GET /api/chemical_toilets/by-client/{clientId}
 
 ## Estados de Servicio
 
-| Estado      | Descripción                                          | Transiciones Permitidas |
-| ----------- | ---------------------------------------------------- | ----------------------- |
-| PROGRAMADO  | Servicio con recursos asignados, listo para ejecutar | EN_PROGRESO, CANCELADO  |
-| EN_PROGRESO | Servicio que se está ejecutando actualmente          | COMPLETADO, CANCELADO   |
-| COMPLETADO  | Servicio finalizado correctamente                    | Ninguna                 |
-| CANCELADO   | Servicio cancelado                                   | Ninguna                 |
-| SUSPENDIDO  | Servicio temporalmente suspendido                    | EN_PROGRESO, CANCELADO  |
+| Estado      | Descripción                                                  | Transiciones Permitidas            |
+| ----------- | ------------------------------------------------------------ | ---------------------------------- |
+| PROGRAMADO  | Servicio con recursos asignados, listo para ejecutar         | EN_PROGRESO, CANCELADO, SUSPENDIDO |
+| EN_PROGRESO | Servicio que se está ejecutando actualmente                  | COMPLETADO, SUSPENDIDO, INCOMPLETO |
+| COMPLETADO  | Servicio finalizado correctamente                            | Ninguna                            |
+| CANCELADO   | Servicio cancelado                                           | Ninguna                            |
+| SUSPENDIDO  | Servicio temporalmente suspendido                            | EN_PROGRESO, CANCELADO             |
+| INCOMPLETO  | Servicio que no pudo completarse por alguna razón específica | Ninguna                            |
 
 ## Integración con Condiciones Contractuales
 

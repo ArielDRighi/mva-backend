@@ -21,6 +21,7 @@ export enum ServiceState {
   COMPLETADO = 'COMPLETADO',
   CANCELADO = 'CANCELADO',
   SUSPENDIDO = 'SUSPENDIDO',
+  INCOMPLETO = 'INCOMPLETO', // Nuevo estado que requiere comentario obligatorio
 }
 
 export enum ServiceType {

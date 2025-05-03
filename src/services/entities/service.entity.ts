@@ -82,6 +82,9 @@ export class Service {
   @CreateDateColumn({ name: 'fecha_creacion' })
   fechaCreacion: Date;
 
+  @Column({ name: 'comentario_incompleto', type: 'text', nullable: true })
+  comentarioIncompleto: string;
+
   @OneToMany(() => ResourceAssignment, (assignment) => assignment.servicio, {
     cascade: ['insert', 'update'],
   })

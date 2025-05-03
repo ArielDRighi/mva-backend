@@ -161,8 +161,12 @@ export class ServicesService {
                     `Limpieza futura #${i + 1} creada para fecha: ${diasMantenimiento[i].toISOString()}`,
                   );
                 } catch (error) {
+                  const errorMessage =
+                    error instanceof Error
+                      ? error.message
+                      : 'Error desconocido';
                   this.logger.error(
-                    `Error al crear limpieza futura #${i + 1}: ${error.message}`,
+                    `Error al crear limpieza futura #${i + 1}: ${errorMessage}`,
                   );
                   // No lanzamos el error para que la transacción pueda continuar aunque alguna limpieza falle
                 }
@@ -273,7 +277,9 @@ export class ServicesService {
         totalPages: Math.ceil(total / limit),
       };
     } catch (error) {
-      this.logger.error('Error al obtener los servicios', error.stack);
+      const errorStack =
+        error instanceof Error ? error.stack : 'No stack trace available';
+      this.logger.error('Error al obtener los servicios', errorStack);
       throw new Error('Error al obtener los servicios');
     }
   }
@@ -381,13 +387,24 @@ export class ServicesService {
     await this.serviceRepository.remove(service);
   }
 
-  async changeStatus(id: number, nuevoEstado: ServiceState): Promise<Service> {
+  async changeStatus(
+    id: number,
+    nuevoEstado: ServiceState,
+    comentarioIncompleto?: string,
+  ): Promise<Service> {
     this.logger.log(`Cambiando estado del servicio ${id} a ${nuevoEstado}`);
 
     const service = await this.findOne(id);
 
     // Validar transición de estado
     this.validateStatusTransition(service.estado, nuevoEstado);
+
+    // Validar que se proporcione comentario obligatorio para estado INCOMPLETO
+    if (nuevoEstado === ServiceState.INCOMPLETO && !comentarioIncompleto) {
+      throw new BadRequestException(
+        'Para cambiar un servicio a estado INCOMPLETO, debe proporcionar un comentario explicando el motivo',
+      );
+    }
 
     // Actualizar fechas
     if (nuevoEstado === ServiceState.EN_PROGRESO && !service.fechaInicio) {
@@ -410,10 +427,17 @@ export class ServicesService {
       }
     }
 
+    // Si se marca como INCOMPLETO, también guardar la fecha de fin y el comentario
+    if (nuevoEstado === ServiceState.INCOMPLETO) {
+      service.fechaFin = new Date();
+      service.comentarioIncompleto = comentarioIncompleto || '';
+    }
+
     // Liberar recursos cuando corresponda
     if (
       nuevoEstado === ServiceState.CANCELADO ||
-      nuevoEstado === ServiceState.COMPLETADO
+      nuevoEstado === ServiceState.COMPLETADO ||
+      nuevoEstado === ServiceState.INCOMPLETO
     ) {
       // Para servicios de INSTALACIÓN, retención basada en contrato
       if (service.tipoServicio === ServiceType.INSTALACION) {
@@ -1314,6 +1338,7 @@ export class ServicesService {
       [ServiceState.EN_PROGRESO]: [
         ServiceState.COMPLETADO,
         ServiceState.SUSPENDIDO,
+        ServiceState.INCOMPLETO, // Se puede marcar como INCOMPLETO desde EN_PROGRESO
       ],
       [ServiceState.SUSPENDIDO]: [
         ServiceState.EN_PROGRESO,
@@ -1321,7 +1346,7 @@ export class ServicesService {
       ],
       [ServiceState.COMPLETADO]: [], // Final state
       [ServiceState.CANCELADO]: [], // Final state
-      // Removed PENDIENTE_RECURSOS and PENDIENTE_CONFIRMACION
+      [ServiceState.INCOMPLETO]: [], // Final state
     };
 
     // Verify if the transition is valid
@@ -1461,10 +1486,11 @@ export class ServicesService {
       // Verificar disponibilidad de empleados
       if (employeesNeeded > 0) {
         // Primero, obtenemos todos los empleados disponibles actualmente
-        const employeesResponse = await this.employeesService.findAll({
-          page: 1,
-          limit: 10,
-        });
+        const employeesResponse: { data: Empleado[] } =
+          await this.employeesService.findAll({
+            page: 1,
+            limit: 10,
+          });
 
         // Accedemos a la propiedad 'data' que contiene el array de empleados
         const allEmployees = employeesResponse.data || [];
