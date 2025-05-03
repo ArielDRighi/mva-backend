@@ -136,7 +136,7 @@ export class VehiclesService {
     return this.vehicleRepository.save(vehicle);
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: number): Promise<{ message: string }> {
     this.logger.log(`Eliminando vehículo con id: ${id}`);
     const vehicle = await this.findOne(id);
 
@@ -174,6 +174,8 @@ export class VehiclesService {
     }
 
     await this.vehicleRepository.remove(vehicle);
+
+    return { message: `El vehículo id: ${id} ha sido eliminado correctamente` };
   }
 
   async changeStatus(id: number, estado: string): Promise<Vehicle> {

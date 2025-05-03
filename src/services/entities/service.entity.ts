@@ -20,7 +20,7 @@ export class Service {
   @PrimaryGeneratedColumn({ name: 'servicio_id' })
   id: number;
 
-  @Column({ name: 'cliente_id' })
+  @Column({ name: 'cliente_id', nullable: true })
   clienteId: number;
 
   @ManyToOne(() => Cliente, (cliente) => cliente.servicios)
@@ -89,6 +89,9 @@ export class Service {
 
   @CreateDateColumn({ name: 'fecha_creacion' })
   fechaCreacion: Date;
+
+  @Column({ name: 'comentario_incompleto', type: 'text', nullable: true })
+  comentarioIncompleto: string;
 
   @OneToMany(() => ResourceAssignment, (assignment) => assignment.servicio, {
     cascade: ['insert', 'update'],
