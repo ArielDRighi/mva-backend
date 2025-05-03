@@ -20,7 +20,7 @@ export class Service {
   @PrimaryGeneratedColumn({ name: 'servicio_id' })
   id: number;
 
-  @Column({ name: 'cliente_id' })
+  @Column({ name: 'cliente_id', nullable: true })
   clienteId: number;
 
   @ManyToOne(() => Cliente, (cliente) => cliente.servicios)

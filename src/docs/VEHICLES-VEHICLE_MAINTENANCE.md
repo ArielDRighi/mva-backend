@@ -60,19 +60,27 @@ Content-Type: application/json
   "marca": "Toyota",
   "modelo": "Hilux",
   "anio": 2023,
-  "capacidadCarga": 1200,
+  "tipoCabina": "doble",
+  "numeroInterno": "VH-001",
+  "fechaVencimientoVTV": "2026-05-15",
+  "fechaVencimientoSeguro": "2026-01-10",
+  "esExterno": false,
   "estado": "DISPONIBLE"
 }
 ```
 
-| Campo          | Tipo   | Requerido | Descripción                                         |
-| -------------- | ------ | --------- | --------------------------------------------------- |
-| placa          | string | Sí        | Matrícula del vehículo, debe ser única              |
-| marca          | string | Sí        | Marca del vehículo                                  |
-| modelo         | string | Sí        | Modelo del vehículo                                 |
-| anio           | number | Sí        | Año de fabricación (mínimo 1900)                    |
-| capacidadCarga | number | Sí        | Capacidad de carga en kg (mínimo 0)                 |
-| estado         | string | No        | Estado inicial del vehículo (default: "DISPONIBLE") |
+| Campo                  | Tipo    | Requerido | Descripción                                                |
+| ---------------------- | ------- | --------- | ---------------------------------------------------------- |
+| placa                  | string  | Sí        | Matrícula del vehículo, debe ser única                     |
+| marca                  | string  | Sí        | Marca del vehículo                                         |
+| modelo                 | string  | Sí        | Modelo del vehículo                                        |
+| anio                   | number  | Sí        | Año de fabricación (mínimo 1900)                           |
+| tipoCabina             | string  | No        | Tipo de cabina: "simple" o "doble" (por defecto: "simple") |
+| numeroInterno          | string  | No        | Número interno asignado al vehículo                        |
+| fechaVencimientoVTV    | string  | No        | Fecha de vencimiento de la VTV (formato: YYYY-MM-DD)       |
+| fechaVencimientoSeguro | string  | No        | Fecha de vencimiento del seguro (formato: YYYY-MM-DD)      |
+| esExterno              | boolean | No        | Indica si el vehículo es externo (por defecto: false)      |
+| estado                 | string  | No        | Estado inicial del vehículo (por defecto: "DISPONIBLE")    |
 
 **Respuesta Exitosa (201 Created):**
 
@@ -83,24 +91,29 @@ Content-Type: application/json
   "marca": "Toyota",
   "modelo": "Hilux",
   "anio": 2023,
-  "capacidadCarga": "1200.00",
+  "tipoCabina": "doble",
+  "numeroInterno": "VH-001",
+  "fechaVencimientoVTV": "2026-05-15",
+  "fechaVencimientoSeguro": "2026-01-10",
+  "esExterno": false,
   "estado": "DISPONIBLE",
   "maintenanceRecords": []
 }
 ```
 
-## 2. Obtener Vehículos##
+## 2. Obtener Vehículos
+
 **Endpoint: GET /api/vehicles**
 **Roles permitidos: Todos los usuarios autenticados**
 **Descripción: Recupera todos los vehículos registrados en el sistema. Permite filtrar por estado y realizar paginación.**
 
 **Parámetros de consulta opcionales:**
 
-| Parámetro | Tipo   | Descripción                                                                          |
-|-----------|--------|--------------------------------------------------------------------------------------|
-| search    | string | Búsqueda parcial por estado del vehículo (no distingue mayúsculas/minúsculas)       |
-| page      | number | Número de página a recuperar (por defecto: 1)                                        |
-| limit     | number | Cantidad de resultados por página (por defecto: 10)                                  |
+| Parámetro | Tipo   | Descripción                                                                   |
+| --------- | ------ | ----------------------------------------------------------------------------- |
+| search    | string | Búsqueda parcial por estado del vehículo (no distingue mayúsculas/minúsculas) |
+| page      | number | Número de página a recuperar (por defecto: 1)                                 |
+| limit     | number | Cantidad de resultados por página (por defecto: 10)                           |
 
 El parámetro search filtra vehículos según el valor del campo estado, que puede ser:
 DISPONIBLE, ASIGNADO, EN_MANTENIMIENTO, FUERA_DE_SERVICIO o BAJA.
@@ -116,8 +129,7 @@ GET /api/vehicles?search=baja&page=2&limit=5
 **Respuesta Exitosa (200 OK):**
 
 ```json
-[
-  {
+{
   "data": [
     {
       "id": 1,
@@ -125,7 +137,11 @@ GET /api/vehicles?search=baja&page=2&limit=5
       "marca": "Ford",
       "modelo": "F-100",
       "anio": 2020,
-      "capacidadCarga": "1500.00",
+      "tipoCabina": "SIMPLE",
+      "numeroInterno": "VH-001",
+      "fechaVencimientoVTV": "2026-03-15",
+      "fechaVencimientoSeguro": "2026-05-20",
+      "esExterno": false,
       "estado": "DISPONIBLE"
     },
     {
@@ -134,7 +150,11 @@ GET /api/vehicles?search=baja&page=2&limit=5
       "marca": "Chevrolet",
       "modelo": "S10",
       "anio": 2021,
-      "capacidadCarga": "1200.00",
+      "tipoCabina": "DOBLE",
+      "numeroInterno": "VH-002",
+      "fechaVencimientoVTV": "2026-04-10",
+      "fechaVencimientoSeguro": "2026-06-05",
+      "esExterno": false,
       "estado": "ASIGNADO"
     }
     // Más vehículos...
@@ -143,8 +163,6 @@ GET /api/vehicles?search=baja&page=2&limit=5
   "currentPage": 1,
   "totalPages": 2
 }
-
-]
 ```
 
 ### 3. Obtener un Vehículo Específico
@@ -167,7 +185,11 @@ GET /api/vehicles/1
   "marca": "Ford",
   "modelo": "F-100",
   "anio": 2020,
-  "capacidadCarga": "1500.00",
+  "tipoCabina": "SIMPLE",
+  "numeroInterno": "VH-001",
+  "fechaVencimientoVTV": "2026-03-15",
+  "fechaVencimientoSeguro": "2026-05-20",
+  "esExterno": false,
   "estado": "DISPONIBLE",
   "maintenanceRecords": [
     {
@@ -205,7 +227,11 @@ GET /api/vehicles/placa/AA123BB
   "marca": "Ford",
   "modelo": "F-100",
   "anio": 2020,
-  "capacidadCarga": "1500.00",
+  "tipoCabina": "SIMPLE",
+  "numeroInterno": "VH-001",
+  "fechaVencimientoVTV": "2026-03-15",
+  "fechaVencimientoSeguro": "2026-05-20",
+  "esExterno": false,
   "estado": "DISPONIBLE"
 }
 ```
@@ -221,7 +247,10 @@ GET /api/vehicles/placa/AA123BB
 {
   "marca": "Ford",
   "modelo": "F-150",
-  "capacidadCarga": 1600
+  "tipoCabina": "DOBLE",
+  "numeroInterno": "VH-001-A",
+  "fechaVencimientoVTV": "2026-06-20",
+  "fechaVencimientoSeguro": "2026-07-15"
 }
 ```
 
@@ -236,7 +265,11 @@ Todos los campos son opcionales. Solo se actualizan los campos incluidos en la s
   "marca": "Ford",
   "modelo": "F-150",
   "anio": 2020,
-  "capacidadCarga": "1600.00",
+  "tipoCabina": "DOBLE",
+  "numeroInterno": "VH-001-A",
+  "fechaVencimientoVTV": "2026-06-20",
+  "fechaVencimientoSeguro": "2026-07-15",
+  "esExterno": false,
   "estado": "DISPONIBLE"
 }
 ```
@@ -271,7 +304,11 @@ Todos los campos son opcionales. Solo se actualizan los campos incluidos en la s
   "marca": "Ford",
   "modelo": "F-100",
   "anio": 2020,
-  "capacidadCarga": "1500.00",
+  "tipoCabina": "SIMPLE",
+  "numeroInterno": "VH-001",
+  "fechaVencimientoVTV": "2026-03-15",
+  "fechaVencimientoSeguro": "2026-05-20",
+  "esExterno": false,
   "estado": "FUERA_DE_SERVICIO"
 }
 ```
@@ -335,7 +372,11 @@ DELETE /api/vehicles/1
     "marca": "Ford",
     "modelo": "F-100",
     "anio": 2020,
-    "capacidadCarga": "1500.00",
+    "tipoCabina": "SIMPLE",
+    "numeroInterno": "VH-001",
+    "fechaVencimientoVTV": "2026-03-15",
+    "fechaVencimientoSeguro": "2026-05-20",
+    "esExterno": false,
     "estado": "DISPONIBLE"
   },
   "completado": false,
@@ -373,7 +414,11 @@ PATCH /api/vehicle_maintenance/5/complete
     "marca": "Ford",
     "modelo": "F-100",
     "anio": 2020,
-    "capacidadCarga": "1500.00",
+    "tipoCabina": "SIMPLE",
+    "numeroInterno": "VH-001",
+    "fechaVencimientoVTV": "2026-03-15",
+    "fechaVencimientoSeguro": "2026-05-20",
+    "esExterno": false,
     "estado": "DISPONIBLE"
   },
   "completado": true,
@@ -404,7 +449,11 @@ PATCH /api/vehicle_maintenance/5/complete
       "marca": "Chevrolet",
       "modelo": "S10",
       "anio": 2021,
-      "capacidadCarga": "1200.00",
+      "tipoCabina": "DOBLE",
+      "numeroInterno": "VH-002",
+      "fechaVencimientoVTV": "2026-04-10",
+      "fechaVencimientoSeguro": "2026-06-05",
+      "esExterno": false,
       "estado": "ASIGNADO"
     },
     "completado": false,
@@ -442,7 +491,11 @@ GET /api/vehicle_maintenance/vehiculo/1
       "marca": "Ford",
       "modelo": "F-100",
       "anio": 2020,
-      "capacidadCarga": "1500.00",
+      "tipoCabina": "SIMPLE",
+      "numeroInterno": "VH-001",
+      "fechaVencimientoVTV": "2026-03-15",
+      "fechaVencimientoSeguro": "2026-05-20",
+      "esExterno": false,
       "estado": "DISPONIBLE"
     },
     "completado": true,
@@ -462,7 +515,11 @@ GET /api/vehicle_maintenance/vehiculo/1
       "marca": "Ford",
       "modelo": "F-100",
       "anio": 2020,
-      "capacidadCarga": "1500.00",
+      "tipoCabina": "SIMPLE",
+      "numeroInterno": "VH-001",
+      "fechaVencimientoVTV": "2026-03-15",
+      "fechaVencimientoSeguro": "2026-05-20",
+      "esExterno": false,
       "estado": "DISPONIBLE"
     },
     "completado": true,
@@ -528,7 +585,11 @@ Los vehículos pueden tener los siguientes estados:
      "marca": "Toyota",
      "modelo": "Hilux",
      "anio": 2023,
-     "capacidadCarga": 1200
+     "tipoCabina": "DOBLE",
+     "numeroInterno": "VH-010",
+     "fechaVencimientoVTV": "2026-05-15",
+     "fechaVencimientoSeguro": "2026-01-10",
+     "esExterno": false
    }
    ```
 
@@ -569,7 +630,7 @@ Los vehículos pueden tener los siguientes estados:
 1. **Obtener todos los vehículos disponibles**
 
    ```
-   GET /api/vehicles?estado=DISPONIBLE
+   GET /api/vehicles?search=DISPONIBLE
    ```
 
 2. **Verificar próximos mantenimientos programados**
@@ -584,11 +645,11 @@ Los vehículos pueden tener los siguientes estados:
    GET /api/vehicle_maintenance/vehiculo/1
    ```
 
-4. **Actualizar capacidad de carga de un vehículo**
+4. **Actualizar tipo de cabina de un vehículo**
    ```
    PUT /api/vehicles/1
    {
-     "capacidadCarga": 1600
+     "tipoCabina": "DOBLE"
    }
    ```
 

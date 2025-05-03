@@ -10,6 +10,7 @@ export enum ResourceState {
   VACACIONES = 'VACACIONES',
   LICENCIA = 'LICENCIA',
   INACTIVO = 'INACTIVO',
+  EN_CAPACITACION = 'EN_CAPACITACION',
 
   // Estados específicos para recursos
   RESERVADO = 'RESERVADO',
@@ -34,4 +35,5 @@ export enum ServiceType {
   REEMPLAZO = 'REEMPLAZO',
   MANTENIMIENTO_IN_SITU = 'MANTENIMIENTO_IN_SITU',
   TRASLADO = 'TRASLADO',
+  CAPACITACION = 'CAPACITACION',
 }
