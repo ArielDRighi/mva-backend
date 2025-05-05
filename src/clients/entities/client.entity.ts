@@ -26,6 +26,12 @@ export class Cliente {
   @Column({ name: 'contacto_principal' })
   contacto_principal: string;
 
+  @Column({ name: 'contacto_obra_1', nullable: true })
+  contactoObra1?: string;
+
+  @Column({ name: 'contacto_obra_2', nullable: true })
+  contactoObra2?: string;
+
   @Column({
     name: 'fecha_registro',
     type: 'timestamp',

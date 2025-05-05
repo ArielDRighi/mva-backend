@@ -25,6 +25,14 @@ export class UpdateClientDto {
   @IsOptional() // Opcional
   contacto_principal?: string;
 
+  @IsString()
+  @IsOptional()
+  contactoObra1?: string;
+
+  @IsString()
+  @IsOptional()
+  contactoObra2?: string;
+
   @IsDate()
   @IsOptional() // Opcional
   fecha_registro?: Date;
