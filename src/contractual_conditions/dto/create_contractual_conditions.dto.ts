@@ -13,6 +13,7 @@ import {
   TipoContrato,
 } from '../entities/contractual_conditions.entity';
 import { Transform } from 'class-transformer';
+import { ServiceType } from 'src/common/enums/resource-states.enum';
 
 export class CreateContractualConditionDto {
   @IsNotEmpty()
@@ -26,12 +27,12 @@ export class CreateContractualConditionDto {
 
   @IsNotEmpty()
   @IsDate()
-  @Transform(({ value }) => new Date(value))
+  @Transform(({ value }) => new Date(value as string | number | Date))
   fecha_inicio: Date;
 
   @IsNotEmpty()
   @IsDate()
-  @Transform(({ value }) => new Date(value))
+  @Transform(({ value }) => new Date(value as string | number | Date))
   fecha_fin: Date;
 
   @IsOptional()
@@ -43,6 +44,34 @@ export class CreateContractualConditionDto {
   @Transform(({ value }) => Number(value))
   @Min(0)
   tarifa: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Transform(({ value }) => Number(value))
+  @Min(0)
+  tarifa_alquiler?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Transform(({ value }) => Number(value))
+  @Min(0)
+  tarifa_instalacion?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Transform(({ value }) => Number(value))
+  @Min(0)
+  tarifa_limpieza?: number;
+
+  @IsOptional()
+  @IsEnum(ServiceType)
+  tipo_servicio?: ServiceType;
+
+  @IsOptional()
+  @IsNumber()
+  @Transform(({ value }) => Number(value))
+  @Min(0)
+  cantidad_banos?: number;
 
   @IsNotEmpty()
   @IsEnum(Periodicidad)

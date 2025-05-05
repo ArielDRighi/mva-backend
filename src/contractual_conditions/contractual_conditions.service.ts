@@ -29,14 +29,14 @@ export class ContractualConditionsService {
         `Invalid pagination parameters: "page" and "limit" must both be greater than 0. Received page=${page}, limit=${limit}.`,
       );
     }
-  
+
     // Obtener las condiciones contractuales con paginación
     const [contractualConditions, total] =
       await this.contractualConditionsRepository.findAndCount({
         skip: (page - 1) * limit,
         take: limit,
       });
-  
+
     // Retornar resultados (aunque esté vacío)
     return {
       items: contractualConditions,
@@ -46,8 +46,6 @@ export class ContractualConditionsService {
       totalPages: Math.ceil(total / limit),
     };
   }
-  
-  
 
   async getContractualConditionById(contractualConditionId: number) {
     const contractualCondition =
@@ -102,6 +100,11 @@ export class ContractualConditionsService {
       tarifa,
       periodicidad,
       estado,
+      tipo_servicio,
+      cantidad_banos,
+      tarifa_alquiler,
+      tarifa_instalacion,
+      tarifa_limpieza,
     } = createContractualConditionDto;
     const client = await this.clientRepository.findOne({
       where: { clienteId: clientId },
@@ -119,6 +122,11 @@ export class ContractualConditionsService {
         tarifa: tarifa,
         periodicidad: periodicidad,
         estado: estado || EstadoContrato.ACTIVO,
+        tipo_servicio: tipo_servicio,
+        cantidad_banos: cantidad_banos,
+        tarifa_alquiler: tarifa_alquiler,
+        tarifa_instalacion: tarifa_instalacion,
+        tarifa_limpieza: tarifa_limpieza,
       },
     );
     return await this.contractualConditionsRepository.save(
