@@ -9,10 +9,10 @@ export class CreateContactEmergencyDto {
   @IsNotEmpty()
   apellido: string;
 
+  @IsNotEmpty()
   @IsString()
   parentesco: string;
 
-  @IsNotEmpty()
   @IsString()
   @IsNotEmpty()
   telefono: string;

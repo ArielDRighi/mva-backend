@@ -24,6 +24,8 @@ import { CreateLicenseDto } from './dto/create_license.dto';
 import { Licencias } from './entities/license.entity';
 import { CreateContactEmergencyDto } from './dto/create_contact_emergency.dto';
 import { ContactosEmergencia } from './entities/emergencyContacts.entity';
+import { UpdateContactEmergencyDto } from './dto/update_contact_emergency.dto';
+import { UpdateLicenseDto } from './dto/update_license.dto';
 
 @Controller('employees')
 @UseGuards(JwtAuthGuard)
@@ -31,7 +33,7 @@ export class EmployeesController {
   constructor(private readonly employeesService: EmployeesService) {}
 
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Post('emergency/:empleadoId')
   async createEmergencyContact(
     @Body() createEmergencyContactDto: CreateContactEmergencyDto,
@@ -44,6 +46,27 @@ export class EmployeesController {
   }
 
   @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Delete('emergency/:contactoId')
+  async removeEmergencyContact(
+    @Param('contactoId', ParseIntPipe) contactoId: number,
+  ): Promise<{ message: string }> {
+    return await this.employeesService.removeEmergencyContact(contactoId);
+  }
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
+  @Put('emergency/:contactoId')
+  async updateEmergencyContact(
+    @Body() updateEmergencyContactDto: UpdateContactEmergencyDto,
+    @Param('contactoId', ParseIntPipe) contactoId: number,
+  ): Promise<ContactosEmergencia> {
+    return await this.employeesService.updateEmergencyContact(
+      contactoId,
+      updateEmergencyContactDto,
+    );
+  }
+
+  @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
   @Get('emergency/:empleadoId')
   async findEmergencyContactsByEmpleadoId(
@@ -52,6 +75,28 @@ export class EmployeesController {
     return await this.employeesService.findEmergencyContactsByEmpleadoId(
       empleadoId,
     );
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Put('licencia/:licenciaId')
+  async updateLicencia(
+    @Body() updateLicenseDto: UpdateLicenseDto,
+    @Param('licenciaId', ParseIntPipe) licenciaId: number,
+  ): Promise<Licencias> {
+    return await this.employeesService.updateLicencia(
+      licenciaId,
+      updateLicenseDto,
+    );
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Delete('licencia/:licenciaId')
+  async removeLicencia(
+    @Param('licenciaId', ParseIntPipe) licenciaId: number,
+  ): Promise<{ message: string }> {
+    return await this.employeesService.removeLicencia(licenciaId);
   }
 
   @UseGuards(RolesGuard)

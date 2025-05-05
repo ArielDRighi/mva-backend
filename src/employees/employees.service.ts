@@ -15,6 +15,8 @@ import { Licencias } from './entities/license.entity';
 import { CreateLicenseDto } from './dto/create_license.dto';
 import { CreateContactEmergencyDto } from './dto/create_contact_emergency.dto';
 import { ContactosEmergencia } from './entities/emergencyContacts.entity';
+import { UpdateContactEmergencyDto } from './dto/update_contact_emergency.dto';
+import { UpdateLicenseDto } from './dto/update_license.dto';
 
 @Injectable()
 export class EmployeesService {
@@ -328,5 +330,87 @@ export class EmployeesService {
       );
     }
     return employee;
+  }
+
+  async updateEmergencyContact(
+    contactoId: number,
+    updateEmergencyContactDto: UpdateContactEmergencyDto,
+  ): Promise<ContactosEmergencia> {
+    const contactoEmergencia = await this.emergencyContactRepository.findOne({
+      where: { id: contactoId },
+    });
+    if (!contactoEmergencia) {
+      throw new NotFoundException(
+        `Contacto de emergencia con id ${contactoId} no encontrado`,
+      );
+    }
+
+    await this.emergencyContactRepository.update(
+      contactoId,
+      updateEmergencyContactDto,
+    );
+    const updatedContact = await this.emergencyContactRepository.findOne({
+      where: { id: contactoId },
+    });
+    if (!updatedContact) {
+      throw new NotFoundException(
+        `Contacto de emergencia con id ${contactoId} no encontrado`,
+      );
+    }
+    return updatedContact;
+  }
+
+  async removeEmergencyContact(
+    contactoId: number,
+  ): Promise<{ message: string }> {
+    {
+      const contactoEmergencia = await this.emergencyContactRepository.findOne({
+        where: { id: contactoId },
+      });
+      if (!contactoEmergencia) {
+        throw new NotFoundException(
+          `Contacto de emergencia con id ${contactoId} no encontrado`,
+        );
+      }
+      await this.emergencyContactRepository.remove(contactoEmergencia);
+      return { message: `Contacto de emergencia eliminado correctamente` };
+    }
+  }
+
+  async updateLicencia(
+    licenciaId: number,
+    updateLicenseDto: UpdateLicenseDto,
+  ): Promise<Licencias> {
+    const licencia = await this.licenciaRepository.findOne({
+      where: { licencia_id: licenciaId },
+    });
+    if (!licencia) {
+      throw new NotFoundException(
+        `Licencia con id ${licenciaId} no encontrada`,
+      );
+    }
+    await this.licenciaRepository.update(licenciaId, updateLicenseDto);
+    const updatedLicense = await this.licenciaRepository.findOne({
+      where: { licencia_id: licenciaId },
+    });
+    if (!updatedLicense) {
+      throw new NotFoundException(
+        `Licencia con id ${licenciaId} no encontrada`,
+      );
+    }
+    return updatedLicense;
+  }
+
+  async removeLicencia(licenciaId: number): Promise<{ message: string }> {
+    const licencia = await this.licenciaRepository.findOne({
+      where: { licencia_id: licenciaId },
+    });
+    if (!licencia) {
+      throw new NotFoundException(
+        `Licencia con id ${licenciaId} no encontrada`,
+      );
+    }
+    await this.licenciaRepository.remove(licencia);
+    return { message: `Licencia eliminada correctamente` };
   }
 }
