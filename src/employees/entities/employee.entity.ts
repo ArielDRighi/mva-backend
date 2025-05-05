@@ -8,6 +8,7 @@ import {
 import { User } from '../../users/entities/user.entity';
 import { EmployeeLeave } from '../../employee_leaves/entities/employee-leave.entity';
 import { SalaryAdvance } from 'src/salary_advance/entities/salary_advance.entity';
+import { RopaTalles } from 'src/clothing/entities/clothing.entity';
 
 @Entity({ name: 'employees' })
 export class Empleado {
@@ -50,6 +51,9 @@ export class Empleado {
   @OneToMany(() => EmployeeLeave, (leave) => leave.employee)
   leaves: EmployeeLeave[];
 
-  @OneToMany(()=> SalaryAdvance, (advance) => advance.employee)
+  @OneToMany(() => SalaryAdvance, (advance) => advance.employee)
   advances: SalaryAdvance[];
+
+  @OneToOne(() => RopaTalles, (talleRopa) => talleRopa.empleado)
+  talleRopa: RopaTalles;
 }
