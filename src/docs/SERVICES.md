@@ -17,10 +17,13 @@
    - Asignación Múltiple de Recursos
    - Tipos de Servicio y Recursos Requeridos
    - Gestión de Baños Asignados
+   - Servicio de Capacitación
 5. Estados de Servicio
-6. Integración con Condiciones Contractuales
-7. Manejo de Errores
-8. Ejemplos de Flujos Completos
+6. Estados de Recursos
+7. Integración con Condiciones Contractuales
+8. Estructura de Respuesta JSON
+9. Manejo de Errores
+10. Ejemplos de Flujos Completos
 
 ## Introducción
 
@@ -60,7 +63,6 @@ Content-Type: application/json
   "fechaProgramada": "2025-05-15T10:00:00.000Z",
   "tipoServicio": "INSTALACION",
   "cantidadBanos": 2,
-  "cantidadEmpleados": 2,
   "cantidadVehiculos": 1,
   "ubicacion": "Av. Corrientes 1234, Buenos Aires",
   "notas": "Entregar antes de las 9am",
@@ -77,10 +79,11 @@ Content-Type: application/json
   "fechaProgramada": "2025-05-16T10:00:00.000Z",
   "tipoServicio": "INSTALACION",
   "cantidadBanos": 2,
-  "cantidadEmpleados": 2,
   "cantidadVehiculos": 2,
   "ubicacion": "Av. Santa Fe 5678, Buenos Aires",
   "asignacionAutomatica": false,
+  "empleadoAId": 1,
+  "empleadoBId": 2,
   "asignacionesManual": [
     {
       "empleadoId": 1,
@@ -107,7 +110,6 @@ Para servicios que operan sobre baños ya instalados en el cliente:
   "fechaProgramada": "2025-05-16T10:00:00.000Z",
   "tipoServicio": "LIMPIEZA",
   "cantidadBanos": 0,
-  "cantidadEmpleados": 2,
   "cantidadVehiculos": 1,
   "ubicacion": "Av. Santa Fe 5678, Buenos Aires",
   "asignacionAutomatica": true,
@@ -115,20 +117,40 @@ Para servicios que operan sobre baños ya instalados en el cliente:
 }
 ```
 
-| Campo                  | Tipo               | Requerido | Descripción                                                                         |
-| ---------------------- | ------------------ | --------- | ----------------------------------------------------------------------------------- |
-| clienteId              | number             | Sí        | ID del cliente                                                                      |
-| fechaProgramada        | string (fecha ISO) | Sí        | Fecha programada del servicio                                                       |
-| tipoServicio           | string             | Sí        | INSTALACION, RETIRO, LIMPIEZA, MANTENIMIENTO, etc.                                  |
-| cantidadBanos          | number             | Sí        | Cantidad de baños requeridos (0 para servicios de tipo LIMPIEZA, REEMPLAZO, RETIRO) |
-| cantidadEmpleados      | number             | Sí        | Cantidad de empleados requeridos                                                    |
-| cantidadVehiculos      | number             | Sí        | Cantidad de vehículos requeridos                                                    |
-| ubicacion              | string             | Sí        | Ubicación del servicio                                                              |
-| notas                  | string             | No        | Notas adicionales                                                                   |
-| asignacionAutomatica   | boolean            | Sí        | Si es true, el sistema asigna recursos; si es false, asignación manual              |
-| asignacionesManual     | array              | No\*      | Array de asignaciones manuales (\*Requerido si asignacionAutomatica es false)       |
-| banosInstalados        | array of number    | No\*      | IDs de los baños ya instalados (\*Requerido para LIMPIEZA, REEMPLAZO, RETIRO)       |
-| condicionContractualId | number             | No        | ID de la condición contractual asociada (recomendado para servicios de INSTALACIÓN) |
+#### D. Crear Servicio de CAPACITACIÓN
+
+Para servicios de capacitación que solo requieren empleados:
+
+```json
+{
+  "fechaProgramada": "2025-05-20T09:00:00.000Z",
+  "tipoServicio": "CAPACITACION",
+  "cantidadBanos": 0,
+  "cantidadVehiculos": 0,
+  "ubicacion": "Sede Central, Av. Rivadavia, Buenos Aires",
+  "notas": "Capacitación sobre manejo de equipos nuevos",
+  "asignacionAutomatica": false,
+  "empleadoAId": 1,
+  "empleadoBId": 2,
+  "asignacionesManual": [{ "empleadoId": 1 }, { "empleadoId": 2 }]
+}
+```
+
+| Campo                  | Tipo               | Requerido | Descripción                                                                                       |
+| ---------------------- | ------------------ | --------- | ------------------------------------------------------------------------------------------------- |
+| clienteId              | number             | No\*      | ID del cliente (\*Opcional para servicios de tipo CAPACITACION, que pueden ser internos)          |
+| fechaProgramada        | string (fecha ISO) | Sí        | Fecha programada del servicio                                                                     |
+| tipoServicio           | string             | Sí        | INSTALACION, RETIRO, LIMPIEZA, MANTENIMIENTO, CAPACITACION, etc.                                  |
+| cantidadBanos          | number             | Sí        | Cantidad de baños requeridos (0 para servicios de tipo LIMPIEZA, REEMPLAZO, RETIRO, CAPACITACION) |
+| cantidadVehiculos      | number             | Sí        | Cantidad de vehículos requeridos (0 para servicios de tipo CAPACITACION)                          |
+| empleadoAId            | number             | No        | ID específico para el primer empleado (empleado A)                                                |
+| empleadoBId            | number             | No        | ID específico para el segundo empleado (empleado B)                                               |
+| ubicacion              | string             | Sí        | Ubicación del servicio                                                                            |
+| notas                  | string             | No        | Notas adicionales                                                                                 |
+| asignacionAutomatica   | boolean            | Sí        | Si es true, el sistema asigna recursos; si es false, asignación manual                            |
+| asignacionesManual     | array              | No\*      | Array de asignaciones manuales (\*Requerido si asignacionAutomatica es false)                     |
+| banosInstalados        | array of number    | No\*      | IDs de los baños ya instalados (\*Requerido para LIMPIEZA, REEMPLAZO, RETIRO)                     |
+| condicionContractualId | number             | No        | ID de la condición contractual asociada (recomendado para servicios de INSTALACIÓN)               |
 
 #### Respuesta Exitosa (201 Created)
 
@@ -154,6 +176,8 @@ Para servicios que operan sobre baños ya instalados en el cliente:
   "estado": "PROGRAMADO",
   "cantidadBanos": 2,
   "cantidadEmpleados": 2,
+  "empleadoAId": 1,
+  "empleadoBId": 2,
   "cantidadVehiculos": 1,
   "ubicacion": "Av. Corrientes 1234, Buenos Aires",
   "notas": "Entregar antes de las 9am",
@@ -166,23 +190,25 @@ Para servicios que operan sobre baños ya instalados en el cliente:
 }
 ```
 
-## 2. Obtener Servicios ##
+## 2. Obtener Servicios
+
 **Endpoint: GET /api/services**
 **Roles permitidos: Todos los usuarios autenticados**
 **Descripción: Recupera los servicios registrados en el sistema. Se permite filtrar por estado, cliente, fechas y tipo de servicio, así como buscar por texto libre y paginar los resultados.**
 
 **Parámetros de Query:**
 
-| Parámetro     | Tipo               | Descripción                                                                 |
-|---------------|--------------------|-----------------------------------------------------------------------------|
-| estado        | string             | Filtra por estado del servicio (ej: `PROGRAMADO`, `EN_CURSO`, `FINALIZADO`) |
-| clienteId     | number             | Filtra por ID del cliente asociado                                          |
-| tipoServicio  | string             | Filtra por tipo de servicio (`INSTALACION`, `RETIRO`, etc.)                |
-| fechaDesde    | string (ISO 8601)  | Filtra servicios cuya fecha programada sea igual o posterior a esta fecha  |
-| fechaHasta    | string (ISO 8601)  | Filtra servicios cuya fecha programada sea igual o anterior a esta fecha   |
-| search        | string             | Búsqueda parcial por estado, tipo de servicio o nombre del cliente         |
-| page          | number             | Número de página a recuperar (por defecto: 1)                               |
-| limit         | number             | Cantidad de resultados por página (por defecto: 10)                         |
+| Parámetro    | Tipo              | Descripción                                                                 |
+| ------------ | ----------------- | --------------------------------------------------------------------------- |
+| estado       | string            | Filtra por estado del servicio (ej: `PROGRAMADO`, `EN_CURSO`, `FINALIZADO`) |
+| clienteId    | number            | Filtra por ID del cliente asociado                                          |
+| tipoServicio | string            | Filtra por tipo de servicio (`INSTALACION`, `RETIRO`, etc.)                 |
+| tipoServicio | string            | Filtra por tipo de servicio (`INSTALACION`, `RETIRO`, `CAPACITACION`, etc.) |
+| fechaDesde   | string (ISO 8601) | Filtra servicios cuya fecha programada sea igual o posterior a esta fecha   |
+| fechaHasta   | string (ISO 8601) | Filtra servicios cuya fecha programada sea igual o anterior a esta fecha    |
+| search       | string            | Búsqueda parcial por estado, tipo de servicio o nombre del cliente          |
+| page         | number            | Número de página a recuperar (por defecto: 1)                               |
+| limit        | number            | Cantidad de resultados por página (por defecto: 10)                         |
 
 #### Ejemplos
 
@@ -191,6 +217,7 @@ GET /api/services
 GET /api/services?estado=PROGRAMADO
 GET /api/services?clienteId=1&estado=FINALIZADO
 GET /api/services?tipoServicio=INSTALACION
+GET /api/services?tipoServicio=CAPACITACION
 GET /api/services?search=instalacion
 GET /api/services?fechaDesde=2025-05-01T00:00:00.000Z&fechaHasta=2025-06-01T00:00:00.000Z
 GET /api/services?search=constructora&page=2&limit=5
@@ -215,6 +242,8 @@ GET /api/services?search=constructora&page=2&limit=5
       "estado": "PROGRAMADO",
       "cantidadBanos": 2,
       "cantidadEmpleados": 2,
+      "empleadoAId": 1,
+      "empleadoBId": 2,
       "cantidadVehiculos": 1,
       "ubicacion": "Av. Corrientes 1234, Buenos Aires",
       "notas": "Entregar antes de las 9am",
@@ -231,7 +260,6 @@ GET /api/services?search=constructora&page=2&limit=5
   "currentPage": 1,
   "totalPages": 2
 }
-
 ```
 
 ### 3. Obtener un Servicio Específico
@@ -255,6 +283,8 @@ GET /api/services?search=constructora&page=2&limit=5
   "estado": "PROGRAMADO",
   "cantidadBanos": 2,
   "cantidadEmpleados": 2,
+  "empleadoAId": 1,
+  "empleadoBId": 2,
   "cantidadVehiculos": 1,
   "ubicacion": "Av. Corrientes 1234, Buenos Aires",
   "notas": "Entregar antes de las 9am",
@@ -268,18 +298,40 @@ GET /api/services?search=constructora&page=2&limit=5
       "empleadoId": 1,
       "empleado": {
         /* datos del empleado */
-      },
+      }
+    },
+    {
+      "id": 2,
+      "servicioId": 1,
+      "empleadoId": 2,
+      "empleado": {
+        /* datos del empleado */
+      }
+    },
+    {
+      "id": 3,
+      "servicioId": 1,
       "vehiculoId": 1,
       "vehiculo": {
         /* datos del vehículo */
-      },
+      }
+    },
+    {
+      "id": 4,
+      "servicioId": 1,
       "banoId": 1,
       "bano": {
         /* datos del baño */
-      },
-      "fechaAsignacion": "2025-04-10T15:30:00.000Z"
+      }
+    },
+    {
+      "id": 5,
+      "servicioId": 1,
+      "banoId": 2,
+      "bano": {
+        /* datos del baño */
+      }
     }
-    // Más asignaciones...
   ]
 }
 ```
@@ -302,7 +354,6 @@ GET /api/services?search=constructora&page=2&limit=5
 ```json
 {
   "cantidadBanos": 3,
-  "cantidadEmpleados": 3,
   "cantidadVehiculos": 2,
   "asignacionAutomatica": true
 }
@@ -337,6 +388,18 @@ GET /api/services?search=constructora&page=2&limit=5
 }
 ```
 
+#### E. Actualizar Servicio de CAPACITACIÓN
+
+```json
+{
+  "tipoServicio": "CAPACITACION",
+  "cantidadBanos": 0,
+  "cantidadVehiculos": 0,
+  "asignacionAutomatica": true,
+  "notas": "Se amplía la cantidad de empleados para la capacitación"
+}
+```
+
 #### Respuesta Exitosa (200 OK)
 
 ```json
@@ -355,13 +418,30 @@ GET /api/services?search=constructora&page=2&limit=5
 
 **Endpoint:** `PATCH /api/services/{id}/estado`
 
+#### Cambiar a estado regular
+
 ```json
 {
   "estado": "EN_PROGRESO"
 }
 ```
 
-**Estados Válidos:** `PROGRAMADO`, `EN_PROGRESO`, `COMPLETADO`, `CANCELADO`, `SUSPENDIDO`
+#### Cambiar a estado INCOMPLETO (requiere comentario obligatorio)
+
+```json
+{
+  "estado": "INCOMPLETO",
+  "comentarioIncompleto": "No se pudo completar el servicio debido a falta de acceso al sitio"
+}
+```
+
+**Estados Válidos:** `PROGRAMADO`, `EN_PROGRESO`, `COMPLETADO`, `CANCELADO`, `SUSPENDIDO`, `INCOMPLETO`
+
+**Notas Importantes:**
+
+- El estado `INCOMPLETO` solo puede aplicarse a servicios que están en estado `EN_PROGRESO`
+- Al cambiar a estado `INCOMPLETO` es obligatorio proporcionar un comentario en el campo `comentarioIncompleto`
+- Los estados `COMPLETADO`, `CANCELADO` e `INCOMPLETO` son estados finales y no permiten transiciones a otros estados
 
 #### Respuesta Exitosa (200 OK)
 
@@ -395,11 +475,14 @@ No devuelve contenido.
 
 Cuando `asignacionAutomatica` es `true`, el sistema:
 
-1. Busca recursos disponibles (empleados, vehículos y baños)
-2. Verifica que no estén asignados a otros servicios en la misma fecha
-3. Verifica que no tengan mantenimientos programados para esa fecha
-4. Los asigna automáticamente según las cantidades especificadas
-5. Cambia el estado de los recursos a `ASIGNADO`
+1. Asigna exactamente 2 empleados (empleadoA y empleadoB)
+2. Busca recursos disponibles (empleados, vehículos y baños)
+3. Verifica que no estén asignados a otros servicios en la misma fecha
+4. Verifica que no tengan mantenimientos programados para esa fecha
+5. Los asigna automáticamente según las cantidades especificadas
+6. Cambia el estado de los recursos según el tipo de servicio:
+   - Para servicios de `CAPACITACION`, los empleados pasan a estado `EN_CAPACITACION`
+   - Para otros tipos de servicios, los recursos pasan a estado `ASIGNADO`
 
 ### Asignación Manual
 
@@ -407,7 +490,9 @@ Cuando `asignacionAutomatica` es `false` y se proporciona `asignacionesManual`, 
 
 1. Verifica que cada recurso especificado esté disponible
 2. Crea asignaciones según la estructura proporcionada
-3. Cambia el estado de los recursos a `ASIGNADO`
+3. Cambia el estado de los recursos según el tipo de servicio:
+   - Para servicios de `CAPACITACION`, los empleados pasan a estado `EN_CAPACITACION`
+   - Para otros tipos de servicios, los recursos pasan a estado `ASIGNADO`
 
 #### Estructura de Asignación Manual
 
@@ -438,17 +523,18 @@ El sistema permite asignar empleados y vehículos que ya están en estado `ASIGN
 
 Los distintos tipos de servicio tienen requisitos diferentes en cuanto a los recursos que necesitan:
 
-| Tipo Servicio         | Requiere Baños Nuevos | Requiere Baños Instalados | Campo cantidadBanos | Campo banosInstalados |
-| --------------------- | :-------------------: | :-----------------------: | :-----------------: | :-------------------: |
-| INSTALACION           |          Sí           |            No             |         > 0         |     No requerido      |
-| LIMPIEZA              |          No           |            Sí             |          0          |       Requerido       |
-| REEMPLAZO             |          No           |            Sí             |          0          |       Requerido       |
-| RETIRO                |          No           |            Sí             |          0          |       Requerido       |
-| MANTENIMIENTO_IN_SITU |          No           |            Sí             |          0          |       Requerido       |
-| REPARACION            |          No           |            Sí             |          0          |       Requerido       |
-| TRASLADO              |          Sí           |            No             |         > 0         |     No requerido      |
-| REUBICACION           |          Sí           |            No             |         > 0         |     No requerido      |
-| MANTENIMIENTO         |          Sí           |            No             |         > 0         |     No requerido      |
+| Tipo Servicio         | Requiere Baños Nuevos | Requiere Baños Instalados | Requiere Vehículos | Campo cantidadBanos | Campo cantidadVehiculos | Campo banosInstalados | Estado de Empleados |
+| --------------------- | :-------------------: | :-----------------------: | :----------------: | :-----------------: | :---------------------: | :-------------------: | :-----------------: |
+| INSTALACION           |          Sí           |            No             |         Sí         |         > 0         |           > 0           |     No requerido      |      ASIGNADO       |
+| LIMPIEZA              |          No           |            Sí             |         Sí         |          0          |           > 0           |       Requerido       |      ASIGNADO       |
+| REEMPLAZO             |          No           |            Sí             |         Sí         |          0          |           > 0           |       Requerido       |      ASIGNADO       |
+| RETIRO                |          No           |            Sí             |         Sí         |          0          |           > 0           |       Requerido       |      ASIGNADO       |
+| MANTENIMIENTO_IN_SITU |          No           |            Sí             |         Sí         |          0          |           > 0           |       Requerido       |      ASIGNADO       |
+| REPARACION            |          No           |            Sí             |         Sí         |          0          |           > 0           |       Requerido       |      ASIGNADO       |
+| TRASLADO              |          Sí           |            No             |         Sí         |         > 0         |           > 0           |     No requerido      |      ASIGNADO       |
+| REUBICACION           |          Sí           |            No             |         Sí         |         > 0         |           > 0           |     No requerido      |      ASIGNADO       |
+| MANTENIMIENTO         |          Sí           |            No             |         Sí         |         > 0         |           > 0           |     No requerido      |      ASIGNADO       |
+| CAPACITACION          |          No           |            No             |         No         |          0          |            0            |     No requerido      |   EN_CAPACITACION   |
 
 **Nota:** Para los servicios que requieren baños ya instalados, el sistema verificará que los baños especificados existan y estén en estado ASIGNADO.
 
@@ -467,15 +553,58 @@ Para obtener los baños asignados a un cliente específico, útil para crear ser
 GET /api/chemical_toilets/by-client/{clientId}
 ```
 
+### Servicio de Capacitación
+
+El servicio de tipo `CAPACITACION` tiene características específicas:
+
+1. Solo requiere empleados, no utiliza vehículos ni baños
+2. Siempre requiere exactamente 2 empleados (empleadoA y empleadoB)
+3. Los empleados asignados cambian su estado a `EN_CAPACITACION` en lugar de `ASIGNADO`
+4. Los empleados en estado `EN_CAPACITACION` no están disponibles para ser asignados a otros servicios
+5. **La asignación de empleados siempre debe ser manual** (no se permite asignación automática)
+6. Para crear un servicio de capacitación:
+   - `asignacionAutomatica` debe ser `false`
+   - Se deben especificar manualmente los empleados en `asignacionesManual`
+   - `cantidadBanos` debe ser `0`
+   - `cantidadVehiculos` debe ser `0`
+   - No se debe especificar el campo `banosInstalados`
+   - El servicio puede ser interno (sin cliente) o asociado a un cliente específico
+7. Al completar o cancelar el servicio, los empleados vuelven al estado `DISPONIBLE`
+
 ## Estados de Servicio
 
-| Estado      | Descripción                                          | Transiciones Permitidas |
-| ----------- | ---------------------------------------------------- | ----------------------- |
-| PROGRAMADO  | Servicio con recursos asignados, listo para ejecutar | EN_PROGRESO, CANCELADO  |
-| EN_PROGRESO | Servicio que se está ejecutando actualmente          | COMPLETADO, CANCELADO   |
-| COMPLETADO  | Servicio finalizado correctamente                    | Ninguna                 |
-| CANCELADO   | Servicio cancelado                                   | Ninguna                 |
-| SUSPENDIDO  | Servicio temporalmente suspendido                    | EN_PROGRESO, CANCELADO  |
+| Estado      | Descripción                                                  | Transiciones Permitidas            |
+| ----------- | ------------------------------------------------------------ | ---------------------------------- |
+| PROGRAMADO  | Servicio con recursos asignados, listo para ejecutar         | EN_PROGRESO, CANCELADO, SUSPENDIDO |
+| EN_PROGRESO | Servicio que se está ejecutando actualmente                  | COMPLETADO, SUSPENDIDO, INCOMPLETO |
+| COMPLETADO  | Servicio finalizado correctamente                            | Ninguna                            |
+| CANCELADO   | Servicio cancelado                                           | Ninguna                            |
+| SUSPENDIDO  | Servicio temporalmente suspendido                            | EN_PROGRESO, CANCELADO             |
+| INCOMPLETO  | Servicio que no pudo completarse por alguna razón específica | Ninguna                            |
+
+## Estados de Recursos
+
+### Estados de Empleados
+
+| Estado          | Descripción                                           |
+| --------------- | ----------------------------------------------------- |
+| DISPONIBLE      | Empleado libre para ser asignado a cualquier servicio |
+| ASIGNADO        | Empleado asignado a uno o más servicios regulares     |
+| EN_CAPACITACION | Empleado asignado a un servicio de capacitación       |
+| VACACIONES      | Empleado en período de vacaciones                     |
+| LICENCIA        | Empleado en licencia (médica, personal, etc.)         |
+| INACTIVO        | Empleado temporalmente inactivo                       |
+
+### Estados de Vehículos y Baños
+
+| Estado            | Descripción                               |
+| ----------------- | ----------------------------------------- |
+| DISPONIBLE        | Recurso disponible para ser asignado      |
+| ASIGNADO          | Recurso asignado a uno o más servicios    |
+| EN_MANTENIMIENTO  | Recurso en mantenimiento                  |
+| FUERA_DE_SERVICIO | Recurso temporalmente no disponible       |
+| BAJA              | Recurso permanentemente fuera de servicio |
+| RESERVADO         | Recurso reservado para uso futuro         |
 
 ## Integración con Condiciones Contractuales
 
@@ -486,6 +615,120 @@ Los servicios de tipo `INSTALACION` pueden estar asociados a condiciones contrac
 3. Esta fecha indica cuándo los baños deben ser retirados automáticamente o programarse un servicio de `RETIRO`.
 
 Si no se especifica un `condicionContractualId`, el sistema intentará buscar un contrato activo para el cliente y utilizará su fecha de finalización.
+
+## Estructura de Respuesta JSON
+
+Las respuestas JSON del sistema están optimizadas para incluir solo campos relevantes. En particular, las asignaciones de recursos mostrarán únicamente los recursos que están efectivamente asignados, evitando campos nulos.
+
+### Ejemplo de Asignación de Empleado
+
+```json
+{
+  "id": 1,
+  "servicioId": 3,
+  "empleadoId": 1,
+  "empleado": {
+    "id": 1,
+    "nombre": "Carlos",
+    "apellido": "Rodríguez",
+    "documento": "25789456",
+    "telefono": "1145678901",
+    "email": "carlos.rodriguez@example.com",
+    "cargo": "Conductor",
+    "estado": "ASIGNADO"
+  },
+  "fechaAsignacion": "2025-05-03T18:08:54.286Z"
+}
+```
+
+### Ejemplo de Asignación de Vehículo
+
+```json
+{
+  "id": 9,
+  "servicioId": 3,
+  "vehiculoId": 3,
+  "vehiculo": {
+    "id": 3,
+    "numeroInterno": "VH-003",
+    "placa": "AD789FF",
+    "marca": "Toyota",
+    "modelo": "Hilux",
+    "anio": 2022,
+    "tipoCabina": "doble",
+    "fechaVencimientoVTV": "2026-07-19",
+    "fechaVencimientoSeguro": "2026-09-24",
+    "esExterno": false,
+    "estado": "ASIGNADO"
+  },
+  "fechaAsignacion": "2025-05-03T18:01:06.513Z"
+}
+```
+
+### Ejemplo de Asignación de Baño
+
+```json
+{
+  "id": 10,
+  "servicioId": 3,
+  "banoId": 5,
+  "bano": {
+    "baño_id": 5,
+    "codigo_interno": "BQ-2022-005",
+    "modelo": "Portátil",
+    "fecha_adquisicion": "2023-10-03T20:46:34.178Z",
+    "estado": "ASIGNADO"
+  },
+  "fechaAsignacion": "2025-05-03T18:01:06.513Z"
+}
+```
+
+### Ejemplo de Asignación Combinada
+
+Si una asignación incluye varios tipos de recursos, todos aparecerán en la misma estructura:
+
+```json
+{
+  "id": 6,
+  "servicioId": 3,
+  "empleadoId": 1,
+  "empleado": {
+    "id": 1,
+    "nombre": "Carlos",
+    "apellido": "Rodríguez",
+    "documento": "25789456",
+    "telefono": "1145678901",
+    "email": "carlos.rodriguez@example.com",
+    "cargo": "Conductor",
+    "estado": "ASIGNADO"
+  },
+  "vehiculoId": 1,
+  "vehiculo": {
+    "id": 1,
+    "numeroInterno": "VH-001",
+    "placa": "AA123BB",
+    "marca": "Ford",
+    "modelo": "F-100",
+    "anio": 2020,
+    "tipoCabina": "simple",
+    "fechaVencimientoVTV": "2026-05-14",
+    "fechaVencimientoSeguro": "2026-07-19",
+    "esExterno": false,
+    "estado": "ASIGNADO"
+  },
+  "banoId": 4,
+  "bano": {
+    "baño_id": 4,
+    "codigo_interno": "BQ-2022-004",
+    "modelo": "Premium",
+    "fecha_adquisicion": "2023-09-03T21:07:04.531Z",
+    "estado": "ASIGNADO"
+  },
+  "fechaAsignacion": "2025-05-03T18:08:54.286Z"
+}
+```
+
+Esta optimización reduce el tamaño de la respuesta JSON y facilita el procesamiento de los datos en el cliente.
 
 ## Manejo de Errores
 
@@ -539,7 +782,6 @@ La API devuelve códigos de error HTTP estándar junto con mensajes descriptivos
      "fechaProgramada": "2025-05-01T10:00:00.000Z",
      "tipoServicio": "INSTALACION",
      "cantidadBanos": 2,
-     "cantidadEmpleados": 2,
      "cantidadVehiculos": 1,
      "ubicacion": "Av. 9 de Julio 1000",
      "asignacionAutomatica": true,
@@ -580,7 +822,6 @@ La API devuelve códigos de error HTTP estándar junto con mensajes descriptivos
      "fechaProgramada": "2025-05-15T10:00:00.000Z",
      "tipoServicio": "LIMPIEZA",
      "cantidadBanos": 0,
-     "cantidadEmpleados": 2,
      "cantidadVehiculos": 1,
      "ubicacion": "Av. 9 de Julio 1000",
      "asignacionAutomatica": true,
@@ -597,7 +838,6 @@ La API devuelve códigos de error HTTP estándar junto con mensajes descriptivos
      "fechaProgramada": "2025-06-30T10:00:00.000Z",
      "tipoServicio": "RETIRO",
      "cantidadBanos": 0,
-     "cantidadEmpleados": 2,
      "cantidadVehiculos": 1,
      "ubicacion": "Av. 9 de Julio 1000",
      "asignacionAutomatica": true,
@@ -605,7 +845,56 @@ La API devuelve códigos de error HTTP estándar junto con mensajes descriptivos
    }
    ```
 
-### 2. Modificación de Recursos Durante el Servicio
+### 2. Flujo de Capacitación para Empleados
+
+1. **Crear un servicio de CAPACITACION**
+
+   ```
+   POST /api/services
+   {
+     "clienteId": 1,
+     "fechaProgramada": "2025-05-10T09:00:00.000Z",
+     "tipoServicio": "CAPACITACION",
+     "cantidadBanos": 0,
+     "cantidadVehiculos": 0,
+     "ubicacion": "Sede central, Sala de conferencias",
+     "notas": "Capacitación en nuevos procedimientos operativos",
+     "asignacionAutomatica": true
+   }
+   ```
+
+2. **Verificar que los empleados están en estado EN_CAPACITACION**
+
+   ```
+   GET /api/services/{id}
+   GET /api/employees/{empleadoId}
+   ```
+
+3. **Iniciar el servicio de capacitación**
+
+   ```
+   PATCH /api/services/{id}/estado
+   {
+     "estado": "EN_PROGRESO"
+   }
+   ```
+
+4. **Completar el servicio de capacitación**
+
+   ```
+   PATCH /api/services/{id}/estado
+   {
+     "estado": "COMPLETADO"
+   }
+   ```
+
+5. **Verificar que los empleados han vuelto a estado DISPONIBLE**
+
+   ```
+   GET /api/employees/{empleadoId}
+   ```
+
+### 3. Modificación de Recursos Durante el Servicio
 
 1. **Crear servicio inicial con 1 empleado, 1 vehículo, 1 baño**
 
@@ -616,7 +905,6 @@ La API devuelve códigos de error HTTP estándar junto con mensajes descriptivos
      "fechaProgramada": "2025-07-15T10:00:00.000Z",
      "tipoServicio": "INSTALACION",
      "cantidadBanos": 1,
-     "cantidadEmpleados": 1,
      "cantidadVehiculos": 1,
      "ubicacion": "Av. Sarmiento 500",
      "asignacionAutomatica": true
@@ -629,7 +917,6 @@ La API devuelve códigos de error HTTP estándar junto con mensajes descriptivos
    PUT /api/services/{id}
    {
      "cantidadBanos": 2,
-     "cantidadEmpleados": 2,
      "cantidadVehiculos": 1,
      "asignacionAutomatica": true
    }
@@ -647,7 +934,6 @@ La API devuelve códigos de error HTTP estándar junto con mensajes descriptivos
    PUT /api/services/{id}
    {
      "cantidadBanos": 1,
-     "cantidadEmpleados": 1,
      "cantidadVehiculos": 1,
      "asignacionAutomatica": true
    }
@@ -658,7 +944,7 @@ La API devuelve códigos de error HTTP estándar junto con mensajes descriptivos
    GET /api/services/{id}
    ```
 
-### 3. Asignación de Recursos Múltiples a Varios Servicios
+### 4. Asignación de Recursos Múltiples a Varios Servicios
 
 1. **Crear un primer servicio**
 
@@ -669,7 +955,6 @@ La API devuelve códigos de error HTTP estándar junto con mensajes descriptivos
      "fechaProgramada": "2025-06-10T08:00:00.000Z",
      "tipoServicio": "INSTALACION",
      "cantidadBanos": 2,
-     "cantidadEmpleados": 1,
      "cantidadVehiculos": 1,
      "ubicacion": "Av. Libertador 1500",
      "asignacionAutomatica": true
@@ -691,7 +976,6 @@ La API devuelve códigos de error HTTP estándar junto con mensajes descriptivos
      "fechaProgramada": "2025-06-10T14:00:00.000Z",
      "tipoServicio": "INSTALACION",
      "cantidadBanos": 1,
-     "cantidadEmpleados": 1,
      "cantidadVehiculos": 1,
      "ubicacion": "Av. Callao 500",
      "asignacionAutomatica": false,
@@ -743,7 +1027,7 @@ La API devuelve códigos de error HTTP estándar junto con mensajes descriptivos
    GET /api/vehicles/1
    ```
 
-### 4. Gestión de Servicios con Baños Ya Instalados
+### 5. Gestión de Servicios con Baños Ya Instalados
 
 1. **Crear un servicio de LIMPIEZA para baños ya instalados**
 
@@ -754,7 +1038,6 @@ La API devuelve códigos de error HTTP estándar junto con mensajes descriptivos
      "fechaProgramada": "2025-06-15T09:00:00.000Z",
      "tipoServicio": "LIMPIEZA",
      "cantidadBanos": 0,
-     "cantidadEmpleados": 2,
      "cantidadVehiculos": 1,
      "ubicacion": "Av. Belgrano 2500",
      "asignacionAutomatica": true,
@@ -771,7 +1054,6 @@ La API devuelve códigos de error HTTP estándar junto con mensajes descriptivos
      "fechaProgramada": "2025-07-01T10:00:00.000Z",
      "tipoServicio": "RETIRO",
      "cantidadBanos": 0,
-     "cantidadEmpleados": 2,
      "cantidadVehiculos": 1,
      "ubicacion": "Av. Belgrano 2500",
      "asignacionAutomatica": true,
@@ -804,3 +1086,4 @@ La API devuelve códigos de error HTTP estándar junto con mensajes descriptivos
 - Para servicios de tipo LIMPIEZA, REEMPLAZO o RETIRO, recuerda establecer cantidadBanos en 0 y proporcionar los IDs de los baños ya instalados en el campo banosInstalados
 - Al crear un servicio de INSTALACIÓN, asocia una condición contractual para gestionar correctamente el período de alquiler
 - Utiliza el endpoint `/api/chemical_toilets/by-client/{clientId}` para obtener los baños asignados a un cliente y usarlos en servicios de LIMPIEZA o RETIRO
+- Para servicios de CAPACITACION, no olvides establecer cantidadBanos y cantidadVehiculos en 0, ya que estos recursos no se utilizan en este tipo de servicio

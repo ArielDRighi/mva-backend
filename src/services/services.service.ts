@@ -69,6 +69,9 @@ export class ServicesService {
   ) {}
 
   async create(createServiceDto: CreateServiceDto): Promise<Service> {
+    // Validar requisitos específicos del tipo de servicio
+    this.validateServiceTypeSpecificRequirements(createServiceDto);
+
     // Crear un query runner para manejar la transacción
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -77,13 +80,26 @@ export class ServicesService {
     try {
       // Crear un nuevo servicio
       let newService = new Service();
+
+      // Asignar cliente solo si no es servicio de capacitación o si viene especificado
+      if (
+        createServiceDto.tipoServicio !== ServiceType.CAPACITACION ||
+        createServiceDto.clienteId
+      ) {
+        Object.assign(newService, {
+          cliente: { clienteId: createServiceDto.clienteId },
+        });
+      }
+
+      // Asignar resto de propiedades
       Object.assign(newService, {
-        cliente: { clienteId: createServiceDto.clienteId },
         fechaProgramada: createServiceDto.fechaProgramada,
         tipoServicio: createServiceDto.tipoServicio,
         estado: createServiceDto.estado || ServiceState.PROGRAMADO,
         cantidadBanos: createServiceDto.cantidadBanos,
-        cantidadEmpleados: createServiceDto.cantidadEmpleados,
+        cantidadEmpleados: 2, // Siempre 2 empleados
+        empleadoAId: createServiceDto.empleadoAId,
+        empleadoBId: createServiceDto.empleadoBId,
         cantidadVehiculos: createServiceDto.cantidadVehiculos,
         ubicacion: createServiceDto.ubicacion,
         notas: createServiceDto.notas,
@@ -161,8 +177,12 @@ export class ServicesService {
                     `Limpieza futura #${i + 1} creada para fecha: ${diasMantenimiento[i].toISOString()}`,
                   );
                 } catch (error) {
+                  const errorMessage =
+                    error instanceof Error
+                      ? error.message
+                      : 'Error desconocido';
                   this.logger.error(
-                    `Error al crear limpieza futura #${i + 1}: ${error.message}`,
+                    `Error al crear limpieza futura #${i + 1}: ${errorMessage}`,
                   );
                   // No lanzamos el error para que la transacción pueda continuar aunque alguna limpieza falle
                 }
@@ -172,7 +192,7 @@ export class ServicesService {
               newService = savedServiceForCleanings;
             }
           }
-        } else {
+        } else if (createServiceDto.clienteId) {
           // Si no se especificó ID de contrato, buscar contratos activos para el cliente
           const condicionesContractuales =
             await this.condicionesContractualesRepository.find({
@@ -252,11 +272,18 @@ export class ServicesService {
       if (search) {
         const term = `%${search.toLowerCase()}%`;
 
-        // Hacemos cast de enum a texto para buscar por string
+        // Modificamos la consulta para buscar también por tipo de servicio
         queryBuilder
           .where('LOWER(service.estado::text) LIKE :term', { term })
           .orWhere('LOWER(service.tipo_servicio::text) LIKE :term', { term })
-          .orWhere('LOWER(cliente.nombre_empresa) LIKE :term', { term });
+          .orWhere(
+            'cliente.nombre_empresa IS NULL AND LOWER(service.tipo_servicio::text) LIKE :term',
+            { term },
+          )
+          .orWhere(
+            'cliente IS NOT NULL AND LOWER(cliente.nombre_empresa) LIKE :term',
+            { term },
+          );
       }
 
       queryBuilder.orderBy('service.fechaProgramada', 'ASC');
@@ -273,7 +300,9 @@ export class ServicesService {
         totalPages: Math.ceil(total / limit),
       };
     } catch (error) {
-      this.logger.error('Error al obtener los servicios', error.stack);
+      const errorStack =
+        error instanceof Error ? error.stack : 'No stack trace available';
+      this.logger.error('Error al obtener los servicios', errorStack);
       throw new Error('Error al obtener los servicios');
     }
   }
@@ -306,6 +335,45 @@ export class ServicesService {
     this.logger.log(`Actualizando servicio con id: ${id}`);
 
     const service = await this.findOne(id);
+
+    // Verificar si el servicio es de tipo CAPACITACION o si se está cambiando a ese tipo
+    const esServicioCapacitacion =
+      service.tipoServicio === ServiceType.CAPACITACION ||
+      updateServiceDto.tipoServicio === ServiceType.CAPACITACION;
+
+    // Si es un servicio de capacitación, verificar que la asignación sea manual
+    if (esServicioCapacitacion) {
+      if (updateServiceDto.asignacionAutomatica) {
+        throw new BadRequestException(
+          `Para servicios de CAPACITACION, la asignación de empleados debe ser manual (asignacionAutomatica debe ser false)`,
+        );
+      }
+
+      // Si se está cambiando a CAPACITACION, verificar cantidades
+      if (updateServiceDto.tipoServicio === ServiceType.CAPACITACION) {
+        if (
+          (updateServiceDto.cantidadBanos !== undefined &&
+            updateServiceDto.cantidadBanos !== 0) ||
+          (service.cantidadBanos !== 0 &&
+            updateServiceDto.cantidadBanos === undefined)
+        ) {
+          throw new BadRequestException(
+            `Para servicios de CAPACITACION, la cantidad de baños debe ser 0`,
+          );
+        }
+
+        if (
+          (updateServiceDto.cantidadVehiculos !== undefined &&
+            updateServiceDto.cantidadVehiculos !== 0) ||
+          (service.cantidadVehiculos !== 0 &&
+            updateServiceDto.cantidadVehiculos === undefined)
+        ) {
+          throw new BadRequestException(
+            `Para servicios de CAPACITACION, la cantidad de vehículos debe ser 0`,
+          );
+        }
+      }
+    }
 
     // Verificar si el servicio tiene el tipoServicio correctamente cargado
     if (!service.tipoServicio) {
@@ -353,7 +421,7 @@ export class ServicesService {
     this.logger.log(`Servicio actualizado: ${JSON.stringify(savedService)}`);
 
     // Reasignar recursos si es necesario
-    if (updateServiceDto.asignacionAutomatica) {
+    if (updateServiceDto.asignacionAutomatica && !esServicioCapacitacion) {
       await this.assignResourcesAutomatically(savedService, true);
     } else if (updateServiceDto.asignacionesManual?.length) {
       await this.assignResourcesManually(
@@ -381,13 +449,24 @@ export class ServicesService {
     await this.serviceRepository.remove(service);
   }
 
-  async changeStatus(id: number, nuevoEstado: ServiceState): Promise<Service> {
+  async changeStatus(
+    id: number,
+    nuevoEstado: ServiceState,
+    comentarioIncompleto?: string,
+  ): Promise<Service> {
     this.logger.log(`Cambiando estado del servicio ${id} a ${nuevoEstado}`);
 
     const service = await this.findOne(id);
 
     // Validar transición de estado
     this.validateStatusTransition(service.estado, nuevoEstado);
+
+    // Validar que se proporcione comentario obligatorio para estado INCOMPLETO
+    if (nuevoEstado === ServiceState.INCOMPLETO && !comentarioIncompleto) {
+      throw new BadRequestException(
+        'Para cambiar un servicio a estado INCOMPLETO, debe proporcionar un comentario explicando el motivo',
+      );
+    }
 
     // Actualizar fechas
     if (nuevoEstado === ServiceState.EN_PROGRESO && !service.fechaInicio) {
@@ -410,10 +489,17 @@ export class ServicesService {
       }
     }
 
+    // Si se marca como INCOMPLETO, también guardar la fecha de fin y el comentario
+    if (nuevoEstado === ServiceState.INCOMPLETO) {
+      service.fechaFin = new Date();
+      service.comentarioIncompleto = comentarioIncompleto || '';
+    }
+
     // Liberar recursos cuando corresponda
     if (
       nuevoEstado === ServiceState.CANCELADO ||
-      nuevoEstado === ServiceState.COMPLETADO
+      nuevoEstado === ServiceState.COMPLETADO ||
+      nuevoEstado === ServiceState.INCOMPLETO
     ) {
       // Para servicios de INSTALACIÓN, retención basada en contrato
       if (service.tipoServicio === ServiceType.INSTALACION) {
@@ -518,15 +604,20 @@ export class ServicesService {
         ServiceType.REUBICACION,
       ].includes(service.tipoServicio);
 
+      // Comprobar si es un servicio de capacitación usando una variable auxiliar
+      const esServicioCapacitacion =
+        service.tipoServicio === ServiceType.CAPACITACION;
+
       // Si tenemos modo incremental, verificamos los recursos existentes
-      let currentEmployees: Empleado[] = [];
+      let empleadoA: Empleado | null = null;
+      let empleadoB: Empleado | null = null;
       let currentVehicles: Vehicle[] = [];
       let currentToilets: ChemicalToilet[] = [];
-      let assignments: ResourceAssignment[] = [];
+      const assignments: ResourceAssignment[] = [];
 
       if (incremental && service.asignaciones?.length) {
         // Recolectar recursos actuales
-        currentEmployees = service.asignaciones
+        const currentEmployees = service.asignaciones
           .filter((a) => a.empleado)
           .map((a) => a.empleado)
           .filter((emp): emp is Empleado => emp !== null);
@@ -541,32 +632,32 @@ export class ServicesService {
           .map((a) => a.bano)
           .filter((toilet): toilet is ChemicalToilet => toilet !== null);
 
+        // Identificar empleadoA y empleadoB si ya están asignados
+        // Primero verificamos si ya están almacenados en la entidad de service
+        if (service.empleadoAId) {
+          empleadoA =
+            currentEmployees.find((e) => e.id === service.empleadoAId) || null;
+        }
+
+        if (service.empleadoBId) {
+          empleadoB =
+            currentEmployees.find((e) => e.id === service.empleadoBId) || null;
+        }
+
+        // Si no estaban en la entidad, tomamos los dos primeros empleados asignados
+        if (!empleadoA && currentEmployees.length > 0) {
+          empleadoA = currentEmployees[0];
+        }
+
+        if (!empleadoB && currentEmployees.length > 1) {
+          empleadoB = currentEmployees[1];
+        }
+
         // Realizar ajustes para liberar recursos o mantenerlos
-        let employeesToKeep: Empleado[] = [];
         let vehiclesToKeep: Vehicle[] = [];
         let toiletsToKeep: ChemicalToilet[] = [];
 
-        // Si necesitamos menos empleados que los que ya hay, liberar algunos
-        if (currentEmployees.length > service.cantidadEmpleados) {
-          // Mantener solo los primeros N empleados
-          employeesToKeep = currentEmployees.slice(
-            0,
-            service.cantidadEmpleados,
-          );
-
-          // Liberar el resto
-          const employeesToRelease = currentEmployees.slice(
-            service.cantidadEmpleados,
-          );
-          for (const employee of employeesToRelease) {
-            await this.updateResourceState(employee, ResourceState.DISPONIBLE);
-          }
-        } else {
-          // Mantener todos los actuales
-          employeesToKeep = [...currentEmployees];
-        }
-
-        // Similar para vehículos
+        // Mantener vehículos necesarios
         if (currentVehicles.length > service.cantidadVehiculos) {
           vehiclesToKeep = currentVehicles.slice(0, service.cantidadVehiculos);
 
@@ -580,7 +671,7 @@ export class ServicesService {
           vehiclesToKeep = [...currentVehicles];
         }
 
-        // Y para baños
+        // Mantener baños necesarios
         if (currentToilets.length > service.cantidadBanos) {
           toiletsToKeep = currentToilets.slice(0, service.cantidadBanos);
 
@@ -592,49 +683,31 @@ export class ServicesService {
           toiletsToKeep = [...currentToilets];
         }
 
-        // Eliminar asignaciones, ahora que sabemos cuáles recursos se mantendrán
-        const assignmentsToKeep = service.asignaciones.filter((assignment) => {
-          if (
-            assignment.empleado &&
-            !employeesToKeep.includes(assignment.empleado)
-          ) {
-            return false;
-          }
-          if (
-            assignment.vehiculo &&
-            !vehiclesToKeep.includes(assignment.vehiculo)
-          ) {
-            return false;
-          }
-          if (assignment.bano && !toiletsToKeep.includes(assignment.bano)) {
-            return false;
-          }
-          return true;
-        });
-
-        // Eliminar las asignaciones que no se mantendrán
-        const assignmentsToDelete = service.asignaciones
-          .filter((a) => !assignmentsToKeep.includes(a))
-          .map((a) => a.id);
-
-        if (assignmentsToDelete.length > 0) {
-          await this.assignmentRepository.delete(assignmentsToDelete);
+        // Eliminar todas las asignaciones actuales ya que las vamos a recrear
+        if (service.asignaciones.length > 0) {
+          const assignmentsIds = service.asignaciones.map((a) => a.id);
+          await this.assignmentRepository.delete(assignmentsIds);
         }
 
-        // Usar las asignaciones que se mantienen como base
-        assignments = assignmentsToKeep;
-
-        // Actualizar las variables para continuar con la asignación de recursos adicionales
-        currentEmployees = employeesToKeep;
+        // Actualizar las variables para continuar
         currentVehicles = vehiclesToKeep;
         currentToilets = toiletsToKeep;
       }
 
+      // Ahora obtenemos los empleados que necesitamos (siempre 2)
+      const empleadosRequeridos: string[] = [];
+
+      // Determinar qué empleados necesitamos obtener
+      if (!empleadoA) {
+        empleadosRequeridos.push('A');
+      }
+
+      if (!empleadoB) {
+        empleadosRequeridos.push('B');
+      }
+
       // Calcular recursos adicionales necesarios
-      const additionalEmployees = Math.max(
-        0,
-        service.cantidadEmpleados - currentEmployees.length,
-      );
+      const numEmpleadosNecesarios = empleadosRequeridos.length;
       const additionalVehicles = Math.max(
         0,
         service.cantidadVehiculos - currentVehicles.length,
@@ -649,8 +722,8 @@ export class ServicesService {
       let newVehicles: Vehicle[] = [];
       let newToilets: ChemicalToilet[] = [];
 
-      if (additionalEmployees > 0) {
-        // Modificado para incluir empleados ASIGNADOS
+      if (numEmpleadosNecesarios > 0) {
+        // Buscar empleados disponibles
         const employeesResponse = await this.employeesService.findAll({
           page: 1,
           limit: 10,
@@ -665,12 +738,31 @@ export class ServicesService {
             employee.estado === ResourceState.ASIGNADO.toString(),
         );
 
-        if (availableEmployees.length < additionalEmployees) {
+        if (availableEmployees.length < numEmpleadosNecesarios) {
           throw new BadRequestException(
-            `No hay suficientes empleados disponibles o asignados. Se necesitan ${additionalEmployees} adicionales, pero solo hay ${availableEmployees.length}`,
+            `No hay suficientes empleados disponibles o asignados. Se necesitan ${numEmpleadosNecesarios} adicionales, pero solo hay ${availableEmployees.length}`,
           );
         }
-        newEmployees = availableEmployees.slice(0, additionalEmployees);
+        newEmployees = availableEmployees.slice(0, numEmpleadosNecesarios);
+
+        // Asignar a empleadoA y empleadoB según sea necesario
+        for (const tipo of empleadosRequeridos) {
+          const nuevoEmpleado = newEmployees.shift();
+          if (tipo === 'A' && nuevoEmpleado) {
+            empleadoA = nuevoEmpleado;
+            service.empleadoAId = nuevoEmpleado.id;
+          } else if (tipo === 'B' && nuevoEmpleado) {
+            empleadoB = nuevoEmpleado;
+            service.empleadoBId = nuevoEmpleado.id;
+          }
+        }
+
+        // Guardar el servicio con los IDs de empleado actualizados
+        if (entityManager) {
+          await entityManager.save(service);
+        } else {
+          await this.serviceRepository.save(service);
+        }
       }
 
       if (additionalVehicles > 0) {
@@ -715,67 +807,59 @@ export class ServicesService {
       for (const employee of newEmployees) {
         // Solo actualizar si estaba DISPONIBLE
         if (employee.estado === ResourceState.DISPONIBLE.toString()) {
-          await this.updateResourceState(employee, ResourceState.ASIGNADO);
-          employee.estado = ResourceState.ASIGNADO.toString();
+          // Para servicios de capacitación, cambiar a EN_CAPACITACION, para otros a ASIGNADO
+          const newState = esServicioCapacitacion
+            ? ResourceState.EN_CAPACITACION
+            : ResourceState.ASIGNADO;
+          await this.updateResourceState(employee, newState);
+          employee.estado = newState.toString();
         }
       }
 
       for (const vehicle of newVehicles) {
-        // Solo actualizar si estaba DISPONIBLE
         if (vehicle.estado === ResourceState.DISPONIBLE.toString()) {
           await this.updateVehicleState(vehicle, ResourceState.ASIGNADO);
           vehicle.estado = ResourceState.ASIGNADO.toString();
         }
       }
 
-      // Crear nuevas asignaciones para los recursos adicionales
+      // Modificación: simplificar las asignaciones, sin vincular los recursos específicamente a los empleados
 
-      // Para nuevos empleados
-      for (const employee of newEmployees) {
-        const empAssignment = new ResourceAssignment();
-        empAssignment.servicio = service;
-        empAssignment.empleado = employee;
-
-        // Si podemos asignar también un vehículo libre, lo hacemos
-        if (newVehicles.length > 0) {
-          const vehicle = newVehicles.shift();
-          empAssignment.vehiculo = vehicle || null;
-        }
-
-        // Si podemos asignar también un baño libre, lo hacemos
-        if (newToilets.length > 0) {
-          const toilet = newToilets.shift();
-          if (toilet) {
-            empAssignment.bano = toilet;
-            await this.updateToiletState(
-              empAssignment.bano,
-              ResourceState.ASIGNADO,
-            );
-            empAssignment.bano.estado = ResourceState.ASIGNADO.toString();
-          }
-        }
-
-        assignments.push(empAssignment);
+      // 1. Crear asignaciones para los empleados (siempre 2)
+      if (empleadoA) {
+        const assignmentA = new ResourceAssignment();
+        assignmentA.servicio = service;
+        assignmentA.empleado = empleadoA;
+        assignments.push(assignmentA);
       }
 
-      // Para vehículos adicionales que quedaron sin asignar
-      for (const vehicle of newVehicles) {
-        const vehAssignment = new ResourceAssignment();
-        vehAssignment.servicio = service;
-        vehAssignment.vehiculo = vehicle;
-
-        assignments.push(vehAssignment);
+      if (empleadoB) {
+        const assignmentB = new ResourceAssignment();
+        assignmentB.servicio = service;
+        assignmentB.empleado = empleadoB;
+        assignments.push(assignmentB);
       }
 
-      // Para baños adicionales que quedaron sin asignar
-      for (const toilet of newToilets) {
+      // 2. Crear asignaciones para todos los vehículos
+      const allVehicles = [...currentVehicles, ...newVehicles];
+      for (const vehicle of allVehicles) {
+        const vehicleAssignment = new ResourceAssignment();
+        vehicleAssignment.servicio = service;
+        vehicleAssignment.vehiculo = vehicle;
+        assignments.push(vehicleAssignment);
+      }
+
+      // 3. Crear asignaciones para todos los baños
+      const allToilets = [...currentToilets, ...newToilets];
+      for (const toilet of allToilets) {
+        if (toilet.estado !== ResourceState.ASIGNADO.toString()) {
+          await this.updateToiletState(toilet, ResourceState.ASIGNADO);
+          toilet.estado = ResourceState.ASIGNADO.toString();
+        }
+
         const toiletAssignment = new ResourceAssignment();
         toiletAssignment.servicio = service;
         toiletAssignment.bano = toilet;
-
-        await this.updateToiletState(toilet, ResourceState.ASIGNADO);
-        toilet.estado = ResourceState.ASIGNADO.toString();
-
         assignments.push(toiletAssignment);
       }
 
@@ -829,6 +913,10 @@ export class ServicesService {
       // Verificar que el servicio existe
       const assignments: ResourceAssignment[] = [];
 
+      // Comprobar si es un servicio de capacitación - usando la variable auxiliar
+      const esServicioCapacitacion =
+        service.tipoServicio === ServiceType.CAPACITACION;
+
       // Procesar cada asignación manual
       for (const assignmentDto of assignmentDtos) {
         // Verificar empleado
@@ -878,11 +966,16 @@ export class ServicesService {
 
           // Solo actualizar el estado si estaba DISPONIBLE
           if (employee.estado === ResourceState.DISPONIBLE.toString()) {
+            // Para servicios de capacitación, cambiar a EN_CAPACITACION, para otros a ASIGNADO
+            const newState = esServicioCapacitacion
+              ? ResourceState.EN_CAPACITACION
+              : ResourceState.ASIGNADO;
+
             if (entityManager) {
-              employee.estado = ResourceState.ASIGNADO.toString();
+              employee.estado = newState.toString();
               await entityManager.save(employee);
             } else {
-              await this.updateResourceState(employee, ResourceState.ASIGNADO);
+              await this.updateResourceState(employee, newState);
             }
           }
         }
@@ -1031,6 +1124,7 @@ export class ServicesService {
     for (const assignment of service.asignaciones) {
       if (assignment.empleado) {
         this.logger.log(`Liberando empleado ${assignment.empleado.id}`);
+        // Liberar independientemente del estado (puede ser ASIGNADO o EN_CAPACITACION)
         await this.employeesService.changeStatus(
           assignment.empleado.id,
           ResourceState.DISPONIBLE,
@@ -1314,6 +1408,7 @@ export class ServicesService {
       [ServiceState.EN_PROGRESO]: [
         ServiceState.COMPLETADO,
         ServiceState.SUSPENDIDO,
+        ServiceState.INCOMPLETO, // Se puede marcar como INCOMPLETO desde EN_PROGRESO
       ],
       [ServiceState.SUSPENDIDO]: [
         ServiceState.EN_PROGRESO,
@@ -1321,7 +1416,7 @@ export class ServicesService {
       ],
       [ServiceState.COMPLETADO]: [], // Final state
       [ServiceState.CANCELADO]: [], // Final state
-      // Removed PENDIENTE_RECURSOS and PENDIENTE_CONFIRMACION
+      [ServiceState.INCOMPLETO]: [], // Final state
     };
 
     // Verify if the transition is valid
@@ -1412,8 +1507,8 @@ export class ServicesService {
         ServiceType.REPARACION,
       ].includes(service.tipoServicio);
 
-      // Cálculo de recursos necesarios
-      const employeesNeeded = service.cantidadEmpleados;
+      // Cálculo de recursos necesarios - Para empleados siempre son 2
+      const employeesNeeded = 2; // Siempre necesitamos 2 empleados
       const vehiclesNeeded = service.cantidadVehiculos;
       const toiletsNeeded = requiereNuevosBanos ? service.cantidadBanos : 0;
 
@@ -1461,10 +1556,11 @@ export class ServicesService {
       // Verificar disponibilidad de empleados
       if (employeesNeeded > 0) {
         // Primero, obtenemos todos los empleados disponibles actualmente
-        const employeesResponse = await this.employeesService.findAll({
-          page: 1,
-          limit: 10,
-        });
+        const employeesResponse: { data: Empleado[] } =
+          await this.employeesService.findAll({
+            page: 1,
+            limit: 10,
+          });
 
         // Accedemos a la propiedad 'data' que contiene el array de empleados
         const allEmployees = employeesResponse.data || [];
@@ -1553,6 +1649,54 @@ export class ServicesService {
       ServiceType.REUBICACION,
       ServiceType.MANTENIMIENTO,
     ];
+
+    const serviciosSoloEmpleados = [ServiceType.CAPACITACION];
+
+    // Validar el servicio de CAPACITACIÓN (sólo requiere empleados)
+    if (serviciosSoloEmpleados.includes(service.tipoServicio)) {
+      if (service.cantidadBanos !== 0) {
+        throw new BadRequestException(
+          `Para servicios de ${service.tipoServicio}, la cantidad de baños debe ser 0 ya que no se utilizan baños`,
+        );
+      }
+
+      if (service.cantidadVehiculos !== 0) {
+        throw new BadRequestException(
+          `Para servicios de ${service.tipoServicio}, la cantidad de vehículos debe ser 0 ya que no se utilizan vehículos`,
+        );
+      }
+
+      // Ya no necesitamos verificar cantidadEmpleados porque ahora siempre es 2
+      // Removemos esta validación:
+      // if (service.cantidadEmpleados <= 0) {
+      //   throw new BadRequestException(
+      //     `Para servicios de ${service.tipoServicio}, la cantidad de empleados debe ser mayor a 0`,
+      //   );
+      // }
+
+      if (service.banosInstalados && service.banosInstalados.length > 0) {
+        throw new BadRequestException(
+          `Para servicios de ${service.tipoServicio}, no se debe especificar el campo 'banosInstalados'`,
+        );
+      }
+
+      // Para CAPACITACION, asignación debe ser manual
+      if (service.asignacionAutomatica) {
+        throw new BadRequestException(
+          `Para servicios de ${service.tipoServicio}, la asignación de empleados debe ser manual (asignacionAutomatica debe ser false)`,
+        );
+      }
+
+      // Para CAPACITACION, se deben especificar las asignaciones manuales
+      if (
+        !service.asignacionesManual ||
+        service.asignacionesManual.length === 0
+      ) {
+        throw new BadRequestException(
+          `Para servicios de ${service.tipoServicio}, debe especificar los empleados a asignar en el campo 'asignacionesManual'`,
+        );
+      }
+    }
 
     // Validar servicios que requieren baños instalados
     if (serviciosConBanosInstalados.includes(service.tipoServicio)) {
