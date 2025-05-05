@@ -1,4 +1,10 @@
-import { IsBoolean, IsEnum, IsOptional } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsOptional,
+  IsString,
+  ValidateIf,
+} from 'class-validator';
 import { ServiceState } from '../../common/enums/resource-states.enum';
 
 export class ChangeServiceStatusDto {
@@ -8,4 +14,10 @@ export class ChangeServiceStatusDto {
   @IsOptional()
   @IsBoolean()
   forzar?: boolean;
+
+  @ValidateIf(
+    (o: ChangeServiceStatusDto) => o.estado === ServiceState.INCOMPLETO,
+  )
+  @IsString()
+  comentarioIncompleto?: string;
 }

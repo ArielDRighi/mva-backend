@@ -20,7 +20,7 @@ export class Service {
   @PrimaryGeneratedColumn({ name: 'servicio_id' })
   id: number;
 
-  @Column({ name: 'cliente_id' })
+  @Column({ name: 'cliente_id', nullable: true })
   clienteId: number;
 
   @ManyToOne(() => Cliente, (cliente) => cliente.servicios)
@@ -55,8 +55,16 @@ export class Service {
   @Column({ name: 'cantidad_banos', default: 1 })
   cantidadBanos: number;
 
-  @Column({ name: 'cantidad_empleados', default: 1 })
-  cantidadEmpleados: number;
+  // Reemplazamos cantidadEmpleados por el valor fijo de 2
+  @Column({ name: 'cantidad_empleados', default: 2 })
+  cantidadEmpleados: number = 2; // Siempre será 2
+
+  // Añadimos identificadores específicos para empleadoA y empleadoB con tipo explícito
+  @Column({ name: 'empleado_a_id', type: 'int', nullable: true })
+  empleadoAId: number | null;
+
+  @Column({ name: 'empleado_b_id', type: 'int', nullable: true })
+  empleadoBId: number | null;
 
   @Column({ name: 'cantidad_vehiculos', default: 1 })
   cantidadVehiculos: number;
@@ -81,6 +89,9 @@ export class Service {
 
   @CreateDateColumn({ name: 'fecha_creacion' })
   fechaCreacion: Date;
+
+  @Column({ name: 'comentario_incompleto', type: 'text', nullable: true })
+  comentarioIncompleto: string;
 
   @OneToMany(() => ResourceAssignment, (assignment) => assignment.servicio, {
     cascade: ['insert', 'update'],

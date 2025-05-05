@@ -1,4 +1,13 @@
-import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import {
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+  IsBoolean,
+  IsEnum,
+  Matches,
+} from 'class-validator';
+import { TipoCabina } from '../entities/vehicle.entity';
 
 export class UpdateVehicleDto {
   @IsString()
@@ -18,10 +27,31 @@ export class UpdateVehicleDto {
   @Min(1900, { message: 'El año debe ser válido' })
   anio?: number;
 
-  @IsNumber()
+  @IsString()
   @IsOptional()
-  @Min(0, { message: 'La capacidad de carga debe ser mayor o igual a cero' })
-  capacidadCarga?: number;
+  numeroInterno?: string;
+
+  @IsEnum(TipoCabina, { message: 'El tipo de cabina debe ser simple o doble' })
+  @IsOptional()
+  tipoCabina?: TipoCabina;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, {
+    message: 'La fecha debe tener formato YYYY-MM-DD',
+  })
+  fechaVencimientoVTV?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, {
+    message: 'La fecha debe tener formato YYYY-MM-DD',
+  })
+  fechaVencimientoSeguro?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  esExterno?: boolean;
 
   @IsString()
   @IsOptional()
