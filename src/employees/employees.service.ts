@@ -6,7 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThanOrEqual, LessThan, Between } from 'typeorm';
 import { Empleado } from './entities/employee.entity';
 import { CreateEmployeeDto } from './dto/create_employee.dto';
 import { UpdateEmployeeDto } from './dto/update_employee.dto';
@@ -17,6 +17,9 @@ import { CreateContactEmergencyDto } from './dto/create_contact_emergency.dto';
 import { ContactosEmergencia } from './entities/emergencyContacts.entity';
 import { UpdateContactEmergencyDto } from './dto/update_contact_emergency.dto';
 import { UpdateLicenseDto } from './dto/update_license.dto';
+import { ExamenPreocupacional } from './entities/examenPreocupacional.entity';
+import { CreateExamenPreocupacionalDto } from './dto/create_examen.dto';
+import { UpdateExamenPreocupacionalDto } from './dto/modify_examen.dto';
 
 @Injectable()
 export class EmployeesService {
@@ -29,6 +32,8 @@ export class EmployeesService {
     private readonly licenciaRepository: Repository<Licencias>,
     @InjectRepository(ContactosEmergencia)
     private readonly emergencyContactRepository: Repository<ContactosEmergencia>,
+    @InjectRepository(ExamenPreocupacional)
+    private readonly examenPreocupacionalRepository: Repository<ExamenPreocupacional>,
   ) {}
 
   async create(createEmployeeDto: CreateEmployeeDto): Promise<Empleado> {
@@ -378,24 +383,28 @@ export class EmployeesService {
   }
 
   async updateLicencia(
-    licenciaId: number,
+    empleadoId: number,
     updateLicenseDto: UpdateLicenseDto,
   ): Promise<Licencias> {
-    const licencia = await this.licenciaRepository.findOne({
-      where: { licencia_id: licenciaId },
+    const user = await this.employeeRepository.findOne({
+      where: { id: empleadoId },
+      relations: ['licencia'],
     });
-    if (!licencia) {
+    if (!user?.licencia) {
       throw new NotFoundException(
-        `Licencia con id ${licenciaId} no encontrada`,
+        `Licencia con id ${user?.licencia.licencia_id} no encontrada`,
       );
     }
-    await this.licenciaRepository.update(licenciaId, updateLicenseDto);
+    await this.licenciaRepository.update(
+      user.licencia.licencia_id,
+      updateLicenseDto,
+    );
     const updatedLicense = await this.licenciaRepository.findOne({
-      where: { licencia_id: licenciaId },
+      where: { licencia_id: user.licencia.licencia_id },
     });
     if (!updatedLicense) {
       throw new NotFoundException(
-        `Licencia con id ${licenciaId} no encontrada`,
+        `Licencia con id ${user.licencia.licencia_id} no encontrada`,
       );
     }
     return updatedLicense;
@@ -412,5 +421,128 @@ export class EmployeesService {
     }
     await this.licenciaRepository.remove(licencia);
     return { message: `Licencia eliminada correctamente` };
+  }
+
+  async findLicensesToExpire(): Promise<Licencias[]> {
+    const today = new Date();
+    const thirtyDaysLater = new Date(
+      today.getTime() + 30 * 24 * 60 * 60 * 1000,
+    );
+
+    this.logger.log('Buscando licencias que vencen en los próximos 30 días');
+
+    try {
+      const licensesToExpire = await this.licenciaRepository.find({
+        where: {
+          fecha_vencimiento: Between(today, thirtyDaysLater),
+        },
+        relations: ['empleado'],
+      });
+
+      return licensesToExpire;
+    } catch (error) {
+      this.logger.error(
+        `Error al buscar licencias por vencer: ${error.message}`,
+      );
+      throw new NotFoundException(
+        'No se pudieron encontrar licencias por vencer',
+      );
+    }
+  }
+
+  async findExamenesByEmpleadoId(
+    empleadoId: number,
+  ): Promise<ExamenPreocupacional[]> {
+    const employee = await this.employeeRepository.findOne({
+      where: { id: empleadoId },
+      relations: ['examenesPreocupacionales'],
+    });
+    if (!employee) {
+      throw new NotFoundException(
+        `Empleado con id ${empleadoId} no encontrado`,
+      );
+    }
+    if (!employee.examenesPreocupacionales) {
+      throw new NotFoundException(
+        `El empleado con id ${empleadoId} no tiene exámenes preocupacionales`,
+      );
+    }
+    return employee.examenesPreocupacionales;
+  }
+
+  async createExamenPreocupacional(
+    createExamenPreocupacionalDto: CreateExamenPreocupacionalDto,
+  ): Promise<ExamenPreocupacional> {
+    const employee = await this.employeeRepository.findOne({
+      where: { id: createExamenPreocupacionalDto.empleado_id },
+    });
+    if (!employee) {
+      throw new NotFoundException(
+        `Empleado con id ${createExamenPreocupacionalDto.empleado_id} no encontrado`,
+      );
+    }
+    const examenPreocupacional =
+      await this.examenPreocupacionalRepository.create({
+        fecha_examen: createExamenPreocupacionalDto.fecha_examen,
+        resultado: createExamenPreocupacionalDto.resultado,
+        observaciones: createExamenPreocupacionalDto.observaciones,
+        realizado_por: createExamenPreocupacionalDto.realizado_por,
+        empleado: employee,
+      });
+    await this.examenPreocupacionalRepository.save(examenPreocupacional);
+
+    const examenCreado = await this.examenPreocupacionalRepository.findOne({
+      where: {
+        examen_preocupacional_id: examenPreocupacional.examen_preocupacional_id,
+      },
+      relations: ['empleado'],
+    });
+    if (!examenCreado) {
+      throw new NotFoundException(
+        `Examen preocupacional con id ${examenPreocupacional.examen_preocupacional_id} no encontrado`,
+      );
+    }
+    return examenCreado;
+  }
+
+  async removeExamenPreocupacional(
+    examenId: number,
+  ): Promise<{ message: string }> {
+    const examen = await this.examenPreocupacionalRepository.findOne({
+      where: { examen_preocupacional_id: examenId },
+    });
+    if (!examen) {
+      throw new NotFoundException(
+        `Examen preocupacional con id ${examenId} no encontrado`,
+      );
+    }
+    await this.examenPreocupacionalRepository.remove(examen);
+    return { message: `Examen preocupacional eliminado correctamente` };
+  }
+
+  async updateExamenPreocupacional(
+    examenId: number,
+    updateExamenPreocupacionalDto: UpdateExamenPreocupacionalDto,
+  ): Promise<ExamenPreocupacional> {
+    const examen = await this.examenPreocupacionalRepository.findOne({
+      where: { examen_preocupacional_id: examenId },
+    });
+    if (!examen) {
+      throw new NotFoundException(
+        `Examen preocupacional con id ${examenId} no encontrado`,
+      );
+    }
+
+    Object.assign(examen, updateExamenPreocupacionalDto);
+    await this.examenPreocupacionalRepository.save(examen);
+    const updatedExamen = await this.examenPreocupacionalRepository.findOne({
+      where: { examen_preocupacional_id: examenId },
+    });
+    if (!updatedExamen) {
+      throw new NotFoundException(
+        `Examen preocupacional con id ${examenId} no encontrado`,
+      );
+    }
+    return updatedExamen;
   }
 }

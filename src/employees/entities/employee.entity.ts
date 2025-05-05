@@ -10,6 +10,7 @@ import { EmployeeLeave } from '../../employee_leaves/entities/employee-leave.ent
 import { SalaryAdvance } from 'src/salary_advance/entities/salary_advance.entity';
 import { ContactosEmergencia } from './emergencyContacts.entity';
 import { Licencias } from './license.entity';
+import { ExamenPreocupacional } from './examenPreocupacional.entity';
 
 @Entity({ name: 'employees' })
 export class Empleado {
@@ -74,4 +75,10 @@ export class Empleado {
 
   @OneToMany(() => SalaryAdvance, (advance) => advance.employee)
   advances: SalaryAdvance[];
+
+  @OneToMany(
+    () => ExamenPreocupacional,
+    (examenPreocupacional) => examenPreocupacional.empleado,
+  )
+  examenesPreocupacionales: ExamenPreocupacional[];
 }

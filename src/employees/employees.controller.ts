@@ -26,11 +26,53 @@ import { CreateContactEmergencyDto } from './dto/create_contact_emergency.dto';
 import { ContactosEmergencia } from './entities/emergencyContacts.entity';
 import { UpdateContactEmergencyDto } from './dto/update_contact_emergency.dto';
 import { UpdateLicenseDto } from './dto/update_license.dto';
+import { CreateExamenPreocupacionalDto } from './dto/create_examen.dto';
+import { UpdateExamenPreocupacionalDto } from './dto/modify_examen.dto';
 
 @Controller('employees')
 @UseGuards(JwtAuthGuard)
 export class EmployeesController {
   constructor(private readonly employeesService: EmployeesService) {}
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @Put('examen/modify/:examenId')
+  async updateExamenPreocupacional(
+    @Body() updateExamenPreocupacionalDto: UpdateExamenPreocupacionalDto,
+    @Param('examenId', ParseIntPipe) examenId: number,
+  ): Promise<any> {
+    return await this.employeesService.updateExamenPreocupacional(
+      examenId,
+      updateExamenPreocupacionalDto,
+    );
+  }
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @Delete('examen/delete/:examenId')
+  async removeExamenPreocupacional(
+    @Param('examenId', ParseIntPipe) examenId: number,
+  ): Promise<{ message: string }> {
+    return await this.employeesService.removeExamenPreocupacional(examenId);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @Post('examen/create')
+  async createExamenPreocupacional(
+    @Body() createExamenPreocupacionalDto: CreateExamenPreocupacionalDto,
+  ): Promise<any> {
+    return await this.employeesService.createExamenPreocupacional(
+      createExamenPreocupacionalDto,
+    );
+  }
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @Get('examen/:empleadoId')
+  async findExamenesByEmpleadoId(
+    @Param('empleadoId', ParseIntPipe) empleadoId: number,
+  ) {
+    return await this.employeesService.findExamenesByEmpleadoId(empleadoId);
+  }
 
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
@@ -47,7 +89,7 @@ export class EmployeesController {
 
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
-  @Delete('emergency/:contactoId')
+  @Delete('emergency/delete/:contactoId')
   async removeEmergencyContact(
     @Param('contactoId', ParseIntPipe) contactoId: number,
   ): Promise<{ message: string }> {
@@ -78,21 +120,28 @@ export class EmployeesController {
   }
 
   @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @Get('licences/to/expire')
+  async findLicensesToExpire(): Promise<Licencias[]> {
+    return await this.employeesService.findLicensesToExpire();
+  }
+
+  @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
-  @Put('licencia/:licenciaId')
+  @Put('licencia/update/:empleadoId')
   async updateLicencia(
     @Body() updateLicenseDto: UpdateLicenseDto,
-    @Param('licenciaId', ParseIntPipe) licenciaId: number,
+    @Param('empleadoId', ParseIntPipe) empleadoId: number,
   ): Promise<Licencias> {
     return await this.employeesService.updateLicencia(
-      licenciaId,
+      empleadoId,
       updateLicenseDto,
     );
   }
 
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
-  @Delete('licencia/:licenciaId')
+  @Delete('licencia/delete/:licenciaId')
   async removeLicencia(
     @Param('licenciaId', ParseIntPipe) licenciaId: number,
   ): Promise<{ message: string }> {
