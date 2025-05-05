@@ -23,25 +23,21 @@ export class ContractualConditionsService {
     page: number = 1,
     limit: number = 10,
   ): Promise<Pagination<CondicionesContractuales>> {
-    // Validamos que los parámetros sean números válidos
+    // Validamos que los parámetros de paginación sean válidos
     if (page < 1 || limit < 1) {
-      throw new Error('Page and limit must be greater than 0');
+      throw new Error(
+        `Invalid pagination parameters: "page" and "limit" must both be greater than 0. Received page=${page}, limit=${limit}.`,
+      );
     }
-
+  
     // Obtener las condiciones contractuales con paginación
     const [contractualConditions, total] =
       await this.contractualConditionsRepository.findAndCount({
         skip: (page - 1) * limit,
         take: limit,
       });
-
-    if (!contractualConditions || contractualConditions.length === 0) {
-      throw new NotFoundException(
-        'An error occurred while trying to get the Contractual Conditions',
-      );
-    }
-
-    // Retornamos los resultados con información de la paginación
+  
+    // Retornar resultados (aunque esté vacío)
     return {
       items: contractualConditions,
       total,
@@ -50,6 +46,8 @@ export class ContractualConditionsService {
       totalPages: Math.ceil(total / limit),
     };
   }
+  
+  
 
   async getContractualConditionById(contractualConditionId: number) {
     const contractualCondition =
