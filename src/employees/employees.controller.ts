@@ -1,3 +1,4 @@
+import { Role } from 'src/roles/enums/role.enum';
 import {
   Controller,
   Get,
@@ -18,8 +19,11 @@ import { Empleado } from './entities/employee.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../roles/guards/roles.guard';
 import { Roles } from '../roles/decorators/roles.decorator';
-import { Role } from '../roles/enums/role.enum';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { CreateLicenseDto } from './dto/create_license.dto';
+import { Licencias } from './entities/license.entity';
+import { CreateContactEmergencyDto } from './dto/create_contact_emergency.dto';
+import { ContactosEmergencia } from './entities/emergencyContacts.entity';
 
 @Controller('employees')
 @UseGuards(JwtAuthGuard)
@@ -27,19 +31,72 @@ export class EmployeesController {
   constructor(private readonly employeesService: EmployeesService) {}
 
   @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
+  @Post('emergency/:empleadoId')
+  async createEmergencyContact(
+    @Body() createEmergencyContactDto: CreateContactEmergencyDto,
+    @Param('empleadoId', ParseIntPipe) empleadoId: number,
+  ): Promise<ContactosEmergencia> {
+    return await this.employeesService.createEmergencyContact(
+      createEmergencyContactDto,
+      empleadoId,
+    );
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
+  @Get('emergency/:empleadoId')
+  async findEmergencyContactsByEmpleadoId(
+    @Param('empleadoId', ParseIntPipe) empleadoId: number,
+  ): Promise<Empleado> {
+    return await this.employeesService.findEmergencyContactsByEmpleadoId(
+      empleadoId,
+    );
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
+  @Post('licencia/:empleadoId')
+  async createLicencia(
+    @Body() createEmployeeDto: CreateLicenseDto,
+    @Param('empleadoId', ParseIntPipe) empleadoId: number,
+  ): Promise<Licencias> {
+    return await this.employeesService.createLicencia(
+      createEmployeeDto,
+      empleadoId,
+    );
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
+  @Get('licencia/:empleadoId')
+  async findLicenciasByEmpleadoId(
+    @Param('empleadoId', ParseIntPipe) empleadoId: number,
+  ): Promise<Empleado> {
+    return await this.employeesService.findLicenciasByEmpleadoId(empleadoId);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
+  @Get('licencias')
+  async findLicencias(): Promise<Licencias[]> {
+    return await this.employeesService.findLicencias();
+  }
+
+  @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Post()
-  create(@Body() createEmployeeDto: CreateEmployeeDto): Promise<Empleado> {
+  async create(
+    @Body() createEmployeeDto: CreateEmployeeDto,
+  ): Promise<Empleado> {
     return this.employeesService.create(createEmployeeDto);
   }
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Get()
-  async findAll(
-    @Query() paginationDto: PaginationDto,
-  ): Promise<any> {
+  async findAll(@Query() paginationDto: PaginationDto): Promise<any> {
     return this.employeesService.findAll(paginationDto);
   }
-  
+
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number): Promise<Empleado> {

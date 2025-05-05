@@ -11,6 +11,10 @@ import { Empleado } from './entities/employee.entity';
 import { CreateEmployeeDto } from './dto/create_employee.dto';
 import { UpdateEmployeeDto } from './dto/update_employee.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { Licencias } from './entities/license.entity';
+import { CreateLicenseDto } from './dto/create_license.dto';
+import { CreateContactEmergencyDto } from './dto/create_contact_emergency.dto';
+import { ContactosEmergencia } from './entities/emergencyContacts.entity';
 
 @Injectable()
 export class EmployeesService {
@@ -19,6 +23,10 @@ export class EmployeesService {
   constructor(
     @InjectRepository(Empleado)
     private employeeRepository: Repository<Empleado>,
+    @InjectRepository(Licencias)
+    private readonly licenciaRepository: Repository<Licencias>,
+    @InjectRepository(ContactosEmergencia)
+    private readonly emergencyContactRepository: Repository<ContactosEmergencia>,
   ) {}
 
   async create(createEmployeeDto: CreateEmployeeDto): Promise<Empleado> {
@@ -104,6 +112,7 @@ export class EmployeesService {
     this.logger.log(`Buscando empleado con id: ${id}`);
     const employee = await this.employeeRepository.findOne({
       where: { id },
+      relations: ['licencia'],
     });
 
     if (!employee) {
@@ -212,5 +221,112 @@ export class EmployeesService {
     return this.employeeRepository.find({
       where: { cargo },
     });
+  }
+  async createLicencia(
+    createLicenseDto: CreateLicenseDto,
+    empleadoId: number,
+  ): Promise<Licencias> {
+    const employee = await this.employeeRepository.findOne({
+      where: { id: empleadoId },
+      relations: ['licencia'],
+    });
+    if (!employee) {
+      throw new NotFoundException(
+        `Empleado con id ${empleadoId} no encontrado`,
+      );
+    }
+    if (!employee.licencia) {
+      const licencia = await this.licenciaRepository.create({
+        categoria: createLicenseDto.categoria,
+        fecha_expedicion: createLicenseDto.fecha_expedicion,
+        fecha_vencimiento: createLicenseDto.fecha_vencimiento,
+        empleado: employee,
+      });
+      await this.licenciaRepository.save(licencia);
+      const licenciaCreada = await this.licenciaRepository.findOne({
+        where: { licencia_id: licencia.licencia_id },
+        relations: ['empleado'],
+      });
+      if (!licenciaCreada) {
+        throw new NotFoundException(
+          `Licencia con id ${licencia.licencia_id} no encontrada`,
+        );
+      }
+      return licenciaCreada;
+    }
+    throw new ConflictException(
+      `El empleado con id ${empleadoId} ya tiene una licencia asociada`,
+    );
+  }
+
+  async findLicenciasByEmpleadoId(empleadoId: number): Promise<Empleado> {
+    const employee = await this.employeeRepository.findOne({
+      where: { id: empleadoId },
+      relations: ['licencia'],
+    });
+    if (!employee) {
+      throw new NotFoundException(
+        `Empleado con id ${empleadoId} no encontrado`,
+      );
+    }
+    return employee;
+  }
+
+  async createEmergencyContact(
+    createEmergencyContactDto: CreateContactEmergencyDto,
+    empleadoId: number,
+  ): Promise<ContactosEmergencia> {
+    const employee = await this.employeeRepository.findOne({
+      where: { id: empleadoId },
+      relations: ['emergencyContacts'],
+    });
+    if (!employee) {
+      throw new NotFoundException(
+        `Empleado con id ${empleadoId} no encontrado`,
+      );
+    }
+
+    const contactoEmergencia = await this.emergencyContactRepository.create({
+      nombre: createEmergencyContactDto.nombre,
+      apellido: createEmergencyContactDto.apellido,
+      parentesco: createEmergencyContactDto.parentesco,
+      telefono: createEmergencyContactDto.telefono,
+      empleado: employee,
+    });
+    await this.emergencyContactRepository.save(contactoEmergencia);
+    const contact = await this.emergencyContactRepository.findOne({
+      where: { id: contactoEmergencia.id },
+      relations: ['empleado'],
+    });
+
+    if (!contact) {
+      throw new NotFoundException(
+        `Contacto de emergencia con id ${contactoEmergencia.id} no encontrado`,
+      );
+    }
+    return contact;
+  }
+
+  async findLicencias(): Promise<Licencias[]> {
+    const licencias = await this.licenciaRepository.find();
+    if (!licencias) {
+      throw new NotFoundException(`No se encontraron licencias`);
+    }
+    return licencias;
+  }
+
+  async findEmergencyContactsByEmpleadoId(
+    empleadoId: number,
+  ): Promise<Empleado> {
+    const employee = await this.employeeRepository.findOne({
+      where: { id: empleadoId },
+      relations: ['emergencyContacts'],
+    });
+    if (!employee) {
+      throw new NotFoundException(
+        `Empleado con id ${empleadoId} no encontrado`,
+      );
+    }
+    return employee;
   }
 }
