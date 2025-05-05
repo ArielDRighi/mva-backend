@@ -69,6 +69,9 @@ export class ServicesService {
   ) {}
 
   async create(createServiceDto: CreateServiceDto): Promise<Service> {
+    // Validar requisitos específicos del tipo de servicio
+    this.validateServiceTypeSpecificRequirements(createServiceDto);
+
     // Crear un query runner para manejar la transacción
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -77,8 +80,19 @@ export class ServicesService {
     try {
       // Crear un nuevo servicio
       let newService = new Service();
+
+      // Asignar cliente solo si no es servicio de capacitación o si viene especificado
+      if (
+        createServiceDto.tipoServicio !== ServiceType.CAPACITACION ||
+        createServiceDto.clienteId
+      ) {
+        Object.assign(newService, {
+          cliente: { clienteId: createServiceDto.clienteId },
+        });
+      }
+
+      // Asignar resto de propiedades
       Object.assign(newService, {
-        cliente: { clienteId: createServiceDto.clienteId },
         fechaProgramada: createServiceDto.fechaProgramada,
         tipoServicio: createServiceDto.tipoServicio,
         estado: createServiceDto.estado || ServiceState.PROGRAMADO,
@@ -172,7 +186,7 @@ export class ServicesService {
               newService = savedServiceForCleanings;
             }
           }
-        } else {
+        } else if (createServiceDto.clienteId) {
           // Si no se especificó ID de contrato, buscar contratos activos para el cliente
           const condicionesContractuales =
             await this.condicionesContractualesRepository.find({
@@ -252,11 +266,18 @@ export class ServicesService {
       if (search) {
         const term = `%${search.toLowerCase()}%`;
 
-        // Hacemos cast de enum a texto para buscar por string
+        // Modificamos la consulta para buscar también por tipo de servicio
         queryBuilder
           .where('LOWER(service.estado::text) LIKE :term', { term })
           .orWhere('LOWER(service.tipo_servicio::text) LIKE :term', { term })
-          .orWhere('LOWER(cliente.nombre_empresa) LIKE :term', { term });
+          .orWhere(
+            'cliente.nombre_empresa IS NULL AND LOWER(service.tipo_servicio::text) LIKE :term',
+            { term },
+          )
+          .orWhere(
+            'cliente IS NOT NULL AND LOWER(cliente.nombre_empresa) LIKE :term',
+            { term },
+          );
       }
 
       queryBuilder.orderBy('service.fechaProgramada', 'ASC');
@@ -307,6 +328,45 @@ export class ServicesService {
 
     const service = await this.findOne(id);
 
+    // Verificar si el servicio es de tipo CAPACITACION o si se está cambiando a ese tipo
+    const esServicioCapacitacion =
+      service.tipoServicio === ServiceType.CAPACITACION ||
+      updateServiceDto.tipoServicio === ServiceType.CAPACITACION;
+
+    // Si es un servicio de capacitación, verificar que la asignación sea manual
+    if (esServicioCapacitacion) {
+      if (updateServiceDto.asignacionAutomatica) {
+        throw new BadRequestException(
+          `Para servicios de CAPACITACION, la asignación de empleados debe ser manual (asignacionAutomatica debe ser false)`,
+        );
+      }
+
+      // Si se está cambiando a CAPACITACION, verificar cantidades
+      if (updateServiceDto.tipoServicio === ServiceType.CAPACITACION) {
+        if (
+          (updateServiceDto.cantidadBanos !== undefined &&
+            updateServiceDto.cantidadBanos !== 0) ||
+          (service.cantidadBanos !== 0 &&
+            updateServiceDto.cantidadBanos === undefined)
+        ) {
+          throw new BadRequestException(
+            `Para servicios de CAPACITACION, la cantidad de baños debe ser 0`,
+          );
+        }
+
+        if (
+          (updateServiceDto.cantidadVehiculos !== undefined &&
+            updateServiceDto.cantidadVehiculos !== 0) ||
+          (service.cantidadVehiculos !== 0 &&
+            updateServiceDto.cantidadVehiculos === undefined)
+        ) {
+          throw new BadRequestException(
+            `Para servicios de CAPACITACION, la cantidad de vehículos debe ser 0`,
+          );
+        }
+      }
+    }
+
     // Verificar si el servicio tiene el tipoServicio correctamente cargado
     if (!service.tipoServicio) {
       this.logger.warn(
@@ -353,7 +413,7 @@ export class ServicesService {
     this.logger.log(`Servicio actualizado: ${JSON.stringify(savedService)}`);
 
     // Reasignar recursos si es necesario
-    if (updateServiceDto.asignacionAutomatica) {
+    if (updateServiceDto.asignacionAutomatica && !esServicioCapacitacion) {
       await this.assignResourcesAutomatically(savedService, true);
     } else if (updateServiceDto.asignacionesManual?.length) {
       await this.assignResourcesManually(
@@ -517,6 +577,10 @@ export class ServicesService {
         ServiceType.TRASLADO,
         ServiceType.REUBICACION,
       ].includes(service.tipoServicio);
+
+      // Comprobar si es un servicio de capacitación usando una variable auxiliar
+      const esServicioCapacitacion =
+        service.tipoServicio === ServiceType.CAPACITACION;
 
       // Si tenemos modo incremental, verificamos los recursos existentes
       let currentEmployees: Empleado[] = [];
@@ -715,8 +779,12 @@ export class ServicesService {
       for (const employee of newEmployees) {
         // Solo actualizar si estaba DISPONIBLE
         if (employee.estado === ResourceState.DISPONIBLE.toString()) {
-          await this.updateResourceState(employee, ResourceState.ASIGNADO);
-          employee.estado = ResourceState.ASIGNADO.toString();
+          // Para servicios de capacitación, cambiar a EN_CAPACITACION, para otros a ASIGNADO
+          const newState = esServicioCapacitacion
+            ? ResourceState.EN_CAPACITACION
+            : ResourceState.ASIGNADO;
+          await this.updateResourceState(employee, newState);
+          employee.estado = newState.toString();
         }
       }
 
@@ -829,6 +897,10 @@ export class ServicesService {
       // Verificar que el servicio existe
       const assignments: ResourceAssignment[] = [];
 
+      // Comprobar si es un servicio de capacitación - usando la variable auxiliar
+      const esServicioCapacitacion =
+        service.tipoServicio === ServiceType.CAPACITACION;
+
       // Procesar cada asignación manual
       for (const assignmentDto of assignmentDtos) {
         // Verificar empleado
@@ -878,11 +950,16 @@ export class ServicesService {
 
           // Solo actualizar el estado si estaba DISPONIBLE
           if (employee.estado === ResourceState.DISPONIBLE.toString()) {
+            // Para servicios de capacitación, cambiar a EN_CAPACITACION, para otros a ASIGNADO
+            const newState = esServicioCapacitacion
+              ? ResourceState.EN_CAPACITACION
+              : ResourceState.ASIGNADO;
+
             if (entityManager) {
-              employee.estado = ResourceState.ASIGNADO.toString();
+              employee.estado = newState.toString();
               await entityManager.save(employee);
             } else {
-              await this.updateResourceState(employee, ResourceState.ASIGNADO);
+              await this.updateResourceState(employee, newState);
             }
           }
         }
@@ -1031,6 +1108,7 @@ export class ServicesService {
     for (const assignment of service.asignaciones) {
       if (assignment.empleado) {
         this.logger.log(`Liberando empleado ${assignment.empleado.id}`);
+        // Liberar independientemente del estado (puede ser ASIGNADO o EN_CAPACITACION)
         await this.employeesService.changeStatus(
           assignment.empleado.id,
           ResourceState.DISPONIBLE,
@@ -1553,6 +1631,52 @@ export class ServicesService {
       ServiceType.REUBICACION,
       ServiceType.MANTENIMIENTO,
     ];
+
+    const serviciosSoloEmpleados = [ServiceType.CAPACITACION];
+
+    // Validar el servicio de CAPACITACIÓN (sólo requiere empleados)
+    if (serviciosSoloEmpleados.includes(service.tipoServicio)) {
+      if (service.cantidadBanos !== 0) {
+        throw new BadRequestException(
+          `Para servicios de ${service.tipoServicio}, la cantidad de baños debe ser 0 ya que no se utilizan baños`,
+        );
+      }
+
+      if (service.cantidadVehiculos !== 0) {
+        throw new BadRequestException(
+          `Para servicios de ${service.tipoServicio}, la cantidad de vehículos debe ser 0 ya que no se utilizan vehículos`,
+        );
+      }
+
+      if (service.cantidadEmpleados <= 0) {
+        throw new BadRequestException(
+          `Para servicios de ${service.tipoServicio}, la cantidad de empleados debe ser mayor a 0`,
+        );
+      }
+
+      if (service.banosInstalados && service.banosInstalados.length > 0) {
+        throw new BadRequestException(
+          `Para servicios de ${service.tipoServicio}, no se debe especificar el campo 'banosInstalados'`,
+        );
+      }
+
+      // Para CAPACITACION, asignación debe ser manual
+      if (service.asignacionAutomatica) {
+        throw new BadRequestException(
+          `Para servicios de ${service.tipoServicio}, la asignación de empleados debe ser manual (asignacionAutomatica debe ser false)`,
+        );
+      }
+
+      // Para CAPACITACION, se deben especificar las asignaciones manuales
+      if (
+        !service.asignacionesManual ||
+        service.asignacionesManual.length === 0
+      ) {
+        throw new BadRequestException(
+          `Para servicios de ${service.tipoServicio}, debe especificar los empleados a asignar en el campo 'asignacionesManual'`,
+        );
+      }
+    }
 
     // Validar servicios que requieren baños instalados
     if (serviciosConBanosInstalados.includes(service.tipoServicio)) {

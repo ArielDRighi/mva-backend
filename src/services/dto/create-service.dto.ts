@@ -19,8 +19,12 @@ import {
 import { CreateResourceAssignmentDto } from './create-resource-assignment.dto';
 
 export class CreateServiceDto {
+  @IsOptional()
   @IsNumber()
-  clienteId: number;
+  @ValidateIf(
+    (o: CreateServiceDto) => o.tipoServicio !== ServiceType.CAPACITACION,
+  )
+  clienteId?: number;
 
   @IsDate()
   @Type(() => Date)
@@ -50,6 +54,9 @@ export class CreateServiceDto {
   cantidadEmpleados: number;
 
   @IsNumber()
+  @ValidateIf(
+    (o: CreateServiceDto) => o.tipoServicio !== ServiceType.CAPACITACION,
+  )
   @Min(1, { message: 'La cantidad de vehículos debe ser al menos 1' })
   cantidadVehiculos: number;
 
