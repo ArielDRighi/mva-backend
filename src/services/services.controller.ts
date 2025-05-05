@@ -14,6 +14,7 @@ import {
   HttpException,
   HttpStatus,
   UseInterceptors,
+  ClassSerializerInterceptor,
 } from '@nestjs/common';
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto/create-service.dto';
@@ -25,11 +26,12 @@ import { Roles } from '../roles/decorators/roles.decorator';
 import { Role } from '../roles/enums/role.enum';
 import { ServiceState } from '../common/enums/resource-states.enum';
 import { ChangeServiceStatusDto } from './dto/change-service-status.dto';
-import { FutureCleaningsService } from 'src/future_cleanings/futureCleanings.service';
 
 import { MailerInterceptor } from 'src/mailer/interceptor/mailer.interceptor';
 import { FilterServicesDto } from './dto/filter-service.dto';
-@UseInterceptors(MailerInterceptor)
+
+// Añadimos el ClassSerializerInterceptor para aplicar las transformaciones
+@UseInterceptors(MailerInterceptor, ClassSerializerInterceptor)
 @Controller('services')
 @UseGuards(JwtAuthGuard)
 export class ServicesController {
@@ -51,10 +53,12 @@ export class ServicesController {
     try {
       // Llama al servicio con los filtros, página y límite
       return await this.servicesService.findAll(filterDto, page, limit);
-    } catch (error) {
+    } catch (error: unknown) {
       // Manejo de errores
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
       throw new HttpException(
-        'Error al obtener los servicios',
+        `Error al obtener los servicios: ${errorMessage}`,
         HttpStatus.BAD_REQUEST,
       );
     }
@@ -119,6 +123,20 @@ export class ServicesController {
       throw new BadRequestException(`Estado inválido: ${statusDto.estado}`);
     }
 
-    return this.servicesService.changeStatus(id, statusDto.estado);
+    // Validar que si el estado es INCOMPLETO, se proporcione un comentario
+    if (
+      statusDto.estado === ServiceState.INCOMPLETO &&
+      !statusDto.comentarioIncompleto
+    ) {
+      throw new BadRequestException(
+        'Para cambiar un servicio a estado INCOMPLETO, debe proporcionar un comentario explicando el motivo',
+      );
+    }
+
+    return this.servicesService.changeStatus(
+      id,
+      statusDto.estado,
+      statusDto.comentarioIncompleto,
+    );
   }
 }

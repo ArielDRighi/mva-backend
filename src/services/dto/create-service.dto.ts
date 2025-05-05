@@ -49,9 +49,13 @@ export class CreateServiceDto {
   @Min(0)
   cantidadBanos: number;
 
+  @IsOptional()
   @IsNumber()
-  @Min(1, { message: 'La cantidad de empleados debe ser al menos 1' })
-  cantidadEmpleados: number;
+  empleadoAId?: number;
+
+  @IsOptional()
+  @IsNumber()
+  empleadoBId?: number;
 
   @IsNumber()
   @ValidateIf(
