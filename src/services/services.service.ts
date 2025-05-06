@@ -69,9 +69,6 @@ export class ServicesService {
   ) {}
 
   async create(createServiceDto: CreateServiceDto): Promise<Service> {
-    // Validar requisitos específicos del tipo de servicio
-    this.validateServiceTypeSpecificRequirements(createServiceDto);
-
     // Crear un query runner para manejar la transacción
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -107,121 +104,251 @@ export class ServicesService {
         banosInstalados: createServiceDto.banosInstalados || [],
       });
 
-      // Si es un servicio de INSTALACIÓN y no tiene fecha de fin de asignación especificada
-      if (
-        createServiceDto.tipoServicio === ServiceType.INSTALACION &&
-        !createServiceDto.fechaFinAsignacion
-      ) {
-        // Intentar obtener la fecha fin del contrato
-        if (createServiceDto.condicionContractualId) {
-          console.log('ID', createServiceDto.condicionContractualId);
-          const condicionContractual =
-            await this.condicionesContractualesRepository.findOne({
-              where: {
-                condicionContractualId: createServiceDto.condicionContractualId,
-              },
-              relations: ['cliente'],
-            });
-          console.log('condicionContractual', condicionContractual);
-          if (condicionContractual) {
-            newService.condicionContractualId =
-              condicionContractual.condicionContractualId;
+      // Si se proporciona condicionContractualId, intentamos obtener datos de la condición contractual
+      if (createServiceDto.condicionContractualId) {
+        console.log('ID', createServiceDto.condicionContractualId);
+        const condicionContractual =
+          await this.condicionesContractualesRepository.findOne({
+            where: {
+              condicionContractualId: createServiceDto.condicionContractualId,
+            },
+            relations: ['cliente'],
+          });
+        console.log('condicionContractual', condicionContractual);
 
-            // Ajustar la fecha sumando 24 horas (1 día) para compensar la diferencia
-            if (condicionContractual.fecha_fin) {
-              const fechaFin = new Date(condicionContractual.fecha_fin);
-              // Sumar 24 horas a la fecha
-              fechaFin.setTime(fechaFin.getTime() + 24 * 60 * 60 * 1000);
-              newService.fechaFinAsignacion = fechaFin;
-              newService.fechaInicio = condicionContractual.fecha_inicio;
-              newService.fechaFin = condicionContractual.fecha_fin;
-              console.log('Periodicidad', condicionContractual.periodicidad);
-            }
+        if (condicionContractual) {
+          newService.condicionContractualId =
+            condicionContractual.condicionContractualId;
 
-            // Aca cuando ya tenemos la fecha de Fin, fecha de inicio, y periodicidad, calculamos los dias en los que se deberia hacer un mantenimiento
-            // Reemplazar la parte donde creas las limpiezas futuras con este código:
-            if (condicionContractual.periodicidad) {
-              const periodicidad = condicionContractual.periodicidad;
-              const diasMantenimiento =
-                this.toiletMaintenanceService.calculateMaintenanceDays(
-                  newService.fechaInicio,
-                  newService.fechaFin,
-                  periodicidad,
-                );
-              console.log('diasMantenimiento', diasMantenimiento);
+          // Asignar fechas con ajuste manual para compensar la diferencia de zona horaria
+          if (
+            condicionContractual.fecha_inicio &&
+            condicionContractual.fecha_fin
+          ) {
+            // Crear nuevas fechas a partir de las originales
+            const inicioOriginal = new Date(condicionContractual.fecha_inicio);
+            const finOriginal = new Date(condicionContractual.fecha_fin);
 
-              const cliente = condicionContractual.cliente;
-              console.log('cliente', cliente);
-              const savedServiceForCleanings =
-                await queryRunner.manager.save(newService);
+            console.log('Fechas originales antes de ajustar:');
+            console.log('- fecha_inicio:', inicioOriginal.toISOString());
+            console.log('- fecha_fin:', finOriginal.toISOString());
 
-              // Crear una limpieza futura por cada fecha calculada
-              for (let i = 0; i < diasMantenimiento.length; i++) {
-                try {
-                  // Crear la limpieza futura directamente usando el queryRunner
-                  const newCleaning = {
-                    cliente: { clienteId: Number(cliente.clienteId) },
-                    fecha_de_limpieza: diasMantenimiento[i],
-                    numero_de_limpieza: i + 1,
-                    isActive: true,
-                    servicio: { id: savedServiceForCleanings.id }, // Asociar al servicio recién creado
-                  };
+            // Ajustar añadiendo un día para compensar el desplazamiento
+            const inicioAjustado = new Date(inicioOriginal);
+            inicioAjustado.setDate(inicioAjustado.getDate() + 1);
 
-                  // Crear y guardar directamente con el queryRunner
-                  await queryRunner.manager.save(
-                    'future_cleanings',
-                    newCleaning,
-                  );
+            const finAjustado = new Date(finOriginal);
+            finAjustado.setDate(finAjustado.getDate() + 1);
 
-                  this.logger.log(
-                    `Limpieza futura #${i + 1} creada para fecha: ${diasMantenimiento[i].toISOString()}`,
-                  );
-                } catch (error) {
-                  const errorMessage =
-                    error instanceof Error
-                      ? error.message
-                      : 'Error desconocido';
-                  this.logger.error(
-                    `Error al crear limpieza futura #${i + 1}: ${errorMessage}`,
-                  );
-                  // No lanzamos el error para que la transacción pueda continuar aunque alguna limpieza falle
-                }
-              }
+            // Asignar las fechas ajustadas al servicio
+            newService.fechaInicio = inicioAjustado;
+            newService.fechaFin = finAjustado;
+            newService.fechaFinAsignacion = finAjustado;
 
-              // Actualizar newService con la referencia correcta para continuar el proceso
-              newService = savedServiceForCleanings;
+            console.log('Fechas después del ajuste manual:');
+            console.log('- fechaInicio:', newService.fechaInicio.toISOString());
+            console.log('- fechaFin:', newService.fechaFin.toISOString());
+            console.log(
+              '- fechaFinAsignacion:',
+              newService.fechaFinAsignacion.toISOString(),
+            );
+          }
+          console.log('Periodicidad:', condicionContractual.periodicidad);
+
+          // Usar tipo de servicio de la condición contractual si está definido
+          if (condicionContractual.tipo_servicio) {
+            // Si el DTO no especifica un tipo de servicio o es igual al de la condición contractual,
+            // usamos el de la condición contractual
+            if (
+              !createServiceDto.tipoServicio ||
+              createServiceDto.tipoServicio ===
+                condicionContractual.tipo_servicio
+            ) {
+              this.logger.log(
+                `Usando tipo de servicio ${condicionContractual.tipo_servicio} de la condición contractual`,
+              );
+              newService.tipoServicio = condicionContractual.tipo_servicio;
+            } else {
+              this.logger.log(
+                `Se mantiene tipo de servicio ${createServiceDto.tipoServicio} especificado en la petición`,
+              );
             }
           }
-        } else if (createServiceDto.clienteId) {
-          // Si no se especificó ID de contrato, buscar contratos activos para el cliente
-          const condicionesContractuales =
-            await this.condicionesContractualesRepository.find({
-              where: {
-                cliente: { clienteId: createServiceDto.clienteId },
-                estado: EstadoContrato.ACTIVO,
-              },
-              order: { fecha_fin: 'DESC' },
-            });
 
-          if (condicionesContractuales && condicionesContractuales.length > 0) {
-            // Usar el contrato más reciente (con fecha de finalización más lejana)
-            const contratoMasReciente = condicionesContractuales[0];
-            newService.condicionContractualId =
-              contratoMasReciente.condicionContractualId;
+          // Usar cantidad de baños si está definida en la condición contractual
+          if (
+            condicionContractual.cantidad_banos &&
+            condicionContractual.cantidad_banos > 0
+          ) {
+            // Si el DTO no especifica una cantidad de baños o es igual a la de la condición contractual,
+            // usamos la de la condición contractual
+            if (
+              !createServiceDto.cantidadBanos ||
+              createServiceDto.cantidadBanos ===
+                condicionContractual.cantidad_banos
+            ) {
+              this.logger.log(
+                `Usando cantidad de baños ${condicionContractual.cantidad_banos} de la condición contractual`,
+              );
+              newService.cantidadBanos = condicionContractual.cantidad_banos;
+            } else {
+              this.logger.log(
+                `Se mantiene cantidad de baños ${createServiceDto.cantidadBanos} especificada en la petición`,
+              );
+            }
+          }
+        }
+      } else if (createServiceDto.clienteId && !createServiceDto.tipoServicio) {
+        // Si no se especificó ID de contrato pero sí un cliente, buscar contratos activos para el cliente
+        const condicionesContractuales =
+          await this.condicionesContractualesRepository.find({
+            where: {
+              cliente: { clienteId: createServiceDto.clienteId },
+              estado: EstadoContrato.ACTIVO,
+            },
+            order: { fecha_fin: 'DESC' },
+          });
 
-            // Ajustar la fecha sumando 24 horas para compensar la diferencia
-            if (contratoMasReciente.fecha_fin) {
-              const fechaFin = new Date(contratoMasReciente.fecha_fin);
-              // Sumar 24 horas a la fecha
-              fechaFin.setTime(fechaFin.getTime() + 24 * 60 * 60 * 1000);
-              newService.fechaFinAsignacion = fechaFin;
+        if (condicionesContractuales && condicionesContractuales.length > 0) {
+          // Usar el contrato más reciente (con fecha de finalización más lejana)
+          const contratoMasReciente = condicionesContractuales[0];
+          newService.condicionContractualId =
+            contratoMasReciente.condicionContractualId;
+
+          // Usar directamente las fechas sin ajustes
+          if (contratoMasReciente.fecha_fin) {
+            // Obtener los strings ISO
+            const fechaInicioISO =
+              typeof contratoMasReciente.fecha_inicio === 'string'
+                ? contratoMasReciente.fecha_inicio
+                : contratoMasReciente.fecha_inicio.toISOString();
+
+            const fechaFinISO =
+              typeof contratoMasReciente.fecha_fin === 'string'
+                ? contratoMasReciente.fecha_fin
+                : contratoMasReciente.fecha_fin.toISOString();
+
+            // Crear nuevas fechas a partir de los strings ISO
+            newService.fechaInicio = new Date(fechaInicioISO);
+            newService.fechaFin = new Date(fechaFinISO);
+            newService.fechaFinAsignacion = new Date(fechaFinISO);
+          }
+
+          // Usar tipo de servicio y cantidad de baños del contrato más reciente si están definidos
+          if (contratoMasReciente.tipo_servicio) {
+            // Si el DTO no especifica un tipo de servicio, usamos el del contrato
+            if (!createServiceDto.tipoServicio) {
+              this.logger.log(
+                `Usando tipo de servicio ${contratoMasReciente.tipo_servicio} del contrato más reciente`,
+              );
+              newService.tipoServicio = contratoMasReciente.tipo_servicio;
+            }
+          }
+
+          // Usar cantidad de baños si está definida en el contrato
+          if (
+            contratoMasReciente.cantidad_banos &&
+            contratoMasReciente.cantidad_banos > 0
+          ) {
+            // Si el DTO no especifica una cantidad de baños, usamos la del contrato
+            if (!createServiceDto.cantidadBanos) {
+              this.logger.log(
+                `Usando cantidad de baños ${contratoMasReciente.cantidad_banos} del contrato más reciente`,
+              );
+              newService.cantidadBanos = contratoMasReciente.cantidad_banos;
             }
           }
         }
       }
 
+      // DESPUÉS de obtener los datos de la condición contractual, validamos los requisitos específicos
+      this.validateServiceTypeSpecificRequirements(createServiceDto);
+
+      // Si es un servicio de INSTALACIÓN con condición contractual, calculamos días de mantenimiento
+      if (
+        newService.tipoServicio === ServiceType.INSTALACION &&
+        newService.condicionContractualId &&
+        newService.fechaInicio &&
+        newService.fechaFin
+      ) {
+        const condicionContractual =
+          await this.condicionesContractualesRepository.findOne({
+            where: {
+              condicionContractualId: newService.condicionContractualId,
+            },
+            relations: ['cliente'],
+          });
+
+        if (condicionContractual && condicionContractual.periodicidad) {
+          const periodicidad = condicionContractual.periodicidad;
+          const diasMantenimiento =
+            this.toiletMaintenanceService.calculateMaintenanceDays(
+              newService.fechaInicio,
+              newService.fechaFin,
+              periodicidad,
+            );
+          console.log('diasMantenimiento', diasMantenimiento);
+
+          const cliente = condicionContractual.cliente;
+          console.log('cliente', cliente);
+          const savedServiceForCleanings =
+            await queryRunner.manager.save(newService);
+
+          // Crear una limpieza futura por cada fecha calculada
+          for (let i = 0; i < diasMantenimiento.length; i++) {
+            try {
+              // Crear la limpieza futura directamente usando el queryRunner
+              const newCleaning = {
+                cliente: { clienteId: Number(cliente.clienteId) },
+                fecha_de_limpieza: diasMantenimiento[i],
+                numero_de_limpieza: i + 1,
+                isActive: true,
+                servicio: { id: savedServiceForCleanings.id }, // Asociar al servicio recién creado
+              };
+
+              // Crear y guardar directamente con el queryRunner
+              await queryRunner.manager.save('future_cleanings', newCleaning);
+
+              this.logger.log(
+                `Limpieza futura #${i + 1} creada para fecha: ${diasMantenimiento[i].toISOString()}`,
+              );
+            } catch (error) {
+              const errorMessage =
+                error instanceof Error ? error.message : 'Error desconocido';
+              this.logger.error(
+                `Error al crear limpieza futura #${i + 1}: ${errorMessage}`,
+              );
+              // No lanzamos el error para que la transacción pueda continuar aunque alguna limpieza falle
+            }
+          }
+
+          // Actualizar newService con la referencia correcta para continuar el proceso
+          newService = savedServiceForCleanings;
+        }
+      }
+
       // IMPORTANTE: Verificar disponibilidad de recursos antes de guardar
       await this.verifyResourcesAvailability(newService);
+
+      // Verificar si los timestamps de las fechas son correctos antes de guardar
+      if (newService.fechaInicio) {
+        console.log(
+          'Fecha inicio antes de guardar:',
+          newService.fechaInicio.toISOString(),
+        );
+      }
+      if (newService.fechaFin) {
+        console.log(
+          'Fecha fin antes de guardar:',
+          newService.fechaFin.toISOString(),
+        );
+      }
+      if (newService.fechaFinAsignacion) {
+        console.log(
+          'Fecha fin asignacion antes de guardar:',
+          newService.fechaFinAsignacion.toISOString(),
+        );
+      }
 
       // PRIMERO: Guardar el servicio para obtener un ID válido
       const savedService = await queryRunner.manager.save(newService);
@@ -1478,14 +1605,40 @@ export class ServicesService {
       this.logger.log(
         'Verificando disponibilidad de recursos en modo incremental',
       );
-      // In incremental mode, we only need to verify additional resources
     } else {
       this.logger.log(
         'Verificando disponibilidad de recursos en modo completo',
       );
-      // In non-incremental mode, we need to verify all required resources
     }
+
     try {
+      // Si el servicio tiene una condición contractual asociada pero no tiene tipo de servicio,
+      // intentamos obtener el tipo de servicio de la condición contractual
+      if (service.condicionContractualId && !service.tipoServicio) {
+        const condicionContractual =
+          await this.condicionesContractualesRepository.findOne({
+            where: { condicionContractualId: service.condicionContractualId },
+          });
+
+        if (condicionContractual && condicionContractual.tipo_servicio) {
+          this.logger.log(
+            `Obteniendo tipo de servicio desde condición contractual: ${condicionContractual.tipo_servicio}`,
+          );
+          service.tipoServicio = condicionContractual.tipo_servicio;
+
+          // Si también falta la cantidad de baños, la obtenemos de la condición contractual
+          if (
+            service.cantidadBanos === undefined &&
+            condicionContractual.cantidad_banos
+          ) {
+            this.logger.log(
+              `Obteniendo cantidad de baños desde condición contractual: ${condicionContractual.cantidad_banos}`,
+            );
+            service.cantidadBanos = condicionContractual.cantidad_banos;
+          }
+        }
+      }
+
       // Validar que se haya especificado un tipo de servicio
       if (!service.tipoServicio) {
         throw new BadRequestException('El tipo de servicio es obligatorio');
@@ -1635,6 +1788,12 @@ export class ServicesService {
   private validateServiceTypeSpecificRequirements(
     service: CreateServiceDto,
   ): void {
+    // Si se proporciona un condicionContractualId, no validamos estos requisitos
+    // ya que se completarán con la información de la condición contractual
+    if (service.condicionContractualId && !service.tipoServicio) {
+      return;
+    }
+
     const serviciosConBanosInstalados = [
       ServiceType.LIMPIEZA,
       ServiceType.RETIRO,
@@ -1652,6 +1811,11 @@ export class ServicesService {
 
     const serviciosSoloEmpleados = [ServiceType.CAPACITACION];
 
+    // Si no se proporciona un tipo de servicio, no podemos validar los requisitos específicos
+    if (!service.tipoServicio) {
+      return;
+    }
+
     // Validar el servicio de CAPACITACIÓN (sólo requiere empleados)
     if (serviciosSoloEmpleados.includes(service.tipoServicio)) {
       if (service.cantidadBanos !== 0) {
@@ -1665,14 +1829,6 @@ export class ServicesService {
           `Para servicios de ${service.tipoServicio}, la cantidad de vehículos debe ser 0 ya que no se utilizan vehículos`,
         );
       }
-
-      // Ya no necesitamos verificar cantidadEmpleados porque ahora siempre es 2
-      // Removemos esta validación:
-      // if (service.cantidadEmpleados <= 0) {
-      //   throw new BadRequestException(
-      //     `Para servicios de ${service.tipoServicio}, la cantidad de empleados debe ser mayor a 0`,
-      //   );
-      // }
 
       if (service.banosInstalados && service.banosInstalados.length > 0) {
         throw new BadRequestException(
@@ -1715,7 +1871,8 @@ export class ServicesService {
 
     // Validar servicios que requieren baños nuevos
     if (serviciosConBanosNuevos.includes(service.tipoServicio)) {
-      if (service.cantidadBanos <= 0) {
+      // Si cantidadBanos es undefined, es posible que se complete desde la condición contractual
+      if (service.cantidadBanos !== undefined && service.cantidadBanos <= 0) {
         throw new BadRequestException(
           `Para servicios de ${service.tipoServicio}, la cantidad de baños debe ser mayor a 0`,
         );

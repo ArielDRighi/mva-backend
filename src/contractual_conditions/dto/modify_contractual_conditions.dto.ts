@@ -12,6 +12,7 @@ import {
   Periodicidad,
   TipoContrato,
 } from '../entities/contractual_conditions.entity';
+import { ServiceType } from 'src/common/enums/resource-states.enum';
 
 export class ModifyCondicionContractualDto {
   @IsOptional()
@@ -60,6 +61,30 @@ export class ModifyCondicionContractualDto {
   @IsNumber()
   @Min(0)
   tarifa?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  tarifa_alquiler?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  tarifa_instalacion?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  tarifa_limpieza?: number;
+
+  @IsOptional()
+  @IsEnum(ServiceType)
+  tipo_servicio?: ServiceType;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  cantidad_banos?: number;
 
   @IsOptional()
   @IsEnum(Periodicidad)
