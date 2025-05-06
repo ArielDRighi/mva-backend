@@ -8,11 +8,12 @@ import {
 import { Empleado } from '../../employees/entities/employee.entity';
 
 export enum LeaveType {
+  ORDINARIA = 'ORDINARIA',
+  ENFERMEDAD = 'ENFERMEDAD',
+  FALLECIMIENTO_FAMILIAR = 'FALLECIMIENTO_FAMILIAR',
+  CASAMIENTO = 'CASAMIENTO',
+  NACIMIENTO = 'NACIMIENTO',
   VACACIONES = 'VACACIONES',
-  LICENCIA_MEDICA = 'LICENCIA_MEDICA',
-  LICENCIA_PERSONAL = 'LICENCIA_PERSONAL',
-  CAPACITACION = 'CAPACITACION',
-  OTRO = 'OTRO',
 }
 
 @Entity('employee_leaves')

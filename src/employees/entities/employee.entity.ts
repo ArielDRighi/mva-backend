@@ -47,13 +47,17 @@ export class Empleado {
   @Column({ name: 'estado', length: 20, default: 'ACTIVO' })
   estado: string;
 
-  @Column({ name: 'Legajo', type: 'decimal', precision: 10, scale: 2 })
+  @Column({
+    name: 'Legajo',
+    type: 'decimal',
+    nullable: true,
+  })
   numero_legajo: number;
 
-  @Column({ name: 'CUIL', length: 20, unique: true })
+  @Column({ name: 'CUIL', length: 20, unique: true, nullable: true })
   cuil: string;
 
-  @Column({ name: 'CBU', length: 20, unique: true })
+  @Column({ name: 'CBU', length: 20, unique: true, nullable: true })
   cbu: string;
 
   @OneToMany(() => ContactosEmergencia, (contact) => contact.empleado, {
@@ -69,6 +73,15 @@ export class Empleado {
 
   @OneToOne(() => User, (user) => user.empleadoId, { nullable: true })
   usuario: User;
+
+  @Column({ default: 14, type: 'int', nullable: true })
+  diasVacacionesTotal: number;
+
+  @Column({ default: 14, type: 'int', nullable: true })
+  diasVacacionesRestantes: number;
+
+  @Column({ default: 0, type: 'int', nullable: true })
+  diasVacacionesUsados: number;
 
   @OneToMany(() => EmployeeLeave, (leave) => leave.employee)
   leaves: EmployeeLeave[];
