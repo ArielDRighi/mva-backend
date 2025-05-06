@@ -119,7 +119,12 @@ export class EmployeesService {
     this.logger.log(`Buscando empleado con id: ${id}`);
     const employee = await this.employeeRepository.findOne({
       where: { id },
-      relations: ['licencia'],
+      relations: [
+        'licencia',
+        'emergencyContacts',
+        'examenesPreocupacionales',
+        'talleRopa',
+      ],
     });
 
     if (!employee) {
@@ -315,7 +320,9 @@ export class EmployeesService {
   }
 
   async findLicencias(): Promise<Licencias[]> {
-    const licencias = await this.licenciaRepository.find();
+    const licencias = await this.licenciaRepository.find({
+      relations: ['empleado'],
+    });
     if (!licencias) {
       throw new NotFoundException(`No se encontraron licencias`);
     }
