@@ -38,16 +38,20 @@ export class CreateServiceDto {
   @IsDateString()
   fechaFin?: string;
 
+  @IsOptional()
   @IsEnum(ServiceType)
-  tipoServicio: ServiceType;
+  @ValidateIf((o: CreateServiceDto) => !o.condicionContractualId)
+  tipoServicio?: ServiceType;
 
   @IsOptional()
   @IsEnum(ServiceState)
   estado?: ServiceState;
 
+  @IsOptional()
   @IsNumber()
   @Min(0)
-  cantidadBanos: number;
+  @ValidateIf((o: CreateServiceDto) => !o.condicionContractualId)
+  cantidadBanos?: number;
 
   @IsOptional()
   @IsNumber()
@@ -82,14 +86,16 @@ export class CreateServiceDto {
 
   @IsArray()
   @IsOptional()
-  @ValidateIf((o: CreateServiceDto) =>
-    [
-      'LIMPIEZA',
-      'RETIRO',
-      'REEMPLAZO',
-      'MANTENIMIENTO_IN_SITU',
-      'REPARACION',
-    ].includes(o.tipoServicio),
+  @ValidateIf(
+    (o: CreateServiceDto) =>
+      !!o.tipoServicio &&
+      [
+        'LIMPIEZA',
+        'RETIRO',
+        'REEMPLAZO',
+        'MANTENIMIENTO_IN_SITU',
+        'REPARACION',
+      ].includes(o.tipoServicio),
   )
   banosInstalados?: number[];
 

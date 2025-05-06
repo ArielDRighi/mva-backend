@@ -55,14 +55,14 @@ Content-Type: application/json
 
 **Endpoint:** `POST /api/services`
 
-#### A. Crear Servicio de INSTALACIÓN con Asignación Automática
+#### A. Crear Servicio de INSTALACIÓN utilizando datos de la condición contractual
+
+En este caso, el servicio toma automáticamente el tipo de servicio y cantidad de baños desde la condición contractual asociada:
 
 ```json
 {
   "clienteId": 1,
-  "fechaProgramada": "2025-05-15T10:00:00.000Z",
-  "tipoServicio": "INSTALACION",
-  "cantidadBanos": 2,
+  "fechaProgramada": "2025-05-05T10:00:00.000Z",
   "cantidadVehiculos": 1,
   "ubicacion": "Av. Corrientes 1234, Buenos Aires",
   "notas": "Entregar antes de las 9am",
@@ -71,7 +71,25 @@ Content-Type: application/json
 }
 ```
 
-#### B. Crear Servicio con Asignación Manual
+#### B. Crear Servicio especificando datos explícitamente (aunque use condición contractual)
+
+En este caso, se especifican explícitamente el tipo de servicio y cantidad de baños, aunque se use una condición contractual para otros valores:
+
+```json
+{
+  "clienteId": 2,
+  "fechaProgramada": "2025-06-15T10:00:00.000Z",
+  "tipoServicio": "INSTALACION",
+  "cantidadBanos": 3,
+  "cantidadVehiculos": 1,
+  "ubicacion": "Av. Corrientes 1234, Buenos Aires",
+  "notas": "Cliente solicitó entrega antes de las 9am",
+  "asignacionAutomatica": true,
+  "condicionContractualId": 2
+}
+```
+
+#### C. Crear Servicio con Asignación Manual
 
 ```json
 {
@@ -100,7 +118,7 @@ Content-Type: application/json
 }
 ```
 
-#### C. Crear Servicio de LIMPIEZA, REEMPLAZO o RETIRO de Baños Instalados
+#### D. Crear Servicio de LIMPIEZA, REEMPLAZO o RETIRO de Baños Instalados
 
 Para servicios que operan sobre baños ya instalados en el cliente:
 
@@ -117,7 +135,7 @@ Para servicios que operan sobre baños ya instalados en el cliente:
 }
 ```
 
-#### D. Crear Servicio de CAPACITACIÓN
+#### E. Crear Servicio de CAPACITACIÓN
 
 Para servicios de capacitación que solo requieren empleados:
 
@@ -615,6 +633,22 @@ Los servicios de tipo `INSTALACION` pueden estar asociados a condiciones contrac
 3. Esta fecha indica cuándo los baños deben ser retirados automáticamente o programarse un servicio de `RETIRO`.
 
 Si no se especifica un `condicionContractualId`, el sistema intentará buscar un contrato activo para el cliente y utilizará su fecha de finalización.
+
+### Contratos Flexibles
+
+El sistema permite configurar condiciones contractuales sin especificar el tipo de servicio ni la cantidad de baños:
+
+1. **Contratos Marco**: Se puede crear una condición contractual solo con fechas, tarifas y periodicidad, dejando los campos `tipo_servicio` y `cantidad_banos` sin definir.
+
+2. **Definición en el Servicio**: Cuando se crea un servicio asociado a un contrato flexible, se debe especificar el `tipoServicio` y `cantidadBanos` directamente en el servicio.
+
+3. **Múltiples Servicios con Diferentes Características**: Un mismo contrato flexible puede utilizarse para diferentes tipos de servicios con distintas cantidades de baños, lo que permite mayor adaptabilidad a las necesidades del cliente.
+
+Este enfoque es útil para:
+
+- Contratos marco donde el cliente decidirá los detalles específicos más adelante
+- Situaciones donde un mismo cliente requiere diferentes tipos de servicios durante el período contractual
+- Casos donde la cantidad de baños puede variar a lo largo del contrato
 
 ## Estructura de Respuesta JSON
 
