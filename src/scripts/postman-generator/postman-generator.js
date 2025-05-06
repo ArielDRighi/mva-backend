@@ -53,9 +53,8 @@ async function generatePostmanCollection() {
   // Crear archivo de entorno
   createEnvironmentFile();
 
-  console.log('\n📝 Para ejecutar la colección con Newman, use:');
   console.log(
-    `newman run "${config.outputPath}" -e "${config.environmentPath}" --reporters cli,html`,
+    '\n📝 Colección generada con éxito. Importe ambos archivos en la aplicación Postman.',
   );
 }
 

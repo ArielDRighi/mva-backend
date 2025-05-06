@@ -16,14 +16,14 @@ El script generador se encuentra en:
 
 - Node.js instalado
 - NPM instalado
-- Dependencias: glob, newman (opcionales)
+- Dependencias: glob (opcional)
 
 ## Instalación
 
-Asegúrate de tener instaladas las dependencias necesarias:
+Asegúrate de tener instalada la dependencia necesaria:
 
 ```bash
-npm install --save-dev glob newman newman-reporter-html
+npm install --save-dev glob
 ```
 
 ## Uso
@@ -41,14 +41,6 @@ Este comando analizará todos los controladores en la carpeta `src/` y generará
 - Una colección Postman en formato JSON (`postman/mva-backend-collection.json`)
 - Un archivo de entorno (`postman/environment.json`)
 
-### Ejecutar la Colección con Newman
-
-Para ejecutar la colección generada usando Newman (sin necesidad de abrir la aplicación Postman):
-
-```bash
-npm run run:postman
-```
-
 > **Nota:** Para que las peticiones funcionen correctamente, la aplicación backend debe estar en ejecución (npm run start o npm run start:dev).
 
 ## Características
@@ -56,6 +48,7 @@ npm run run:postman
 - Extracción automática de todos los endpoints de la API
 - Detección de rutas, métodos HTTP y parámetros
 - Generación de cuerpos de solicitud de ejemplo según el tipo de controlador
+- Extracción de ejemplos de solicitud desde archivos de documentación .md
 - Configuración automática de autenticación para endpoints protegidos
 - Organización en carpetas por controlador
 - Soporte para variables de entorno
@@ -79,6 +72,67 @@ Para modificar las variables del entorno desde la aplicación Postman:
 1. Haz clic en el ojo 👁️ en la esquina superior derecha
 2. Haz clic en "Edit" junto al nombre del entorno
 3. Modifica los valores según sea necesario
+
+## Extracción de ejemplos desde la documentación
+
+El generador busca automáticamente ejemplos de cuerpos de solicitud (request bodies) en los archivos de documentación .md ubicados en la carpeta `src/docs/`. Esto permite mantener la documentación y los ejemplos de API en sincronía.
+
+### Cómo funciona
+
+1. El script escanea todos los archivos .md en la carpeta de documentación.
+2. Busca dos tipos de bloques de código:
+   - Bloques JSON: delimitados por \```json ... \```
+   - Bloques HTTP completos: delimitados por \```http ... \```
+
+3. Cuando encuentra un ejemplo, lo asocia con un endpoint basándose en el método HTTP y la ruta detectados.
+4. Al generar la colección de Postman, utiliza estos ejemplos como cuerpos de solicitud en lugar de generar ejemplos genéricos.
+
+### Cómo documentar un endpoint para que use ejemplos personalizados
+
+Para que el generador utilice un ejemplo personalizado para un endpoint, incluye un bloque de código en tu archivo de documentación con este formato:
+
+Para bloques JSON:
+
+```markdown
+## Crear un nuevo cliente
+
+Para crear un cliente, envía una solicitud POST:
+
+POST /api/clients
+Content-Type: application/json
+
+```json
+{
+  "nombre_empresa": "Empresa ABC",
+  "cuit": "30-12345678-9",
+  "direccion": "Av. Ejemplo 123",
+  "telefono": "011-1234-5678",
+  "email": "contacto@empresaabc.com",
+  "contacto_principal": "Juan Pérez"
+}
+```
+```
+
+Para bloques HTTP completos:
+
+```markdown
+## Actualizar un vehículo
+
+```http
+PUT /api/vehicles/1
+Content-Type: application/json
+
+{
+  "placa": "ABC123",
+  "marca": "Toyota",
+  "modelo": "Hilux",
+  "anio": 2023,
+  "estado": "DISPONIBLE"
+}
+```
+```
+
+El generador extraerá estos ejemplos y los utilizará en la colección de Postman generada.
 
 ## Personalización
 
