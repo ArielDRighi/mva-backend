@@ -1,0 +1,3317 @@
+{
+  "info": {
+    "name": "MVA Backend API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Colección generada automáticamente para MVA Backend",
+    "_postman_id": "9e23d625-a92b-42ce-87e0-175346335240"
+  },
+  "item": [
+    {
+      "name": "App",
+      "item": [
+        {
+          "name": "GET /",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": []
+            },
+            "description": "getHello - GET /"
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints para app"
+    },
+    {
+      "name": "Vehicle_maintenance",
+      "item": [
+        {
+          "name": "POST /vehicle_maintenance",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vehicle_maintenance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vehicle_maintenance"
+              ]
+            },
+            "description": "create - POST /vehicle_maintenance",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placa\": \"ABC123\",\n  \"marca\": \"Marca Ejemplo\",\n  \"modelo\": \"Modelo Ejemplo\",\n  \"anio\": 2024,\n  \"capacidadCarga\": 1000,\n  \"estado\": \"DISPONIBLE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /vehicle_maintenance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vehicle_maintenance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vehicle_maintenance"
+              ]
+            },
+            "description": "findAll - GET /vehicle_maintenance"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /vehicle_maintenance/upcoming",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vehicle_maintenance/upcoming",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vehicle_maintenance",
+                "upcoming"
+              ]
+            },
+            "description": "findUpcoming - GET /vehicle_maintenance/upcoming"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /vehicle_maintenance/:id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vehicle_maintenance/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vehicle_maintenance",
+                "{{id}}"
+              ]
+            },
+            "description": "findOne - GET /vehicle_maintenance/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /vehicle_maintenance/vehiculo/:id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vehicle_maintenance/vehiculo/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vehicle_maintenance",
+                "vehiculo",
+                "{{id}}"
+              ]
+            },
+            "description": "findByVehicle - GET /vehicle_maintenance/vehiculo/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /vehicle_maintenance/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vehicle_maintenance/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vehicle_maintenance",
+                "{{id}}"
+              ]
+            },
+            "description": "update - PUT /vehicle_maintenance/:id",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placa\": \"ABC123\",\n  \"marca\": \"Marca Ejemplo\",\n  \"modelo\": \"Modelo Ejemplo\",\n  \"anio\": 2024,\n  \"capacidadCarga\": 1000,\n  \"estado\": \"DISPONIBLE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /vehicle_maintenance/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vehicle_maintenance/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vehicle_maintenance",
+                "{{id}}"
+              ]
+            },
+            "description": "remove - DELETE /vehicle_maintenance/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /vehicle_maintenance/:id/complete",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vehicle_maintenance/{{id}}/complete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vehicle_maintenance",
+                "{{id}}",
+                "complete"
+              ]
+            },
+            "description": "completeMaintenace - PATCH /vehicle_maintenance/:id/complete",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placa\": \"ABC123\",\n  \"marca\": \"Marca Ejemplo\",\n  \"modelo\": \"Modelo Ejemplo\",\n  \"anio\": 2024,\n  \"capacidadCarga\": 1000,\n  \"estado\": \"DISPONIBLE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints para vehicle_maintenance"
+    },
+    {
+      "name": "Vehicles",
+      "item": [
+        {
+          "name": "POST /vehicles",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vehicles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vehicles"
+              ]
+            },
+            "description": "create - POST /vehicles",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placa\": \"ABC123\",\n  \"marca\": \"Marca Ejemplo\",\n  \"modelo\": \"Modelo Ejemplo\",\n  \"anio\": 2024,\n  \"capacidadCarga\": 1000,\n  \"estado\": \"DISPONIBLE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /vehicles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vehicles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vehicles"
+              ]
+            },
+            "description": "findAll - GET /vehicles"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /vehicles/:id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vehicles/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vehicles",
+                "{{id}}"
+              ]
+            },
+            "description": "findOne - GET /vehicles/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /vehicles/placa/:placa",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vehicles/placa/{{placa}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vehicles",
+                "placa",
+                "{{placa}}"
+              ]
+            },
+            "description": "findByPlaca - GET /vehicles/placa/:placa"
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /vehicles/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vehicles/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vehicles",
+                "{{id}}"
+              ]
+            },
+            "description": "update - PUT /vehicles/:id",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placa\": \"ABC123\",\n  \"marca\": \"Marca Ejemplo\",\n  \"modelo\": \"Modelo Ejemplo\",\n  \"anio\": 2024,\n  \"capacidadCarga\": 1000,\n  \"estado\": \"DISPONIBLE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /vehicles/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vehicles/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vehicles",
+                "{{id}}"
+              ]
+            },
+            "description": "remove - DELETE /vehicles/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /vehicles/:id/estado",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vehicles/{{id}}/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vehicles",
+                "{{id}}",
+                "estado"
+              ]
+            },
+            "description": "changeStatus - PATCH /vehicles/:id/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placa\": \"ABC123\",\n  \"marca\": \"Marca Ejemplo\",\n  \"modelo\": \"Modelo Ejemplo\",\n  \"anio\": 2024,\n  \"capacidadCarga\": 1000,\n  \"estado\": \"DISPONIBLE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints para vehicles"
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "POST /users",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            },
+            "description": "create - POST /users",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Nombre Usuario\",\n  \"email\": \"usuario@ejemplo.com\",\n  \"rol\": \"USUARIO\",\n  \"estado\": \"ACTIVO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            },
+            "description": "findById - GET /users"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /users/:id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{id}}"
+              ]
+            },
+            "description": "findById - GET /users/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /users/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{id}}"
+              ]
+            },
+            "description": "update - PATCH /users/:id",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Nombre Usuario\",\n  \"email\": \"usuario@ejemplo.com\",\n  \"rol\": \"USUARIO\",\n  \"estado\": \"ACTIVO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /users/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{id}}"
+              ]
+            },
+            "description": "remove - DELETE /users/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /users/:id/status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{id}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{id}}",
+                "status"
+              ]
+            },
+            "description": "changeStatus - PATCH /users/:id/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Nombre Usuario\",\n  \"email\": \"usuario@ejemplo.com\",\n  \"rol\": \"USUARIO\",\n  \"estado\": \"ACTIVO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints para users"
+    },
+    {
+      "name": "Toilet_maintenance",
+      "item": [
+        {
+          "name": "POST /toilet_maintenance",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/toilet_maintenance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "toilet_maintenance"
+              ]
+            },
+            "description": "unknown - POST /toilet_maintenance",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serial\": \"CHT-12345\",\n  \"modelo\": \"Modelo Ejemplo\",\n  \"estado\": \"DISPONIBLE\",\n  \"ubicacion\": \"Ubicación Ejemplo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /toilet_maintenance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/toilet_maintenance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "toilet_maintenance"
+              ]
+            },
+            "description": "unknown - GET /toilet_maintenance"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /toilet_maintenance/search",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/toilet_maintenance/search",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "toilet_maintenance",
+                "search"
+              ]
+            },
+            "description": "unknown - GET /toilet_maintenance/search"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /toilet_maintenance/stats/:toiletId",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/toilet_maintenance/stats/{{toiletId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "toilet_maintenance",
+                "stats",
+                "{{toiletId}}"
+              ]
+            },
+            "description": "unknown - GET /toilet_maintenance/stats/:toiletId"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /toilet_maintenance/:id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/toilet_maintenance/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "toilet_maintenance",
+                "{{id}}"
+              ]
+            },
+            "description": "unknown - GET /toilet_maintenance/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /toilet_maintenance/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/toilet_maintenance/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "toilet_maintenance",
+                "{{id}}"
+              ]
+            },
+            "description": "unknown - PUT /toilet_maintenance/:id",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serial\": \"CHT-12345\",\n  \"modelo\": \"Modelo Ejemplo\",\n  \"estado\": \"DISPONIBLE\",\n  \"ubicacion\": \"Ubicación Ejemplo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /toilet_maintenance/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/toilet_maintenance/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "toilet_maintenance",
+                "{{id}}"
+              ]
+            },
+            "description": "unknown - DELETE /toilet_maintenance/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /toilet_maintenance/:id/complete",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/toilet_maintenance/{{id}}/complete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "toilet_maintenance",
+                "{{id}}",
+                "complete"
+              ]
+            },
+            "description": "unknown - PATCH /toilet_maintenance/:id/complete",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serial\": \"CHT-12345\",\n  \"modelo\": \"Modelo Ejemplo\",\n  \"estado\": \"DISPONIBLE\",\n  \"ubicacion\": \"Ubicación Ejemplo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints para toilet_maintenance"
+    },
+    {
+      "name": "Services",
+      "item": [
+        {
+          "name": "POST /services",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/services",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "services"
+              ]
+            },
+            "description": "create - POST /services",
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"clienteId\": 1,\r\n  \"fechaProgramada\": \"2025-05-20T10:00:00.000Z\",\r\n  \"tipoServicio\": \"INSTALACION\",\r\n  \"estado\": \"PROGRAMADO\",\r\n  \"cantidadBanos\": 2,\r\n  \"cantidadEmpleados\": 1,\r\n  \"cantidadVehiculos\": 1,\r\n  \"ubicacion\": \"Avenida Principal 123\",\r\n  \"notas\": \"Instalación estándar\",\r\n  \"asignacionAutomatica\": true\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /services",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/services",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "services"
+              ]
+            },
+            "description": "findByDateRange - GET /services"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /services/date-range",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/services/date-range",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "services",
+                "date-range"
+              ]
+            },
+            "description": "findByDateRange - GET /services/date-range"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /services/today",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/services/today",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "services",
+                "today"
+              ]
+            },
+            "description": "findToday - GET /services/today"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /services/pending",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/services/pending",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "services",
+                "pending"
+              ]
+            },
+            "description": "findPending - GET /services/pending"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /services/in-progress",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/services/in-progress",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "services",
+                "in-progress"
+              ]
+            },
+            "description": "findInProgress - GET /services/in-progress"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /services/:id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/services/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "services",
+                "{{id}}"
+              ]
+            },
+            "description": "findOne - GET /services/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /services/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/services/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "services",
+                "{{id}}"
+              ]
+            },
+            "description": "update - PUT /services/:id",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clienteId\": 1,\n  \"tipoServicio\": \"TIPO_EJEMPLO\",\n  \"fechaServicio\": \"2025-05-10\",\n  \"ubicacion\": \"Ubicación Ejemplo\",\n  \"notas\": \"Notas de ejemplo\",\n  \"estado\": \"PENDIENTE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /services/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/services/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "services",
+                "{{id}}"
+              ]
+            },
+            "description": "remove - DELETE /services/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /services/:id/estado",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/services/{{id}}/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "services",
+                "{{id}}",
+                "estado"
+              ]
+            },
+            "description": "unknown - PATCH /services/:id/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clienteId\": 1,\n  \"tipoServicio\": \"TIPO_EJEMPLO\",\n  \"fechaServicio\": \"2025-05-10\",\n  \"ubicacion\": \"Ubicación Ejemplo\",\n  \"notas\": \"Notas de ejemplo\",\n  \"estado\": \"PENDIENTE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints para services"
+    },
+    {
+      "name": "Salary_advance",
+      "item": [
+        {
+          "name": "POST /salary-advances",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/salary-advances",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "salary-advances"
+              ]
+            },
+            "description": "findAll - POST /salary-advances",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": 1,\n  \"nombre\": \"Ejemplo\",\n  \"descripcion\": \"Descripción de ejemplo\",\n  \"fecha\": \"2025-05-05\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /salary-advances",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/salary-advances",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "salary-advances"
+              ]
+            },
+            "description": "findAll - GET /salary-advances"
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /salary-advances/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/salary-advances/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "salary-advances",
+                "{{id}}"
+              ]
+            },
+            "description": "approveOrRejectAdvance - PATCH /salary-advances/:id",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": 1,\n  \"nombre\": \"Ejemplo\",\n  \"descripcion\": \"Descripción de ejemplo\",\n  \"fecha\": \"2025-05-05\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints para salary_advance"
+    },
+    {
+      "name": "Future Cleanings",
+      "item": [
+        {
+          "name": "GET /future_cleanings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/future_cleanings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "future_cleanings"
+              ]
+            },
+            "description": "unknown - GET /future_cleanings"
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /future_cleanings/delete/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/future_cleanings/delete/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "future_cleanings",
+                "delete",
+                "{{id}}"
+              ]
+            },
+            "description": "unknown - DELETE /future_cleanings/delete/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /future_cleanings/:id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/future_cleanings/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "future_cleanings",
+                "{{id}}"
+              ]
+            },
+            "description": "unknown - GET /future_cleanings/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /future_cleanings",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/future_cleanings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "future_cleanings"
+              ]
+            },
+            "description": "unknown - POST /future_cleanings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": 1,\n  \"nombre\": \"Ejemplo\",\n  \"descripcion\": \"Descripción de ejemplo\",\n  \"fecha\": \"2025-05-05\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /future_cleanings/modify/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/future_cleanings/modify/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "future_cleanings",
+                "modify",
+                "{{id}}"
+              ]
+            },
+            "description": "unknown - PUT /future_cleanings/modify/:id",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": 1,\n  \"nombre\": \"Ejemplo\",\n  \"descripcion\": \"Descripción de ejemplo\",\n  \"fecha\": \"2025-05-05\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints para futureCleanings"
+    },
+    {
+      "name": "Employee-leaves",
+      "item": [
+        {
+          "name": "POST /employee-leaves",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/employee-leaves",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "employee-leaves"
+              ]
+            },
+            "description": "create - POST /employee-leaves",
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"employeeId\": 1,\r\n  \"fechaInicio\": \"2025-05-15T00:00:00.000Z\",\r\n  \"fechaFin\": \"2025-05-30T00:00:00.000Z\",\r\n  \"tipoLicencia\": \"VACACIONES\",\r\n  \"notas\": \"Vacaciones anuales programadas\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /employee-leaves",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/employee-leaves",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "employee-leaves"
+              ]
+            },
+            "description": "findAll - GET /employee-leaves"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /employee-leaves/:id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/employee-leaves/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "employee-leaves",
+                "{{id}}"
+              ]
+            },
+            "description": "findOne - GET /employee-leaves/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /employee-leaves/employee/:id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/employee-leaves/employee/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "employee-leaves",
+                "employee",
+                "{{id}}"
+              ]
+            },
+            "description": "findByEmployee - GET /employee-leaves/employee/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /employee-leaves/:id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/employee-leaves/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "employee-leaves",
+                "{{id}}"
+              ]
+            },
+            "description": "update - PATCH /employee-leaves/:id",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Nombre Empleado\",\n  \"apellido\": \"Apellido Empleado\",\n  \"documento\": \"12345678\",\n  \"telefono\": \"011-1234-5678\",\n  \"email\": \"empleado@ejemplo.com\",\n  \"direccion\": \"Dirección Ejemplo\",\n  \"fecha_nacimiento\": \"1990-01-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /employee-leaves/:id/approve",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/employee-leaves/{{id}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "employee-leaves",
+                "{{id}}",
+                "approve"
+              ]
+            },
+            "description": "approve - PATCH /employee-leaves/:id/approve",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Nombre Empleado\",\n  \"apellido\": \"Apellido Empleado\",\n  \"documento\": \"12345678\",\n  \"telefono\": \"011-1234-5678\",\n  \"email\": \"empleado@ejemplo.com\",\n  \"direccion\": \"Dirección Ejemplo\",\n  \"fecha_nacimiento\": \"1990-01-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /employee-leaves/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/employee-leaves/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "employee-leaves",
+                "{{id}}"
+              ]
+            },
+            "description": "remove - DELETE /employee-leaves/:id"
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints para employee-leaves"
+    },
+    {
+      "name": "Employees",
+      "item": [
+        {
+          "name": "POST /employees",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/employees",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "employees"
+              ]
+            },
+            "description": "create - POST /employees",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Nombre Empleado\",\n  \"apellido\": \"Apellido Empleado\",\n  \"documento\": \"12345678\",\n  \"telefono\": \"011-1234-5678\",\n  \"email\": \"empleado@ejemplo.com\",\n  \"direccion\": \"Dirección Ejemplo\",\n  \"fecha_nacimiento\": \"1990-01-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /employees",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/employees",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "employees"
+              ]
+            },
+            "description": "findOne - GET /employees"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /employees/:id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/employees/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "employees",
+                "{{id}}"
+              ]
+            },
+            "description": "findOne - GET /employees/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /employees/documento/:documento",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/employees/documento/{{documento}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "employees",
+                "documento",
+                "{{documento}}"
+              ]
+            },
+            "description": "findByDocumento - GET /employees/documento/:documento"
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /employees/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/employees/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "employees",
+                "{{id}}"
+              ]
+            },
+            "description": "update - PUT /employees/:id",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Nombre Empleado\",\n  \"apellido\": \"Apellido Empleado\",\n  \"documento\": \"12345678\",\n  \"telefono\": \"011-1234-5678\",\n  \"email\": \"empleado@ejemplo.com\",\n  \"direccion\": \"Dirección Ejemplo\",\n  \"fecha_nacimiento\": \"1990-01-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /employees/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/employees/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "employees",
+                "{{id}}"
+              ]
+            },
+            "description": "remove - DELETE /employees/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /employees/:id/estado",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/employees/{{id}}/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "employees",
+                "{{id}}",
+                "estado"
+              ]
+            },
+            "description": "changeStatus - PATCH /employees/:id/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Nombre Empleado\",\n  \"apellido\": \"Apellido Empleado\",\n  \"documento\": \"12345678\",\n  \"telefono\": \"011-1234-5678\",\n  \"email\": \"empleado@ejemplo.com\",\n  \"direccion\": \"Dirección Ejemplo\",\n  \"fecha_nacimiento\": \"1990-01-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints para employees"
+    },
+    {
+      "name": "Contractual_conditions",
+      "item": [
+        {
+          "name": "GET /contractual_conditions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contractual_conditions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contractual_conditions"
+              ]
+            },
+            "description": "getContractualConditionById - GET /contractual_conditions"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /contractual_conditions/id/:id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contractual_conditions/id/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contractual_conditions",
+                "id",
+                "{{id}}"
+              ]
+            },
+            "description": "getContractualConditionById - GET /contractual_conditions/id/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /contractual_conditions/client-id/:clientId",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contractual_conditions/client-id/{{clientId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contractual_conditions",
+                "client-id",
+                "{{clientId}}"
+              ]
+            },
+            "description": "getContractualConditionsByClient - GET /contractual_conditions/client-id/:clientId"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /contractual_conditions/create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contractual_conditions/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contractual_conditions",
+                "create"
+              ]
+            },
+            "description": "createContractualCondition - POST /contractual_conditions/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clienteId\": 1,\n  \"tipo_de_contrato\": \"TIPO_EJEMPLO\",\n  \"fecha_inicio\": \"2025-01-01\",\n  \"fecha_fin\": \"2025-12-31\",\n  \"monto\": 10000,\n  \"frecuencia_limpieza\": 7\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /contractual_conditions/modify/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contractual_conditions/modify/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contractual_conditions",
+                "modify",
+                "{{id}}"
+              ]
+            },
+            "description": "modifyContractualCondition - PUT /contractual_conditions/modify/:id",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clienteId\": 1,\n  \"tipo_de_contrato\": \"TIPO_EJEMPLO\",\n  \"fecha_inicio\": \"2025-01-01\",\n  \"fecha_fin\": \"2025-12-31\",\n  \"monto\": 10000,\n  \"frecuencia_limpieza\": 7\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /contractual_conditions/delete/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contractual_conditions/delete/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contractual_conditions",
+                "delete",
+                "{{id}}"
+              ]
+            },
+            "description": "deleteContractualCondition - DELETE /contractual_conditions/delete/:id"
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints para contractual_conditions"
+    },
+    {
+      "name": "Clients Portal",
+      "item": [
+        {
+          "name": "GET /clients_portal/satisfaction_surveys",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/clients_portal/satisfaction_surveys",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clients_portal",
+                "satisfaction_surveys"
+              ]
+            },
+            "description": "getSatisfactionSurveys - GET /clients_portal/satisfaction_surveys"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /clients_portal/satisfaction_surveys/:id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/clients_portal/satisfaction_surveys/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clients_portal",
+                "satisfaction_surveys",
+                "{{id}}"
+              ]
+            },
+            "description": "getSatisfactionSurveyById - GET /clients_portal/satisfaction_surveys/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /clients_portal/claims",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/clients_portal/claims",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clients_portal",
+                "claims"
+              ]
+            },
+            "description": "getClaims - GET /clients_portal/claims"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /clients_portal/claims/:id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/clients_portal/claims/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clients_portal",
+                "claims",
+                "{{id}}"
+              ]
+            },
+            "description": "getClaimById - GET /clients_portal/claims/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /clients_portal/claims",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/clients_portal/claims",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clients_portal",
+                "claims"
+              ]
+            },
+            "description": "unknown - POST /clients_portal/claims",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_empresa\": \"Empresa Ejemplo\",\n  \"cuit\": \"30-12345678-9\",\n  \"direccion\": \"Calle Ejemplo 123\",\n  \"telefono\": \"011-1234-5678\",\n  \"email\": \"contacto@empresa.com\",\n  \"contacto_principal\": \"Nombre Contacto\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /clients_portal/satisfaction_surveys",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/clients_portal/satisfaction_surveys",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clients_portal",
+                "satisfaction_surveys"
+              ]
+            },
+            "description": "unknown - POST /clients_portal/satisfaction_surveys",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_empresa\": \"Empresa Ejemplo\",\n  \"cuit\": \"30-12345678-9\",\n  \"direccion\": \"Calle Ejemplo 123\",\n  \"telefono\": \"011-1234-5678\",\n  \"email\": \"contacto@empresa.com\",\n  \"contacto_principal\": \"Nombre Contacto\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /clients_portal/claims/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/clients_portal/claims/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clients_portal",
+                "claims",
+                "{{id}}"
+              ]
+            },
+            "description": "unknown - PUT /clients_portal/claims/:id",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_empresa\": \"Empresa Ejemplo\",\n  \"cuit\": \"30-12345678-9\",\n  \"direccion\": \"Calle Ejemplo 123\",\n  \"telefono\": \"011-1234-5678\",\n  \"email\": \"contacto@empresa.com\",\n  \"contacto_principal\": \"Nombre Contacto\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /clients_portal/satisfaction_surveys/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/clients_portal/satisfaction_surveys/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clients_portal",
+                "satisfaction_surveys",
+                "{{id}}"
+              ]
+            },
+            "description": "unknown - PUT /clients_portal/satisfaction_surveys/:id",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_empresa\": \"Empresa Ejemplo\",\n  \"cuit\": \"30-12345678-9\",\n  \"direccion\": \"Calle Ejemplo 123\",\n  \"telefono\": \"011-1234-5678\",\n  \"email\": \"contacto@empresa.com\",\n  \"contacto_principal\": \"Nombre Contacto\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /clients_portal/ask_for_service",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/clients_portal/ask_for_service",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clients_portal",
+                "ask_for_service"
+              ]
+            },
+            "description": "unknown - POST /clients_portal/ask_for_service",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_empresa\": \"Empresa Ejemplo\",\n  \"cuit\": \"30-12345678-9\",\n  \"direccion\": \"Calle Ejemplo 123\",\n  \"telefono\": \"011-1234-5678\",\n  \"email\": \"contacto@empresa.com\",\n  \"contacto_principal\": \"Nombre Contacto\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /clients_portal/stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/clients_portal/stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clients_portal",
+                "stats"
+              ]
+            },
+            "description": "unknown - GET /clients_portal/stats"
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints para clientsPortal"
+    },
+    {
+      "name": "Clients",
+      "item": [
+        {
+          "name": "POST /clients",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/clients",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clients"
+              ]
+            },
+            "description": "create - POST /clients",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_empresa\": \"Empresa Ejemplo\",\n  \"cuit\": \"30-12345678-9\",\n  \"direccion\": \"Calle Ejemplo 123\",\n  \"telefono\": \"011-1234-5678\",\n  \"email\": \"contacto@empresa.com\",\n  \"contacto_principal\": \"Nombre Contacto\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /clients",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/clients",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clients"
+              ]
+            },
+            "description": "unknown - GET /clients"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /clients/:id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/clients/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clients",
+                "{{id}}"
+              ]
+            },
+            "description": "unknown - GET /clients/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /clients/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/clients/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clients",
+                "{{id}}"
+              ]
+            },
+            "description": "unknown - PUT /clients/:id",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_empresa\": \"Empresa Ejemplo\",\n  \"cuit\": \"30-12345678-9\",\n  \"direccion\": \"Calle Ejemplo 123\",\n  \"telefono\": \"011-1234-5678\",\n  \"email\": \"contacto@empresa.com\",\n  \"contacto_principal\": \"Nombre Contacto\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /clients/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/clients/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clients",
+                "{{id}}"
+              ]
+            },
+            "description": "unknown - DELETE /clients/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /clients/:id/active-contract",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/clients/{{id}}/active-contract",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clients",
+                "{{id}}",
+                "active-contract"
+              ]
+            },
+            "description": "unknown - GET /clients/:id/active-contract"
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints para clients"
+    },
+    {
+      "name": "Chemical_toilets",
+      "item": [
+        {
+          "name": "POST /chemical_toilets",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/chemical_toilets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chemical_toilets"
+              ]
+            },
+            "description": "unknown - POST /chemical_toilets",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serial\": \"CHT-12345\",\n  \"modelo\": \"Modelo Ejemplo\",\n  \"estado\": \"DISPONIBLE\",\n  \"ubicacion\": \"Ubicación Ejemplo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /chemical_toilets",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/chemical_toilets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chemical_toilets"
+              ]
+            },
+            "description": "unknown - GET /chemical_toilets"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /chemical_toilets/search",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/chemical_toilets/search",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chemical_toilets",
+                "search"
+              ]
+            },
+            "description": "unknown - GET /chemical_toilets/search"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /chemical_toilets/:id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/chemical_toilets/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chemical_toilets",
+                "{{id}}"
+              ]
+            },
+            "description": "unknown - GET /chemical_toilets/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /chemical_toilets/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/chemical_toilets/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chemical_toilets",
+                "{{id}}"
+              ]
+            },
+            "description": "unknown - PUT /chemical_toilets/:id",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serial\": \"CHT-12345\",\n  \"modelo\": \"Modelo Ejemplo\",\n  \"estado\": \"DISPONIBLE\",\n  \"ubicacion\": \"Ubicación Ejemplo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /chemical_toilets/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/chemical_toilets/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chemical_toilets",
+                "{{id}}"
+              ]
+            },
+            "description": "unknown - DELETE /chemical_toilets/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /chemical_toilets/stats/:id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/chemical_toilets/stats/{{id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chemical_toilets",
+                "stats",
+                "{{id}}"
+              ]
+            },
+            "description": "unknown - GET /chemical_toilets/stats/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /chemical_toilets/by-client/:clientId",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/chemical_toilets/by-client/{{clientId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chemical_toilets",
+                "by-client",
+                "{{clientId}}"
+              ]
+            },
+            "description": "unknown - GET /chemical_toilets/by-client/:clientId"
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints para chemical_toilets"
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST /auth/login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "unknown - POST /auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"placa\": \"AB123CD\",\r\n  \"marca\": \"Toyota\",\r\n  \"modelo\": \"Hilux\",\r\n  \"anio\": 2023,\r\n  \"tipoCabina\": \"doble\",\r\n  \"numeroInterno\": \"VH-001\",\r\n  \"fechaVencimientoVTV\": \"2026-05-15\",\r\n  \"fechaVencimientoSeguro\": \"2026-01-10\",\r\n  \"esExterno\": false,\r\n  \"estado\": \"DISPONIBLE\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /auth/forgot_password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/forgot_password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "forgot_password"
+              ]
+            },
+            "description": "unknown - PUT /auth/forgot_password",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"usuario@ejemplo.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /auth/change_password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/change_password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "change_password"
+              ]
+            },
+            "description": "unknown - PUT /auth/change_password",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"usuario@ejemplo.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints para auth"
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "tu-token-jwt-aqui",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  }
+}

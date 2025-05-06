@@ -1,0 +1,19 @@
+{
+  "id": "639ac8bf-071a-4a7d-811d-3c56eae4d718",
+  "name": "MVA Backend Environment",
+  "values": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string",
+      "enabled": true
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string",
+      "enabled": true
+    }
+  ],
+  "_postman_variable_scope": "environment"
+}
