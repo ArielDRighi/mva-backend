@@ -74,84 +74,160 @@ function extractExamplesFromDocs() {
     const content = fs.readFileSync(file, 'utf8');
     const filename = path.basename(file, '.md').toLowerCase();
 
-    // Extraer ejemplos de código JSON
-    const jsonRegex = /```json\s*([\s\S]*?)\s*```/g;
-    let match;
+    // Para cada archivo, buscar secciones de título que podrían describir variantes
+    const sections = content.split(/##\s+/);
+    let currentSection = '';
 
-    while ((match = jsonRegex.exec(content)) !== null) {
-      try {
-        const jsonContent = match[1].trim();
+    for (let i = 0; i < sections.length; i++) {
+      const section = sections[i];
+      if (i > 0) {
+        // La primera sección suele ser la introducción
+        const sectionTitleMatch = section.match(/^([^\n]+)/);
+        if (sectionTitleMatch) {
+          currentSection = sectionTitleMatch[1].trim();
+        }
+      }
 
-        // Determinar si es un cuerpo de solicitud o respuesta
-        const requestMatch = content
-          .substring(Math.max(0, match.index - 500), match.index)
-          .match(/POST|PUT|PATCH|DELETE.*?Content-Type: application\/json/);
+      // Extraer ejemplos de código JSON
+      const jsonRegex = /```json\s*([\s\S]*?)\s*```/g;
+      let match;
 
-        if (requestMatch) {
-          // Determinar la ruta del endpoint
-          const urlMatch = content
-            .substring(Math.max(0, match.index - 500), match.index)
-            .match(/\b(POST|PUT|PATCH|DELETE)\s+([^\s]+)/);
+      while ((match = jsonRegex.exec(section)) !== null) {
+        try {
+          const jsonContent = match[1].trim();
 
-          if (urlMatch) {
-            const method = urlMatch[1];
-            let url = urlMatch[2].replace(/\/api\//, '/');
+          // Determinar si es un cuerpo de solicitud o respuesta
+          const contextBefore = section.substring(0, match.index);
+          const requestMatch =
+            contextBefore.match(
+              /POST|PUT|PATCH|DELETE.*?Content-Type: application\/json/i,
+            ) || contextBefore.match(/\b(POST|PUT|PATCH|DELETE)\s+([^\s]+)/i);
 
-            // Estandarizar la ruta
-            if (!url.startsWith('/')) {
-              url = '/' + url;
-            }
+          if (requestMatch) {
+            // Determinar la ruta del endpoint
+            const urlMatch =
+              section
+                .substring(0, match.index)
+                .match(/\b(POST|PUT|PATCH|DELETE)\s+([^\s]+)/i) ||
+              contextBefore.match(/\b(POST|PUT|PATCH|DELETE)\s+([^\s]+)/i);
 
-            // Crear clave única para el endpoint
-            const key = `${method}:${url}`;
+            if (urlMatch) {
+              const method = urlMatch[1].toUpperCase();
+              let url = urlMatch[2].replace(/\/api\//, '/');
 
-            // Añadir el ejemplo
-            if (!examples[key]) {
-              examples[key] = {
+              // Estandarizar la ruta
+              if (!url.startsWith('/')) {
+                url = '/' + url;
+              }
+
+              // Crear clave base única para el endpoint
+              const baseKey = `${method}:${url}`;
+
+              // Determinar una descripción para esta variante
+              let variantDescription = '';
+              if (
+                currentSection &&
+                currentSection.toLowerCase().includes(method.toLowerCase())
+              ) {
+                variantDescription = currentSection;
+              } else {
+                // Buscar texto descriptivo cerca del ejemplo
+                const descMatch = contextBefore.match(/([^.!?]+[.!?])\s*$/);
+                if (descMatch) {
+                  variantDescription = descMatch[1].trim();
+                }
+              }
+
+              // Si no hay descripción, usar un contador
+              if (!variantDescription) {
+                // Contar cuántas variantes ya tenemos para este endpoint
+                const existingVariants = Object.keys(examples).filter((k) =>
+                  k.startsWith(baseKey),
+                );
+                variantDescription = `Variante ${existingVariants.length + 1}`;
+              }
+
+              // Generar clave única para esta variante
+              const variantKey = `${baseKey}||${variantDescription}`;
+
+              // Añadir el ejemplo
+              examples[variantKey] = {
                 body: jsonContent,
                 contentType: 'application/json',
+                description: variantDescription,
+                baseEndpoint: baseKey,
               };
             }
           }
+        } catch (e) {
+          // Ignorar JSON inválido
+          console.log(`❌ Error al parsear JSON en ${file}:`, e.message);
         }
-      } catch (e) {
-        // Ignorar JSON inválido
-        console.log(`❌ Error al parsear JSON en ${file}:`, e.message);
       }
-    }
 
-    // También buscar ejemplos HTTP completos
-    const httpRegex = /```http\s*([\s\S]*?)\s*```/g;
+      // También buscar ejemplos HTTP completos
+      const httpRegex = /```http\s*([\s\S]*?)\s*```/g;
 
-    while ((match = httpRegex.exec(content)) !== null) {
-      const httpContent = match[1].trim();
-      const methodMatch = httpContent.match(
-        /^(POST|PUT|PATCH|DELETE|GET)\s+([^\s]+)/,
-      );
+      while ((match = httpRegex.exec(section)) !== null) {
+        const httpContent = match[1].trim();
+        const methodMatch = httpContent.match(
+          /^(POST|PUT|PATCH|DELETE|GET)\s+([^\s]+)/i,
+        );
 
-      if (methodMatch) {
-        const method = methodMatch[1];
-        let url = methodMatch[2].replace(/\/api\//, '/');
+        if (methodMatch) {
+          const method = methodMatch[1].toUpperCase();
+          let url = methodMatch[2].replace(/\/api\//, '/');
 
-        // Estandarizar la ruta
-        if (!url.startsWith('/')) {
-          url = '/' + url;
-        }
+          // Estandarizar la ruta
+          if (!url.startsWith('/')) {
+            url = '/' + url;
+          }
 
-        // Extraer el cuerpo si existe
-        const bodyMatch = httpContent.match(/\n\n([\s\S]+)$/);
-        const body = bodyMatch ? bodyMatch[1].trim() : null;
+          // Extraer el cuerpo si existe
+          const bodyMatch = httpContent.match(/\n\n([\s\S]+)$/);
+          const body = bodyMatch ? bodyMatch[1].trim() : null;
 
-        if (body) {
-          const key = `${method}:${url}`;
-          if (!examples[key]) {
-            examples[key] = {
+          if (body) {
+            // Crear clave base única para el endpoint
+            const baseKey = `${method}:${url}`;
+
+            // Determinar una descripción para esta variante
+            let variantDescription = '';
+            if (
+              currentSection &&
+              currentSection.toLowerCase().includes(method.toLowerCase())
+            ) {
+              variantDescription = currentSection;
+            } else {
+              // Buscar texto descriptivo cerca del ejemplo
+              const contextBefore = section.substring(0, match.index);
+              const descMatch = contextBefore.match(/([^.!?]+[.!?])\s*$/);
+              if (descMatch) {
+                variantDescription = descMatch[1].trim();
+              }
+            }
+
+            // Si no hay descripción, usar un contador
+            if (!variantDescription) {
+              // Contar cuántas variantes ya tenemos para este endpoint
+              const existingVariants = Object.keys(examples).filter((k) =>
+                k.startsWith(baseKey),
+              );
+              variantDescription = `Variante ${existingVariants.length + 1}`;
+            }
+
+            // Generar clave única para esta variante
+            const variantKey = `${baseKey}||${variantDescription}`;
+
+            examples[variantKey] = {
               body: body,
               contentType: httpContent.includes(
                 'Content-Type: application/json',
               )
                 ? 'application/json'
                 : 'text/plain',
+              description: variantDescription,
+              baseEndpoint: baseKey,
             };
           }
         }
@@ -411,6 +487,54 @@ function buildPostmanCollection(endpoints, docExamples) {
 
 // Crear una solicitud de Postman para un endpoint
 function createPostmanRequest(endpoint, docExamples) {
+  // Preparar el endpoint base para buscar ejemplos
+  const baseEndpointKey = `${endpoint.method}:${endpoint.path}`;
+
+  // Buscar todas las variantes de ejemplos para este endpoint
+  const variantExamples = Object.entries(docExamples).filter(
+    ([key, example]) => example.baseEndpoint === baseEndpointKey,
+  );
+
+  // Si encontramos variantes, crear una solicitud para cada variante
+  if (variantExamples.length > 0) {
+    return createVariantRequests(endpoint, variantExamples);
+  }
+
+  // Si no hay variantes, crear una solicitud normal (caso base)
+  return createBasicRequest(endpoint, docExamples[baseEndpointKey]);
+}
+
+// Crear múltiples solicitudes para diferentes variantes del mismo endpoint
+function createVariantRequests(endpoint, variantExamples) {
+  // Si solo hay una variante, crearla con el nombre normal
+  if (variantExamples.length === 1) {
+    const [key, example] = variantExamples[0];
+    return createBasicRequest(endpoint, example, example.description);
+  }
+
+  // Si hay múltiples variantes, crear un folder con todas las variantes
+  const items = variantExamples.map(([key, example]) => {
+    // Extraer descripción o crear una basada en el número de variante
+    const variantName = example.description || `Variante ${key.split('||')[1]}`;
+
+    // Crear una solicitud con el nombre de la variante
+    return createBasicRequest(
+      endpoint,
+      example,
+      `${endpoint.method} ${endpoint.path} (${variantName})`,
+    );
+  });
+
+  // Retornar una estructura de carpeta que contiene todas las variantes
+  return {
+    name: `${endpoint.method} ${endpoint.path}`,
+    description: `${endpoint.handlerName} - Múltiples variantes`,
+    item: items,
+  };
+}
+
+// Crear una solicitud básica de Postman
+function createBasicRequest(endpoint, docExample, customName = null) {
   // Crear encabezados
   const headers = [
     {
@@ -440,10 +564,6 @@ function createPostmanRequest(endpoint, docExamples) {
   // Añadir el prefijo de API a la ruta
   const apiPath = `${config.apiPrefix}${urlPath}`;
 
-  // Verificar si existe un ejemplo documentado para este endpoint
-  const exampleKey = `${endpoint.method}:${endpoint.path}`;
-  const docExample = docExamples[exampleKey];
-
   // Crear cuerpo de solicitud para métodos POST, PUT, PATCH
   let body;
   if (['POST', 'PUT', 'PATCH'].includes(endpoint.method)) {
@@ -463,9 +583,20 @@ function createPostmanRequest(endpoint, docExamples) {
     };
   }
 
+  // Usar nombre personalizado si se proporciona, de lo contrario usar el nombre predeterminado
+  const name = customName || `${endpoint.method} ${endpoint.path}`;
+
+  // Construir descripción del request
+  let description = `${endpoint.handlerName} - ${endpoint.method} ${endpoint.path}`;
+
+  // Añadir descripción de la variante si existe
+  if (docExample && docExample.description) {
+    description += `\n\n${docExample.description}`;
+  }
+
   // Construir solicitud completa
   return {
-    name: `${endpoint.method} ${endpoint.path}`,
+    name: name,
     request: {
       method: endpoint.method,
       header: headers,
@@ -474,7 +605,7 @@ function createPostmanRequest(endpoint, docExamples) {
         host: ['{{baseUrl}}'],
         path: apiPath.split('/').filter(Boolean),
       },
-      description: `${endpoint.handlerName} - ${endpoint.method} ${endpoint.path}`,
+      description: description,
       ...(body && { body }),
     },
     response: [],

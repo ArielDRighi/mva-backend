@@ -3,7 +3,7 @@
     "name": "MVA Backend API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "description": "Colección generada automáticamente para MVA Backend",
-    "_postman_id": "cc54e3f2-1a9d-4bb8-bfd8-580d7c6af917"
+    "_postman_id": "e58c5275-a560-4621-8e94-6bbdf8045c69"
   },
   "item": [
     {
@@ -1151,42 +1151,87 @@
       "item": [
         {
           "name": "POST /services",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/services",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "services"
-              ]
-            },
-            "description": "create - POST /services",
-            "body": {
-              "mode": "raw",
-              "raw": "{\r\n  \"clienteId\": 1,\r\n  \"fechaProgramada\": \"2025-05-20T10:00:00.000Z\",\r\n  \"tipoServicio\": \"INSTALACION\",\r\n  \"estado\": \"PROGRAMADO\",\r\n  \"cantidadBanos\": 2,\r\n  \"cantidadEmpleados\": 1,\r\n  \"cantidadVehiculos\": 1,\r\n  \"ubicacion\": \"Avenida Principal 123\",\r\n  \"notas\": \"Instalación estándar\",\r\n  \"asignacionAutomatica\": true\r\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+          "description": "create - Múltiples variantes",
+          "item": [
+            {
+              "name": "POST /services (Variante 1)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/services",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "services"
+                  ]
+                },
+                "description": "create - POST /services\n\nVariante 1",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"clienteId\": 1,\r\n  \"fechaProgramada\": \"2025-05-20T10:00:00.000Z\",\r\n  \"tipoServicio\": \"INSTALACION\",\r\n  \"estado\": \"PROGRAMADO\",\r\n  \"cantidadBanos\": 2,\r\n  \"cantidadEmpleados\": 1,\r\n  \"cantidadVehiculos\": 1,\r\n  \"ubicacion\": \"Avenida Principal 123\",\r\n  \"notas\": \"Instalación estándar\",\r\n  \"asignacionAutomatica\": true\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
                 }
-              }
+              },
+              "response": []
+            },
+            {
+              "name": "POST /services (Variante 2)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/services",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "services"
+                  ]
+                },
+                "description": "create - POST /services\n\nVariante 2",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"clienteId\": 1,\r\n  \"fechaProgramada\": \"2025-05-20T10:00:00.000Z\",\r\n  \"tipoServicio\": \"INSTALACION\",\r\n  \"estado\": \"PROGRAMADO\",\r\n  \"cantidadBanos\": 2,\r\n  \"cantidadEmpleados\": 1,\r\n  \"cantidadVehiculos\": 1,\r\n  \"ubicacion\": \"Avenida Principal 123\",\r\n  \"notas\": \"Instalación estándar\",\r\n  \"asignacionAutomatica\": false,\r\n  \"asignacionesManual\": [\r\n    {\r\n      \"empleadoId\": 1,\r\n      \"vehiculoId\": 1,\r\n      \"banosIds\": [1, 2]\r\n    }\r\n  ]\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
             }
-          },
-          "response": []
+          ]
         },
         {
           "name": "GET /services",
@@ -1786,7 +1831,7 @@
       "name": "Employee-leaves",
       "item": [
         {
-          "name": "POST /employee-leaves",
+          "name": "Variante 3",
           "request": {
             "method": "POST",
             "header": [
@@ -1811,7 +1856,7 @@
                 "employee-leaves"
               ]
             },
-            "description": "create - POST /employee-leaves",
+            "description": "create - POST /employee-leaves\n\nVariante 3",
             "body": {
               "mode": "raw",
               "raw": "{\r\n  \"employeeId\": 1,\r\n  \"fechaInicio\": \"2025-05-15T00:00:00.000Z\",\r\n  \"fechaFin\": \"2025-05-30T00:00:00.000Z\",\r\n  \"tipoLicencia\": \"VACACIONES\",\r\n  \"notas\": \"Vacaciones anuales programadas\"\r\n}",
@@ -2036,6 +2081,513 @@
       "name": "Employees",
       "item": [
         {
+          "name": "PUT /employees/examen/modify/:examenId",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/employees/examen/modify/{{examenId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employees",
+                "examen",
+                "modify",
+                "{{examenId}}"
+              ]
+            },
+            "description": "findOne - PUT /employees/examen/modify/:examenId",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Nombre Empleado\",\n  \"apellido\": \"Apellido Empleado\",\n  \"documento\": \"12345678\",\n  \"telefono\": \"011-1234-5678\",\n  \"email\": \"empleado@ejemplo.com\",\n  \"direccion\": \"Dirección Ejemplo\",\n  \"fecha_nacimiento\": \"1990-01-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /employees/examen/delete/:examenId",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/employees/examen/delete/{{examenId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employees",
+                "examen",
+                "delete",
+                "{{examenId}}"
+              ]
+            },
+            "description": "findOne - DELETE /employees/examen/delete/:examenId"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /employees/examen/create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/employees/examen/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employees",
+                "examen",
+                "create"
+              ]
+            },
+            "description": "findOne - POST /employees/examen/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Nombre Empleado\",\n  \"apellido\": \"Apellido Empleado\",\n  \"documento\": \"12345678\",\n  \"telefono\": \"011-1234-5678\",\n  \"email\": \"empleado@ejemplo.com\",\n  \"direccion\": \"Dirección Ejemplo\",\n  \"fecha_nacimiento\": \"1990-01-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /employees/examen/:empleadoId",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/employees/examen/{{empleadoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employees",
+                "examen",
+                "{{empleadoId}}"
+              ]
+            },
+            "description": "findOne - GET /employees/examen/:empleadoId"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /employees/emergency/:empleadoId",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/employees/emergency/{{empleadoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employees",
+                "emergency",
+                "{{empleadoId}}"
+              ]
+            },
+            "description": "findOne - POST /employees/emergency/:empleadoId",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Nombre Empleado\",\n  \"apellido\": \"Apellido Empleado\",\n  \"documento\": \"12345678\",\n  \"telefono\": \"011-1234-5678\",\n  \"email\": \"empleado@ejemplo.com\",\n  \"direccion\": \"Dirección Ejemplo\",\n  \"fecha_nacimiento\": \"1990-01-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /employees/emergency/delete/:contactoId",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/employees/emergency/delete/{{contactoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employees",
+                "emergency",
+                "delete",
+                "{{contactoId}}"
+              ]
+            },
+            "description": "findOne - DELETE /employees/emergency/delete/:contactoId"
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /employees/emergency/:contactoId",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/employees/emergency/{{contactoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employees",
+                "emergency",
+                "{{contactoId}}"
+              ]
+            },
+            "description": "findOne - PUT /employees/emergency/:contactoId",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Nombre Empleado\",\n  \"apellido\": \"Apellido Empleado\",\n  \"documento\": \"12345678\",\n  \"telefono\": \"011-1234-5678\",\n  \"email\": \"empleado@ejemplo.com\",\n  \"direccion\": \"Dirección Ejemplo\",\n  \"fecha_nacimiento\": \"1990-01-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /employees/emergency/:empleadoId",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/employees/emergency/{{empleadoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employees",
+                "emergency",
+                "{{empleadoId}}"
+              ]
+            },
+            "description": "findOne - GET /employees/emergency/:empleadoId"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /employees/licences/to/expire",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/employees/licences/to/expire",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employees",
+                "licences",
+                "to",
+                "expire"
+              ]
+            },
+            "description": "findOne - GET /employees/licences/to/expire"
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /employees/licencia/update/:empleadoId",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/employees/licencia/update/{{empleadoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employees",
+                "licencia",
+                "update",
+                "{{empleadoId}}"
+              ]
+            },
+            "description": "findOne - PUT /employees/licencia/update/:empleadoId",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Nombre Empleado\",\n  \"apellido\": \"Apellido Empleado\",\n  \"documento\": \"12345678\",\n  \"telefono\": \"011-1234-5678\",\n  \"email\": \"empleado@ejemplo.com\",\n  \"direccion\": \"Dirección Ejemplo\",\n  \"fecha_nacimiento\": \"1990-01-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /employees/licencia/delete/:licenciaId",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/employees/licencia/delete/{{licenciaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employees",
+                "licencia",
+                "delete",
+                "{{licenciaId}}"
+              ]
+            },
+            "description": "findOne - DELETE /employees/licencia/delete/:licenciaId"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /employees/licencia/:empleadoId",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/employees/licencia/{{empleadoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employees",
+                "licencia",
+                "{{empleadoId}}"
+              ]
+            },
+            "description": "findOne - POST /employees/licencia/:empleadoId",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Nombre Empleado\",\n  \"apellido\": \"Apellido Empleado\",\n  \"documento\": \"12345678\",\n  \"telefono\": \"011-1234-5678\",\n  \"email\": \"empleado@ejemplo.com\",\n  \"direccion\": \"Dirección Ejemplo\",\n  \"fecha_nacimiento\": \"1990-01-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /employees/licencia/:empleadoId",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/employees/licencia/{{empleadoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employees",
+                "licencia",
+                "{{empleadoId}}"
+              ]
+            },
+            "description": "findOne - GET /employees/licencia/:empleadoId"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /employees/licencias",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/employees/licencias",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employees",
+                "licencias"
+              ]
+            },
+            "description": "findOne - GET /employees/licencias"
+          },
+          "response": []
+        },
+        {
           "name": "POST /employees",
           "request": {
             "method": "POST",
@@ -2061,7 +2613,7 @@
                 "employees"
               ]
             },
-            "description": "create - POST /employees",
+            "description": "findOne - POST /employees",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nombre\": \"Nombre Empleado\",\n  \"apellido\": \"Apellido Empleado\",\n  \"documento\": \"12345678\",\n  \"telefono\": \"011-1234-5678\",\n  \"email\": \"empleado@ejemplo.com\",\n  \"direccion\": \"Dirección Ejemplo\",\n  \"fecha_nacimiento\": \"1990-01-01\"\n}",
@@ -2864,7 +3416,7 @@
       "name": "Clients",
       "item": [
         {
-          "name": "POST /clients",
+          "name": "Variante 1",
           "request": {
             "method": "POST",
             "header": [
@@ -2889,13 +3441,13 @@
                 "clients"
               ]
             },
-            "description": "create - POST /clients",
+            "description": "create - POST /clients\n\nVariante 1",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre_empresa\": \"Empresa Ejemplo\",\n  \"cuit\": \"30-12345678-9\",\n  \"direccion\": \"Calle Ejemplo 123\",\n  \"telefono\": \"011-1234-5678\",\n  \"email\": \"contacto@empresa.com\",\n  \"contacto_principal\": \"Nombre Contacto\"\n}",
+              "raw": "{\r\n  \"nombre_empresa\": \"Empresa ABC\",\r\n  \"cuit\": \"30-12345678-9\",\r\n  \"direccion\": \"Av. Ejemplo 123\",\r\n  \"telefono\": \"011-1234-5678\",\r\n  \"email\": \"contacto@empresaabc.com\",\r\n  \"contacto_principal\": \"Juan Pérez\"\r\n}",
               "options": {
                 "raw": {
-                  "language": "text"
+                  "language": "json"
                 }
               }
             }

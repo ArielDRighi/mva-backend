@@ -1,5 +1,5 @@
 {
-  "id": "c08f7162-eecb-44bf-a640-165f2660bb17",
+  "id": "fee52003-209d-4190-be5a-916bb1daafeb",
   "name": "MVA Backend Environment",
   "values": [
     {
@@ -23,54 +23,6 @@
     {
       "key": "adminPassword",
       "value": "password",
-      "type": "string",
-      "enabled": true
-    },
-    {
-      "key": "id",
-      "value": "1",
-      "type": "string",
-      "enabled": true
-    },
-    {
-      "key": "placa",
-      "value": "ABC123",
-      "type": "string",
-      "enabled": true
-    },
-    {
-      "key": "toiletId",
-      "value": "1",
-      "type": "string",
-      "enabled": true
-    },
-    {
-      "key": "clientId",
-      "value": "1",
-      "type": "string",
-      "enabled": true
-    },
-    {
-      "key": "vehicleId",
-      "value": "1",
-      "type": "string",
-      "enabled": true
-    },
-    {
-      "key": "employeeId",
-      "value": "1",
-      "type": "string",
-      "enabled": true
-    },
-    {
-      "key": "documento",
-      "value": "12345678",
-      "type": "string",
-      "enabled": true
-    },
-    {
-      "key": "serviceId",
-      "value": "1",
       "type": "string",
       "enabled": true
     }

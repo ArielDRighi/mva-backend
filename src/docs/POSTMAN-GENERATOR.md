@@ -81,6 +81,7 @@ El generador busca automáticamente ejemplos de cuerpos de solicitud (request bo
 
 1. El script escanea todos los archivos .md en la carpeta de documentación.
 2. Busca dos tipos de bloques de código:
+
    - Bloques JSON: delimitados por \```json ... \```
    - Bloques HTTP completos: delimitados por \```http ... \```
 
@@ -93,7 +94,7 @@ Para que el generador utilice un ejemplo personalizado para un endpoint, incluye
 
 Para bloques JSON:
 
-```markdown
+````markdown
 ## Crear un nuevo cliente
 
 Para crear un cliente, envía una solicitud POST:
@@ -111,7 +112,9 @@ Content-Type: application/json
   "contacto_principal": "Juan Pérez"
 }
 ```
-```
+````
+
+````
 
 Para bloques HTTP completos:
 
@@ -129,10 +132,45 @@ Content-Type: application/json
   "anio": 2023,
   "estado": "DISPONIBLE"
 }
-```
+````
+
 ```
 
 El generador extraerá estos ejemplos y los utilizará en la colección de Postman generada.
+
+## Limitaciones con variantes de endpoints POST
+
+El generador de Postman actualmente crea un único endpoint POST para cada entidad detectada en los controladores. Sin embargo, en la documentación hay variantes para algunos endpoints POST que representan diferentes formas de crear un recurso. Por ejemplo, en la API de Servicios hay varias variantes para el endpoint POST:
+
+- Crear Servicio de INSTALACIÓN
+- Crear Servicio con especificación explícita de datos
+- Crear Servicio con Asignación Manual
+- Crear Servicio de LIMPIEZA/REEMPLAZO/RETIRO
+- Crear Servicio de CAPACITACIÓN
+
+### Solución manual para las variantes
+
+Para trabajar con estas variantes en Postman, puedes:
+
+1. Duplicar manualmente la petición POST generada en Postman
+2. Renombrar cada duplicado según su propósito específico
+3. Modificar el cuerpo de la solicitud en cada variante según la documentación
+
+Por ejemplo, para los servicios:
+
+1. Duplica la petición "POST /services"
+2. Renombra las copias como:
+   - "POST /services (Instalación)"
+   - "POST /services (Asignación Manual)"
+   - "POST /services (Limpieza/Retiro)"
+   - "POST /services (Capacitación)"
+3. Edita el cuerpo JSON de cada una según los ejemplos en la documentación
+
+Esto te permitirá tener todas las variantes disponibles en tu colección de Postman para pruebas.
+
+### Mejora futura
+
+En futuras versiones del generador, se podría implementar la detección de estas variantes en la documentación y generar automáticamente múltiples endpoints POST para una misma ruta cuando corresponda.
 
 ## Personalización
 
@@ -187,3 +225,4 @@ Esto asegurará que tu colección de Postman esté siempre sincronizada con el c
 - **Mantenimiento automático**: La colección siempre refleja el estado actual de la API
 - **Documentación implícita**: Sirve como documentación interactiva de la API
 - **Coherencia**: Todos los desarrolladores del equipo trabajan con la misma colección
+```
