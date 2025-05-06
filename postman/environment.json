@@ -1,5 +1,5 @@
 {
-  "id": "4986b7eb-2f78-442d-b50c-faa1c2b09440",
+  "id": "c08f7162-eecb-44bf-a640-165f2660bb17",
   "name": "MVA Backend Environment",
   "values": [
     {
@@ -11,6 +11,66 @@
     {
       "key": "token",
       "value": "",
+      "type": "string",
+      "enabled": true
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@example.com",
+      "type": "string",
+      "enabled": true
+    },
+    {
+      "key": "adminPassword",
+      "value": "password",
+      "type": "string",
+      "enabled": true
+    },
+    {
+      "key": "id",
+      "value": "1",
+      "type": "string",
+      "enabled": true
+    },
+    {
+      "key": "placa",
+      "value": "ABC123",
+      "type": "string",
+      "enabled": true
+    },
+    {
+      "key": "toiletId",
+      "value": "1",
+      "type": "string",
+      "enabled": true
+    },
+    {
+      "key": "clientId",
+      "value": "1",
+      "type": "string",
+      "enabled": true
+    },
+    {
+      "key": "vehicleId",
+      "value": "1",
+      "type": "string",
+      "enabled": true
+    },
+    {
+      "key": "employeeId",
+      "value": "1",
+      "type": "string",
+      "enabled": true
+    },
+    {
+      "key": "documento",
+      "value": "12345678",
+      "type": "string",
+      "enabled": true
+    },
+    {
+      "key": "serviceId",
+      "value": "1",
       "type": "string",
       "enabled": true
     }

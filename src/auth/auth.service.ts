@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import {
   ChangePasswordDto,
@@ -11,7 +7,6 @@ import {
 } from './dto/login.dto';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
-import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class AuthService {
@@ -31,8 +26,14 @@ export class AuthService {
   async login(loginDto: LoginDto) {
     const { username, password } = loginDto;
 
-    // Buscar usuario por username
-    const user = await this.usersService.findByUsername(username);
+    // Intentar buscar usuario por nombre de usuario o por email
+    let user = await this.usersService.findByUsername(username);
+
+    // Si no se encuentra por nombre, buscar por email
+    if (!user) {
+      user = await this.usersService.findByEmail(username);
+    }
+
     console.log('Usuario encontrado:', user);
 
     // Si no se encuentra el usuario o la contraseña es incorrecta, lanzar excepción

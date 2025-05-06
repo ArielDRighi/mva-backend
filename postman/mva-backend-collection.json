@@ -3,9 +3,89 @@
     "name": "MVA Backend API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "description": "Colección generada automáticamente para MVA Backend",
-    "_postman_id": "9e23d625-a92b-42ce-87e0-175346335240"
+    "_postman_id": "cc54e3f2-1a9d-4bb8-bfd8-580d7c6af917"
   },
   "item": [
+    {
+      "name": "🔐 Autenticación",
+      "description": "Autenticación y gestión de tokens JWT",
+      "item": [
+        {
+          "name": "Login (obtener token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Inicia sesión y almacena automáticamente el token JWT para uso en solicitudes posteriores"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData && jsonData.access_token) {",
+                  "    pm.environment.set(\"token\", jsonData.access_token);",
+                  "    console.log(\"Token JWT almacenado correctamente\");",
+                  "    pm.test(\"Token JWT almacenado correctamente\", function() {",
+                  "        pm.expect(jsonData.access_token).to.be.a(\"string\");",
+                  "    });",
+                  "} else {",
+                  "    console.error(\"No se pudo obtener el token JWT\");",
+                  "    pm.test(\"Error al obtener el token JWT\", function() {",
+                  "        pm.expect(jsonData).to.have.property(\"access_token\");",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Información de autenticación",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api"
+              ]
+            },
+            "description": "# Cómo funciona la autenticación\n\n1. Ejecuta la solicitud \"Login (obtener token)\" primero\n2. Esto automáticamente almacenará el token JWT en la variable de entorno \"token\"\n3. Todas las solicitudes protegidas utilizarán esta variable\n\n## Credenciales de prueba\n\n- Email: {{adminEmail}}\n- Password: {{adminPassword}}\n\n> Si las credenciales no funcionan, actualiza las variables de entorno con credenciales válidas."
+          }
+        }
+      ]
+    },
     {
       "name": "App",
       "item": [
@@ -21,11 +101,13 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/",
+              "raw": "{{baseUrl}}/api/",
               "host": [
                 "{{baseUrl}}"
               ],
-              "path": []
+              "path": [
+                "api"
+              ]
             },
             "description": "getHello - GET /"
           },
@@ -54,11 +136,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/vehicle_maintenance",
+              "raw": "{{baseUrl}}/api/vehicle_maintenance",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "vehicle_maintenance"
               ]
             },
@@ -92,11 +175,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/vehicle_maintenance",
+              "raw": "{{baseUrl}}/api/vehicle_maintenance",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "vehicle_maintenance"
               ]
             },
@@ -121,11 +205,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/vehicle_maintenance/upcoming",
+              "raw": "{{baseUrl}}/api/vehicle_maintenance/upcoming",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "vehicle_maintenance",
                 "upcoming"
               ]
@@ -151,11 +236,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/vehicle_maintenance/{{id}}",
+              "raw": "{{baseUrl}}/api/vehicle_maintenance/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "vehicle_maintenance",
                 "{{id}}"
               ]
@@ -181,11 +267,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/vehicle_maintenance/vehiculo/{{id}}",
+              "raw": "{{baseUrl}}/api/vehicle_maintenance/vehiculo/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "vehicle_maintenance",
                 "vehiculo",
                 "{{id}}"
@@ -212,11 +299,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/vehicle_maintenance/{{id}}",
+              "raw": "{{baseUrl}}/api/vehicle_maintenance/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "vehicle_maintenance",
                 "{{id}}"
               ]
@@ -251,11 +339,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/vehicle_maintenance/{{id}}",
+              "raw": "{{baseUrl}}/api/vehicle_maintenance/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "vehicle_maintenance",
                 "{{id}}"
               ]
@@ -281,11 +370,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/vehicle_maintenance/{{id}}/complete",
+              "raw": "{{baseUrl}}/api/vehicle_maintenance/{{id}}/complete",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "vehicle_maintenance",
                 "{{id}}",
                 "complete"
@@ -327,11 +417,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/vehicles",
+              "raw": "{{baseUrl}}/api/vehicles",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "vehicles"
               ]
             },
@@ -365,11 +456,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/vehicles",
+              "raw": "{{baseUrl}}/api/vehicles",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "vehicles"
               ]
             },
@@ -394,11 +486,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/vehicles/{{id}}",
+              "raw": "{{baseUrl}}/api/vehicles/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "vehicles",
                 "{{id}}"
               ]
@@ -424,11 +517,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/vehicles/placa/{{placa}}",
+              "raw": "{{baseUrl}}/api/vehicles/placa/{{placa}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "vehicles",
                 "placa",
                 "{{placa}}"
@@ -455,11 +549,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/vehicles/{{id}}",
+              "raw": "{{baseUrl}}/api/vehicles/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "vehicles",
                 "{{id}}"
               ]
@@ -494,11 +589,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/vehicles/{{id}}",
+              "raw": "{{baseUrl}}/api/vehicles/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "vehicles",
                 "{{id}}"
               ]
@@ -524,11 +620,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/vehicles/{{id}}/estado",
+              "raw": "{{baseUrl}}/api/vehicles/{{id}}/estado",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "vehicles",
                 "{{id}}",
                 "estado"
@@ -570,11 +667,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/users",
+              "raw": "{{baseUrl}}/api/users",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "users"
               ]
             },
@@ -608,11 +706,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/users",
+              "raw": "{{baseUrl}}/api/users",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "users"
               ]
             },
@@ -637,11 +736,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/users/{{id}}",
+              "raw": "{{baseUrl}}/api/users/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "users",
                 "{{id}}"
               ]
@@ -667,11 +767,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/users/{{id}}",
+              "raw": "{{baseUrl}}/api/users/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "users",
                 "{{id}}"
               ]
@@ -706,11 +807,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/users/{{id}}",
+              "raw": "{{baseUrl}}/api/users/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "users",
                 "{{id}}"
               ]
@@ -736,11 +838,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/users/{{id}}/status",
+              "raw": "{{baseUrl}}/api/users/{{id}}/status",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "users",
                 "{{id}}",
                 "status"
@@ -782,11 +885,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/toilet_maintenance",
+              "raw": "{{baseUrl}}/api/toilet_maintenance",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "toilet_maintenance"
               ]
             },
@@ -820,11 +924,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/toilet_maintenance",
+              "raw": "{{baseUrl}}/api/toilet_maintenance",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "toilet_maintenance"
               ]
             },
@@ -849,11 +954,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/toilet_maintenance/search",
+              "raw": "{{baseUrl}}/api/toilet_maintenance/search",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "toilet_maintenance",
                 "search"
               ]
@@ -879,11 +985,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/toilet_maintenance/stats/{{toiletId}}",
+              "raw": "{{baseUrl}}/api/toilet_maintenance/stats/{{toiletId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "toilet_maintenance",
                 "stats",
                 "{{toiletId}}"
@@ -910,11 +1017,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/toilet_maintenance/{{id}}",
+              "raw": "{{baseUrl}}/api/toilet_maintenance/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "toilet_maintenance",
                 "{{id}}"
               ]
@@ -940,11 +1048,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/toilet_maintenance/{{id}}",
+              "raw": "{{baseUrl}}/api/toilet_maintenance/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "toilet_maintenance",
                 "{{id}}"
               ]
@@ -979,11 +1088,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/toilet_maintenance/{{id}}",
+              "raw": "{{baseUrl}}/api/toilet_maintenance/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "toilet_maintenance",
                 "{{id}}"
               ]
@@ -1009,11 +1119,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/toilet_maintenance/{{id}}/complete",
+              "raw": "{{baseUrl}}/api/toilet_maintenance/{{id}}/complete",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "toilet_maintenance",
                 "{{id}}",
                 "complete"
@@ -1055,11 +1166,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/services",
+              "raw": "{{baseUrl}}/api/services",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "services"
               ]
             },
@@ -1093,11 +1205,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/services",
+              "raw": "{{baseUrl}}/api/services",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "services"
               ]
             },
@@ -1122,11 +1235,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/services/date-range",
+              "raw": "{{baseUrl}}/api/services/date-range",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "services",
                 "date-range"
               ]
@@ -1152,11 +1266,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/services/today",
+              "raw": "{{baseUrl}}/api/services/today",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "services",
                 "today"
               ]
@@ -1182,11 +1297,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/services/pending",
+              "raw": "{{baseUrl}}/api/services/pending",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "services",
                 "pending"
               ]
@@ -1212,11 +1328,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/services/in-progress",
+              "raw": "{{baseUrl}}/api/services/in-progress",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "services",
                 "in-progress"
               ]
@@ -1242,11 +1359,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/services/{{id}}",
+              "raw": "{{baseUrl}}/api/services/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "services",
                 "{{id}}"
               ]
@@ -1272,11 +1390,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/services/{{id}}",
+              "raw": "{{baseUrl}}/api/services/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "services",
                 "{{id}}"
               ]
@@ -1311,11 +1430,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/services/{{id}}",
+              "raw": "{{baseUrl}}/api/services/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "services",
                 "{{id}}"
               ]
@@ -1341,11 +1461,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/services/{{id}}/estado",
+              "raw": "{{baseUrl}}/api/services/{{id}}/estado",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "services",
                 "{{id}}",
                 "estado"
@@ -1387,11 +1508,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/salary-advances",
+              "raw": "{{baseUrl}}/api/salary-advances",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "salary-advances"
               ]
             },
@@ -1425,11 +1547,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/salary-advances",
+              "raw": "{{baseUrl}}/api/salary-advances",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "salary-advances"
               ]
             },
@@ -1454,11 +1577,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/salary-advances/{{id}}",
+              "raw": "{{baseUrl}}/api/salary-advances/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "salary-advances",
                 "{{id}}"
               ]
@@ -1499,11 +1623,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/future_cleanings",
+              "raw": "{{baseUrl}}/api/future_cleanings",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "future_cleanings"
               ]
             },
@@ -1528,11 +1653,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/future_cleanings/delete/{{id}}",
+              "raw": "{{baseUrl}}/api/future_cleanings/delete/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "future_cleanings",
                 "delete",
                 "{{id}}"
@@ -1559,11 +1685,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/future_cleanings/{{id}}",
+              "raw": "{{baseUrl}}/api/future_cleanings/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "future_cleanings",
                 "{{id}}"
               ]
@@ -1589,11 +1716,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/future_cleanings",
+              "raw": "{{baseUrl}}/api/future_cleanings",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "future_cleanings"
               ]
             },
@@ -1627,11 +1755,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/future_cleanings/modify/{{id}}",
+              "raw": "{{baseUrl}}/api/future_cleanings/modify/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "future_cleanings",
                 "modify",
                 "{{id}}"
@@ -1673,11 +1802,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/employee-leaves",
+              "raw": "{{baseUrl}}/api/employee-leaves",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "employee-leaves"
               ]
             },
@@ -1711,11 +1841,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/employee-leaves",
+              "raw": "{{baseUrl}}/api/employee-leaves",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "employee-leaves"
               ]
             },
@@ -1740,11 +1871,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/employee-leaves/{{id}}",
+              "raw": "{{baseUrl}}/api/employee-leaves/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "employee-leaves",
                 "{{id}}"
               ]
@@ -1770,11 +1902,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/employee-leaves/employee/{{id}}",
+              "raw": "{{baseUrl}}/api/employee-leaves/employee/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "employee-leaves",
                 "employee",
                 "{{id}}"
@@ -1801,11 +1934,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/employee-leaves/{{id}}",
+              "raw": "{{baseUrl}}/api/employee-leaves/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "employee-leaves",
                 "{{id}}"
               ]
@@ -1840,11 +1974,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/employee-leaves/{{id}}/approve",
+              "raw": "{{baseUrl}}/api/employee-leaves/{{id}}/approve",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "employee-leaves",
                 "{{id}}",
                 "approve"
@@ -1880,11 +2015,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/employee-leaves/{{id}}",
+              "raw": "{{baseUrl}}/api/employee-leaves/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "employee-leaves",
                 "{{id}}"
               ]
@@ -1916,11 +2052,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/employees",
+              "raw": "{{baseUrl}}/api/employees",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "employees"
               ]
             },
@@ -1954,11 +2091,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/employees",
+              "raw": "{{baseUrl}}/api/employees",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "employees"
               ]
             },
@@ -1983,11 +2121,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/employees/{{id}}",
+              "raw": "{{baseUrl}}/api/employees/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "employees",
                 "{{id}}"
               ]
@@ -2013,11 +2152,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/employees/documento/{{documento}}",
+              "raw": "{{baseUrl}}/api/employees/documento/{{documento}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "employees",
                 "documento",
                 "{{documento}}"
@@ -2044,11 +2184,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/employees/{{id}}",
+              "raw": "{{baseUrl}}/api/employees/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "employees",
                 "{{id}}"
               ]
@@ -2083,11 +2224,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/employees/{{id}}",
+              "raw": "{{baseUrl}}/api/employees/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "employees",
                 "{{id}}"
               ]
@@ -2113,11 +2255,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/employees/{{id}}/estado",
+              "raw": "{{baseUrl}}/api/employees/{{id}}/estado",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "employees",
                 "{{id}}",
                 "estado"
@@ -2159,11 +2302,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/contractual_conditions",
+              "raw": "{{baseUrl}}/api/contractual_conditions",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "contractual_conditions"
               ]
             },
@@ -2188,11 +2332,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/contractual_conditions/id/{{id}}",
+              "raw": "{{baseUrl}}/api/contractual_conditions/id/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "contractual_conditions",
                 "id",
                 "{{id}}"
@@ -2219,11 +2364,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/contractual_conditions/client-id/{{clientId}}",
+              "raw": "{{baseUrl}}/api/contractual_conditions/client-id/{{clientId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "contractual_conditions",
                 "client-id",
                 "{{clientId}}"
@@ -2250,11 +2396,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/contractual_conditions/create",
+              "raw": "{{baseUrl}}/api/contractual_conditions/create",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "contractual_conditions",
                 "create"
               ]
@@ -2289,11 +2436,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/contractual_conditions/modify/{{id}}",
+              "raw": "{{baseUrl}}/api/contractual_conditions/modify/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "contractual_conditions",
                 "modify",
                 "{{id}}"
@@ -2329,11 +2477,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/contractual_conditions/delete/{{id}}",
+              "raw": "{{baseUrl}}/api/contractual_conditions/delete/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "contractual_conditions",
                 "delete",
                 "{{id}}"
@@ -2366,11 +2515,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/clients_portal/satisfaction_surveys",
+              "raw": "{{baseUrl}}/api/clients_portal/satisfaction_surveys",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "clients_portal",
                 "satisfaction_surveys"
               ]
@@ -2396,11 +2546,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/clients_portal/satisfaction_surveys/{{id}}",
+              "raw": "{{baseUrl}}/api/clients_portal/satisfaction_surveys/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "clients_portal",
                 "satisfaction_surveys",
                 "{{id}}"
@@ -2427,11 +2578,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/clients_portal/claims",
+              "raw": "{{baseUrl}}/api/clients_portal/claims",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "clients_portal",
                 "claims"
               ]
@@ -2457,11 +2609,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/clients_portal/claims/{{id}}",
+              "raw": "{{baseUrl}}/api/clients_portal/claims/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "clients_portal",
                 "claims",
                 "{{id}}"
@@ -2488,11 +2641,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/clients_portal/claims",
+              "raw": "{{baseUrl}}/api/clients_portal/claims",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "clients_portal",
                 "claims"
               ]
@@ -2527,11 +2681,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/clients_portal/satisfaction_surveys",
+              "raw": "{{baseUrl}}/api/clients_portal/satisfaction_surveys",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "clients_portal",
                 "satisfaction_surveys"
               ]
@@ -2566,11 +2721,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/clients_portal/claims/{{id}}",
+              "raw": "{{baseUrl}}/api/clients_portal/claims/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "clients_portal",
                 "claims",
                 "{{id}}"
@@ -2606,11 +2762,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/clients_portal/satisfaction_surveys/{{id}}",
+              "raw": "{{baseUrl}}/api/clients_portal/satisfaction_surveys/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "clients_portal",
                 "satisfaction_surveys",
                 "{{id}}"
@@ -2646,11 +2803,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/clients_portal/ask_for_service",
+              "raw": "{{baseUrl}}/api/clients_portal/ask_for_service",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "clients_portal",
                 "ask_for_service"
               ]
@@ -2685,11 +2843,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/clients_portal/stats",
+              "raw": "{{baseUrl}}/api/clients_portal/stats",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "clients_portal",
                 "stats"
               ]
@@ -2721,11 +2880,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/clients",
+              "raw": "{{baseUrl}}/api/clients",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "clients"
               ]
             },
@@ -2759,11 +2919,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/clients",
+              "raw": "{{baseUrl}}/api/clients",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "clients"
               ]
             },
@@ -2788,11 +2949,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/clients/{{id}}",
+              "raw": "{{baseUrl}}/api/clients/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "clients",
                 "{{id}}"
               ]
@@ -2818,11 +2980,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/clients/{{id}}",
+              "raw": "{{baseUrl}}/api/clients/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "clients",
                 "{{id}}"
               ]
@@ -2857,11 +3020,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/clients/{{id}}",
+              "raw": "{{baseUrl}}/api/clients/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "clients",
                 "{{id}}"
               ]
@@ -2887,11 +3051,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/clients/{{id}}/active-contract",
+              "raw": "{{baseUrl}}/api/clients/{{id}}/active-contract",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "clients",
                 "{{id}}",
                 "active-contract"
@@ -2924,11 +3089,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/chemical_toilets",
+              "raw": "{{baseUrl}}/api/chemical_toilets",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "chemical_toilets"
               ]
             },
@@ -2962,11 +3128,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/chemical_toilets",
+              "raw": "{{baseUrl}}/api/chemical_toilets",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "chemical_toilets"
               ]
             },
@@ -2991,11 +3158,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/chemical_toilets/search",
+              "raw": "{{baseUrl}}/api/chemical_toilets/search",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "chemical_toilets",
                 "search"
               ]
@@ -3021,11 +3189,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/chemical_toilets/{{id}}",
+              "raw": "{{baseUrl}}/api/chemical_toilets/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "chemical_toilets",
                 "{{id}}"
               ]
@@ -3051,11 +3220,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/chemical_toilets/{{id}}",
+              "raw": "{{baseUrl}}/api/chemical_toilets/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "chemical_toilets",
                 "{{id}}"
               ]
@@ -3090,11 +3260,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/chemical_toilets/{{id}}",
+              "raw": "{{baseUrl}}/api/chemical_toilets/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "chemical_toilets",
                 "{{id}}"
               ]
@@ -3120,11 +3291,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/chemical_toilets/stats/{{id}}",
+              "raw": "{{baseUrl}}/api/chemical_toilets/stats/{{id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "chemical_toilets",
                 "stats",
                 "{{id}}"
@@ -3151,11 +3323,12 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/chemical_toilets/by-client/{{clientId}}",
+              "raw": "{{baseUrl}}/api/chemical_toilets/by-client/{{clientId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
+                "api",
                 "chemical_toilets",
                 "by-client",
                 "{{clientId}}"
@@ -3167,129 +3340,6 @@
         }
       ],
       "description": "Endpoints para chemical_toilets"
-    },
-    {
-      "name": "Auth",
-      "item": [
-        {
-          "name": "POST /auth/login",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/auth/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "login"
-              ]
-            },
-            "description": "unknown - POST /auth/login",
-            "body": {
-              "mode": "raw",
-              "raw": "{\r\n  \"placa\": \"AB123CD\",\r\n  \"marca\": \"Toyota\",\r\n  \"modelo\": \"Hilux\",\r\n  \"anio\": 2023,\r\n  \"tipoCabina\": \"doble\",\r\n  \"numeroInterno\": \"VH-001\",\r\n  \"fechaVencimientoVTV\": \"2026-05-15\",\r\n  \"fechaVencimientoSeguro\": \"2026-01-10\",\r\n  \"esExterno\": false,\r\n  \"estado\": \"DISPONIBLE\"\r\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "PUT /auth/forgot_password",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/auth/forgot_password",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "forgot_password"
-              ]
-            },
-            "description": "unknown - PUT /auth/forgot_password",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"usuario@ejemplo.com\"\n}",
-              "options": {
-                "raw": {
-                  "language": "text"
-                }
-              }
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "PUT /auth/change_password",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/auth/change_password",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "change_password"
-              ]
-            },
-            "description": "unknown - PUT /auth/change_password",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"usuario@ejemplo.com\"\n}",
-              "options": {
-                "raw": {
-                  "language": "text"
-                }
-              }
-            }
-          },
-          "response": []
-        }
-      ],
-      "description": "Endpoints para auth"
     }
   ],
   "variable": [
@@ -3301,6 +3351,16 @@
     {
       "key": "token",
       "value": "tu-token-jwt-aqui",
+      "type": "string"
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@example.com",
+      "type": "string"
+    },
+    {
+      "key": "adminPassword",
+      "value": "password",
       "type": "string"
     }
   ],

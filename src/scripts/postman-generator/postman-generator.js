@@ -6,6 +6,7 @@ const glob = require('glob');
 const config = {
   appName: 'MVA Backend',
   basePath: 'http://localhost:3000',
+  apiPrefix: '/api', // Añadido prefijo de API
   srcPath: path.resolve(__dirname, '../../../src'),
   docsPath: path.resolve(__dirname, '../../../src/docs'),
   outputPath: path.resolve(
@@ -251,16 +252,117 @@ function buildPostmanCollection(endpoints, docExamples) {
   // Crear carpetas para cada controlador
   const folders = [];
 
-  Object.entries(controllerMap).forEach(([controller, endpointList]) => {
-    const requests = endpointList.map((endpoint) =>
-      createPostmanRequest(endpoint, docExamples),
-    );
+  // Crear carpeta de autenticación primero (para que aparezca al principio)
+  const authItems = [];
 
-    folders.push({
-      name: formatControllerName(controller),
-      item: requests,
-      description: `Endpoints para ${controller}`,
-    });
+  // Añadir solicitud de login con script para almacenar el token
+  authItems.push({
+    name: 'Login (obtener token)',
+    request: {
+      method: 'POST',
+      header: [
+        {
+          key: 'Content-Type',
+          value: 'application/json',
+          type: 'text',
+        },
+      ],
+      url: {
+        raw: '{{baseUrl}}/api/auth/login',
+        host: ['{{baseUrl}}'],
+        path: ['api', 'auth', 'login'],
+      },
+      body: {
+        mode: 'raw',
+        raw: JSON.stringify(
+          {
+            username: '{{adminEmail}}',
+            password: '{{adminPassword}}',
+          },
+          null,
+          2,
+        ),
+        options: {
+          raw: {
+            language: 'json',
+          },
+        },
+      },
+      description:
+        'Inicia sesión y almacena automáticamente el token JWT para uso en solicitudes posteriores',
+    },
+    event: [
+      {
+        listen: 'test',
+        script: {
+          exec: [
+            'var jsonData = pm.response.json();',
+            'if (jsonData && jsonData.access_token) {',
+            '    pm.environment.set("token", jsonData.access_token);',
+            '    console.log("Token JWT almacenado correctamente");',
+            '    pm.test("Token JWT almacenado correctamente", function() {',
+            '        pm.expect(jsonData.access_token).to.be.a("string");',
+            '    });',
+            '} else {',
+            '    console.error("No se pudo obtener el token JWT");',
+            '    pm.test("Error al obtener el token JWT", function() {',
+            '        pm.expect(jsonData).to.have.property("access_token");',
+            '    });',
+            '}',
+          ],
+          type: 'text/javascript',
+        },
+      },
+    ],
+  });
+
+  // Añadir información de ayuda sobre autenticación
+  authItems.push({
+    name: 'Información de autenticación',
+    request: {
+      method: 'GET',
+      header: [],
+      url: {
+        raw: '{{baseUrl}}/api',
+        host: ['{{baseUrl}}'],
+        path: ['api'],
+      },
+      description: `# Cómo funciona la autenticación
+
+1. Ejecuta la solicitud "Login (obtener token)" primero
+2. Esto automáticamente almacenará el token JWT en la variable de entorno "token"
+3. Todas las solicitudes protegidas utilizarán esta variable
+
+## Credenciales de prueba
+
+- Email: {{adminEmail}}
+- Password: {{adminPassword}}
+
+> Si las credenciales no funcionan, actualiza las variables de entorno con credenciales válidas.`,
+    },
+  });
+
+  // Agregar la carpeta de autenticación al inicio
+  folders.unshift({
+    name: '🔐 Autenticación',
+    description: 'Autenticación y gestión de tokens JWT',
+    item: authItems,
+  });
+
+  // Agregar el resto de las carpetas de controladores
+  Object.entries(controllerMap).forEach(([controller, endpointList]) => {
+    // Excluir las rutas de autenticación que ya hemos añadido en la carpeta especial
+    if (controller.toLowerCase() !== 'auth') {
+      const requests = endpointList.map((endpoint) =>
+        createPostmanRequest(endpoint, docExamples),
+      );
+
+      folders.push({
+        name: formatControllerName(controller),
+        item: requests,
+        description: `Endpoints para ${controller}`,
+      });
+    }
   });
 
   // Crear colección completa
@@ -282,6 +384,16 @@ function buildPostmanCollection(endpoints, docExamples) {
       {
         key: 'token',
         value: 'tu-token-jwt-aqui',
+        type: 'string',
+      },
+      {
+        key: 'adminEmail',
+        value: 'admin@example.com',
+        type: 'string',
+      },
+      {
+        key: 'adminPassword',
+        value: 'password',
         type: 'string',
       },
     ],
@@ -326,6 +438,9 @@ function createPostmanRequest(endpoint, docExamples) {
     urlPath = urlPath.replace(`:${param}`, `{{${param}}}`);
   });
 
+  // Añadir el prefijo de API a la ruta
+  const apiPath = `${config.apiPrefix}${urlPath}`;
+
   // Verificar si existe un ejemplo documentado para este endpoint
   const exampleKey = `${endpoint.method}:${endpoint.path}`;
   const docExample = docExamples[exampleKey];
@@ -356,9 +471,9 @@ function createPostmanRequest(endpoint, docExamples) {
       method: endpoint.method,
       header: headers,
       url: {
-        raw: `{{baseUrl}}${urlPath}`,
+        raw: `{{baseUrl}}${apiPath}`,
         host: ['{{baseUrl}}'],
-        path: urlPath.split('/').filter(Boolean),
+        path: apiPath.split('/').filter(Boolean),
       },
       description: `${endpoint.handlerName} - ${endpoint.method} ${endpoint.path}`,
       ...(body && { body }),
@@ -376,7 +491,7 @@ function generateRequestBody(endpoint) {
   if (controllerName.includes('auth')) {
     if (endpoint.path.includes('login')) {
       exampleBody = {
-        email: 'usuario@ejemplo.com',
+        username: 'usuario@ejemplo.com',
         password: 'contraseña',
       };
     } else if (endpoint.path.includes('register')) {
@@ -492,6 +607,18 @@ function createEnvironmentFile() {
       {
         key: 'token',
         value: '',
+        type: 'string',
+        enabled: true,
+      },
+      {
+        key: 'adminEmail',
+        value: 'admin@example.com',
+        type: 'string',
+        enabled: true,
+      },
+      {
+        key: 'adminPassword',
+        value: 'password',
         type: 'string',
         enabled: true,
       },

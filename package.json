@@ -21,8 +21,10 @@
     "seed:clients": "ts-node -r tsconfig-paths/register src/scripts/seed-clients.ts",
     "seed:test-data": "ts-node -r tsconfig-paths/register src/scripts/seed-test-data.ts",
     "seed:admin": "ts-node -r tsconfig-paths/register src/scripts/create-admin-standalone.ts",
+    "seed:postman": "ts-node -r tsconfig-paths/register src/scripts/create-postman-test-data.ts",
     "generate:postman": "node src/scripts/postman-generator/postman-generator.js",
-    "run:postman": "newman run postman/mva-backend-collection.json -e postman/environment.json --reporters cli,html --reporter-html-export postman/report.html"
+    "run:postman": "newman run postman/mva-backend-collection.json -e postman/environment.json --reporters cli,html --reporter-html-export postman/report.html",
+    "setup:postman": "npm run seed:postman && npm run run:postman"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
