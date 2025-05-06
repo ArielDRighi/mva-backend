@@ -2,6 +2,7 @@ import { Transform } from 'class-transformer';
 import {
   IsEmail,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   Length,
@@ -63,4 +64,18 @@ export class CreateEmployeeDto {
   @IsString()
   @IsOptional()
   estado: string = 'ACTIVO';
+
+  @IsNotEmpty()
+  @IsNumber()
+  numero_legajo: number;
+
+  @IsNotEmpty()
+  @IsString()
+  @Length(11, 20, { message: 'El CUIL debe tener entre 11 y 20 caracteres' })
+  cuil: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @Length(11, 20, { message: 'El CBU debe tener entre 11 y 20 caracteres' })
+  cbu: string;
 }
