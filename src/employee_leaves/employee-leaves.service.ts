@@ -280,6 +280,8 @@ export class EmployeeLeavesService {
     // Aprobar la licencia
     leave.aprobado = true;
 
+    await this.leaveRepository.save(leave);
+
     return await this.findOne(id);
   }
 }
