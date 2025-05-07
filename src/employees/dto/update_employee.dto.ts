@@ -77,4 +77,12 @@ export class UpdateEmployeeDto {
   @IsString()
   @Length(11, 20, { message: 'El CBU debe tener entre 11 y 20 caracteres' })
   cbu?: string;
+
+  @IsOptional()
+  @IsNumber()
+  diasVacacionesRestantes?: number;
+
+  @IsOptional()
+  @IsNumber()
+  diasVacacionesUsados?: number;
 }
