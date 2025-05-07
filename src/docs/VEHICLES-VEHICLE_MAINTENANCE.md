@@ -341,50 +341,35 @@ DELETE /api/vehicles/1
   "fechaMantenimiento": "2025-06-15T10:00:00.000Z",
   "tipoMantenimiento": "Preventivo",
   "descripcion": "Cambio de aceite y filtros",
-  "costo": 15000,
-  "proximoMantenimiento": "2025-09-15T10:00:00.000Z"
+  "costo": 15000.5,
+  "proximoMantenimiento": "2025-09-15"
 }
 ```
 
-| Campo                | Tipo               | Requerido | Descripción                                          |
-| -------------------- | ------------------ | --------- | ---------------------------------------------------- |
-| vehiculoId           | number             | Sí        | ID del vehículo a mantener                           |
-| fechaMantenimiento   | string (fecha ISO) | Sí        | Fecha y hora del mantenimiento                       |
-| tipoMantenimiento    | string             | Sí        | Tipo de mantenimiento (Preventivo, Correctivo, etc.) |
-| descripcion          | string             | No        | Descripción detallada del mantenimiento              |
-| costo                | number             | Sí        | Costo estimado del mantenimiento                     |
-| proximoMantenimiento | string (fecha ISO) | No        | Fecha recomendada para el próximo mantenimiento      |
+| Campo                | Tipo   | Requerido | Descripción                                           |
+| -------------------- | ------ | --------- | ----------------------------------------------------- |
+| vehiculoId           | number | Sí        | ID del vehículo                                       |
+| fechaMantenimiento   | string | Sí        | Fecha y hora programada (formato ISO)                 |
+| tipoMantenimiento    | string | Sí        | Tipo de mantenimiento (Preventivo, Correctivo, etc.)  |
+| descripcion          | string | Sí        | Descripción del mantenimiento                         |
+| costo                | number | No        | Costo estimado del mantenimiento                      |
+| proximoMantenimiento | string | No        | Fecha estimada del próximo mantenimiento (YYYY-MM-DD) |
 
 **Respuesta Exitosa (201 Created):**
 
 ```json
 {
-  "id": 5,
+  "id": 3,
   "vehiculoId": 1,
   "fechaMantenimiento": "2025-06-15T10:00:00.000Z",
   "tipoMantenimiento": "Preventivo",
   "descripcion": "Cambio de aceite y filtros",
-  "costo": "15000.00",
+  "costo": "15000.50",
   "proximoMantenimiento": "2025-09-15",
-  "vehicle": {
-    "id": 1,
-    "placa": "AA123BB",
-    "marca": "Ford",
-    "modelo": "F-100",
-    "anio": 2020,
-    "tipoCabina": "SIMPLE",
-    "numeroInterno": "VH-001",
-    "fechaVencimientoVTV": "2026-03-15",
-    "fechaVencimientoSeguro": "2026-05-20",
-    "esExterno": false,
-    "estado": "DISPONIBLE"
-  },
   "completado": false,
   "fechaCompletado": null
 }
 ```
-
-**Nota:** Si el mantenimiento se programa para la fecha actual o una fecha pasada, el estado del vehículo cambiará automáticamente a "EN_MANTENIMIENTO". Si se programa para una fecha futura, el vehículo permanecerá en su estado actual.
 
 ### 2. Completar Mantenimiento
 
@@ -394,35 +379,22 @@ DELETE /api/vehicles/1
 **Ejemplo:**
 
 ```
-PATCH /api/vehicle_maintenance/5/complete
+PATCH /api/vehicle_maintenance/3/complete
 ```
 
 **Respuesta Exitosa (200 OK):**
 
 ```json
 {
-  "id": 5,
+  "id": 3,
   "vehiculoId": 1,
   "fechaMantenimiento": "2025-06-15T10:00:00.000Z",
   "tipoMantenimiento": "Preventivo",
   "descripcion": "Cambio de aceite y filtros",
-  "costo": "15000.00",
+  "costo": "15000.50",
   "proximoMantenimiento": "2025-09-15",
-  "vehicle": {
-    "id": 1,
-    "placa": "AA123BB",
-    "marca": "Ford",
-    "modelo": "F-100",
-    "anio": 2020,
-    "tipoCabina": "SIMPLE",
-    "numeroInterno": "VH-001",
-    "fechaVencimientoVTV": "2026-03-15",
-    "fechaVencimientoSeguro": "2026-05-20",
-    "esExterno": false,
-    "estado": "DISPONIBLE"
-  },
   "completado": true,
-  "fechaCompletado": "2025-06-15T15:30:00.000Z"
+  "fechaCompletado": "2025-06-15T14:30:00.000Z"
 }
 ```
 
@@ -431,38 +403,128 @@ PATCH /api/vehicle_maintenance/5/complete
 **Endpoint:** `GET /api/vehicle_maintenance/upcoming`  
 **Roles permitidos:** Todos los usuarios autenticados
 
+**Ejemplo:**
+
+```
+GET /api/vehicle_maintenance/upcoming
+```
+
 **Respuesta Exitosa (200 OK):**
 
 ```json
 [
   {
-    "id": 6,
+    "id": 4,
     "vehiculoId": 2,
-    "fechaMantenimiento": "2025-07-20T10:00:00.000Z",
+    "fechaMantenimiento": "2025-06-20T09:00:00.000Z",
     "tipoMantenimiento": "Preventivo",
     "descripcion": "Revisión general",
-    "costo": "10000.00",
-    "proximoMantenimiento": "2025-10-20",
-    "vehicle": {
+    "costo": "8000.00",
+    "proximoMantenimiento": "2025-09-20",
+    "completado": false,
+    "fechaCompletado": null,
+    "vehiculo": {
       "id": 2,
       "placa": "AC456DD",
       "marca": "Chevrolet",
-      "modelo": "S10",
-      "anio": 2021,
-      "tipoCabina": "DOBLE",
-      "numeroInterno": "VH-002",
-      "fechaVencimientoVTV": "2026-04-10",
-      "fechaVencimientoSeguro": "2026-06-05",
-      "esExterno": false,
-      "estado": "ASIGNADO"
-    },
+      "modelo": "S10"
+    }
+  },
+  {
+    "id": 5,
+    "vehiculoId": 3,
+    "fechaMantenimiento": "2025-06-22T11:00:00.000Z",
+    "tipoMantenimiento": "Correctivo",
+    "descripcion": "Reparación de frenos",
+    "costo": "12500.00",
+    "proximoMantenimiento": null,
     "completado": false,
-    "fechaCompletado": null
+    "fechaCompletado": null,
+    "vehiculo": {
+      "id": 3,
+      "placa": "DE789FF",
+      "marca": "Toyota",
+      "modelo": "Hilux"
+    }
   }
 ]
 ```
 
-### 4. Ver Historial de Mantenimiento
+### 4. Ver Todos los Mantenimientos
+
+**Endpoint:** `GET /api/vehicle_maintenance`  
+**Roles permitidos:** Todos los usuarios autenticados
+
+**Ejemplo:**
+
+```
+GET /api/vehicle_maintenance
+```
+
+**Respuesta Exitosa (200 OK):**
+
+```json
+[
+  {
+    "id": 1,
+    "vehiculoId": 1,
+    "fechaMantenimiento": "2025-02-15T10:00:00.000Z",
+    "tipoMantenimiento": "Preventivo",
+    "descripcion": "Cambio de aceite y filtros",
+    "costo": "12000.00",
+    "proximoMantenimiento": "2025-05-15",
+    "completado": true,
+    "fechaCompletado": "2025-02-15T15:30:00.000Z"
+  },
+  {
+    "id": 2,
+    "vehiculoId": 1,
+    "fechaMantenimiento": "2025-05-15T11:00:00.000Z",
+    "tipoMantenimiento": "Preventivo",
+    "descripcion": "Cambio de correas",
+    "costo": "9500.00",
+    "proximoMantenimiento": "2025-08-15",
+    "completado": true,
+    "fechaCompletado": "2025-05-15T14:45:00.000Z"
+  }
+  // Más registros...
+]
+```
+
+### 5. Ver Mantenimiento Específico
+
+**Endpoint:** `GET /api/vehicle_maintenance/{id}`  
+**Roles permitidos:** Todos los usuarios autenticados
+
+**Ejemplo:**
+
+```
+GET /api/vehicle_maintenance/1
+```
+
+**Respuesta Exitosa (200 OK):**
+
+```json
+{
+  "id": 1,
+  "vehiculoId": 1,
+  "fechaMantenimiento": "2025-02-15T10:00:00.000Z",
+  "tipoMantenimiento": "Preventivo",
+  "descripcion": "Cambio de aceite y filtros",
+  "costo": "12000.00",
+  "proximoMantenimiento": "2025-05-15",
+  "completado": true,
+  "fechaCompletado": "2025-02-15T15:30:00.000Z",
+  "vehiculo": {
+    "id": 1,
+    "placa": "AA123BB",
+    "marca": "Ford",
+    "modelo": "F-100"
+  }
+}
+```
+
+### 6. Ver Mantenimientos por Vehículo
 
 **Endpoint:** `GET /api/vehicle_maintenance/vehiculo/{id}`  
 **Roles permitidos:** Todos los usuarios autenticados
@@ -485,48 +547,69 @@ GET /api/vehicle_maintenance/vehiculo/1
     "descripcion": "Cambio de aceite y filtros",
     "costo": "12000.00",
     "proximoMantenimiento": "2025-05-15",
-    "vehicle": {
-      "id": 1,
-      "placa": "AA123BB",
-      "marca": "Ford",
-      "modelo": "F-100",
-      "anio": 2020,
-      "tipoCabina": "SIMPLE",
-      "numeroInterno": "VH-001",
-      "fechaVencimientoVTV": "2026-03-15",
-      "fechaVencimientoSeguro": "2026-05-20",
-      "esExterno": false,
-      "estado": "DISPONIBLE"
-    },
     "completado": true,
     "fechaCompletado": "2025-02-15T15:30:00.000Z"
   },
   {
-    "id": 5,
+    "id": 2,
     "vehiculoId": 1,
-    "fechaMantenimiento": "2025-06-15T10:00:00.000Z",
+    "fechaMantenimiento": "2025-05-15T11:00:00.000Z",
     "tipoMantenimiento": "Preventivo",
-    "descripcion": "Cambio de aceite y filtros",
-    "costo": "15000.00",
-    "proximoMantenimiento": "2025-09-15",
-    "vehicle": {
-      "id": 1,
-      "placa": "AA123BB",
-      "marca": "Ford",
-      "modelo": "F-100",
-      "anio": 2020,
-      "tipoCabina": "SIMPLE",
-      "numeroInterno": "VH-001",
-      "fechaVencimientoVTV": "2026-03-15",
-      "fechaVencimientoSeguro": "2026-05-20",
-      "esExterno": false,
-      "estado": "DISPONIBLE"
-    },
+    "descripcion": "Cambio de correas",
+    "costo": "9500.00",
+    "proximoMantenimiento": "2025-08-15",
     "completado": true,
-    "fechaCompletado": "2025-06-15T15:30:00.000Z"
+    "fechaCompletado": "2025-05-15T14:45:00.000Z"
   }
 ]
 ```
+
+### 7. Actualizar Mantenimiento
+
+**Endpoint:** `PUT /api/vehicle_maintenance/{id}`  
+**Roles permitidos:** ADMIN, SUPERVISOR
+
+**Request Body:**
+
+```json
+{
+  "fechaMantenimiento": "2025-06-18T14:00:00.000Z",
+  "tipoMantenimiento": "Preventivo Completo",
+  "descripcion": "Cambio de aceite, filtros y revisión de frenos",
+  "costo": 18000.75
+}
+```
+
+Todos los campos son opcionales. Solo se actualizan los campos incluidos en la solicitud.
+
+**Respuesta Exitosa (200 OK):**
+
+```json
+{
+  "id": 3,
+  "vehiculoId": 1,
+  "fechaMantenimiento": "2025-06-18T14:00:00.000Z",
+  "tipoMantenimiento": "Preventivo Completo",
+  "descripcion": "Cambio de aceite, filtros y revisión de frenos",
+  "costo": "18000.75",
+  "proximoMantenimiento": "2025-09-15",
+  "completado": false,
+  "fechaCompletado": null
+}
+```
+
+### 8. Eliminar Mantenimiento
+
+**Endpoint:** `DELETE /api/vehicle_maintenance/{id}`  
+**Roles permitidos:** ADMIN
+
+**Ejemplo:**
+
+```
+DELETE /api/vehicle_maintenance/6
+```
+
+**Respuesta Exitosa (204 No Content)**
 
 ## Estados de Vehículos
 

@@ -15,9 +15,11 @@
    - Control de Acceso Basado en Roles
 5. Gestión de Usuarios
    - Creación de Usuario
+   - Obtener Usuarios
    - Actualización de Usuario
    - Cambiar Contraseña
    - Cambiar Estado
+   - Eliminar Usuario
 6. Usuario Administrador Inicial
 7. Flujos de Autenticación Completos
 8. Integración con Postman
@@ -203,17 +205,19 @@ Content-Type: application/json
   "empleadoId": 5
 }
 ```
-### Obtener Usuarios ###
+
+### Obtener Usuarios
+
 **Endpoint: GET /api/users**
-**Roles permitidos: Todos los usuarios autenticados con permisos de administración**
+**Roles permitidos: ADMIN, SUPERVISOR**
 **Descripción: Recupera los usuarios registrados en el sistema. Se permite realizar búsquedas por nombre, email o estado, y paginar los resultados.**
 
 **Parámetros de Query Opcionales:**
-| Parámetro | Tipo   | Descripción                                                                 |
+| Parámetro | Tipo | Descripción |
 |-----------|--------|-----------------------------------------------------------------------------|
-| search    | string | Búsqueda parcial por nombre, correo electrónico o estado del usuario        |
-| page      | number | Número de página a recuperar (por defecto: 1)                               |
-| limit     | number | Cantidad de resultados por página (por defecto: 10)                         |
+| search | string | Búsqueda parcial por nombre, correo electrónico o estado del usuario |
+| page | number | Número de página a recuperar (por defecto: 1) |
+| limit | number | Cantidad de resultados por página (por defecto: 10) |
 
 El parámetro search no distingue entre mayúsculas y minúsculas y aplica búsqueda parcial sobre nombre, email y estado.
 
@@ -223,6 +227,7 @@ GET /api/users?search=admin
 GET /api/users?search=inactivo&page=2&limit=5
 
 **Respuesta Exitosa (200 OK):**
+
 ```json
 {
   "data": [
@@ -250,14 +255,13 @@ GET /api/users?search=inactivo&page=2&limit=5
 }
 ```
 
-
 ### Actualización de Usuario
 
-**Endpoint:** `PUT /api/users/{id}`  
-**Roles permitidos:** ADMIN
+**Endpoint:** `PATCH /api/users/:id`  
+**Roles permitidos:** Cualquier usuario autenticado
 
 ```http
-PUT /api/users/5
+PATCH /api/users/5
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
@@ -313,11 +317,11 @@ Content-Type: application/json
 
 ### Cambiar Estado
 
-**Endpoint:** `PATCH /api/users/{id}/estado`  
-**Roles permitidos:** ADMIN
+**Endpoint:** `PATCH /api/users/:id/status`  
+**Roles permitidos:** ADMIN, SUPERVISOR
 
 ```http
-PATCH /api/users/5/estado
+PATCH /api/users/5/status
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
@@ -340,6 +344,24 @@ Content-Type: application/json
   "estado": "INACTIVO",
   "roles": ["SUPERVISOR", "OPERARIO"],
   "empleadoId": 5
+}
+```
+
+### Eliminar Usuario
+
+**Endpoint:** `DELETE /api/users/:id`  
+**Roles permitidos:** ADMIN
+
+```http
+DELETE /api/users/5
+Authorization: Bearer {{token}}
+```
+
+#### Respuesta Exitosa (200 OK)
+
+```json
+{
+  "message": "Usuario eliminado correctamente"
 }
 ```
 

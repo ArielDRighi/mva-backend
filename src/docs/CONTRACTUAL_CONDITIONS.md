@@ -53,50 +53,69 @@ Content-Type: application/json
 ### 1. Obtener Todas las Condiciones Contractuales
 
 **Endpoint:** `GET /api/contractual_conditions`  
-**Roles permitidos:** Todos los usuarios autenticados  
-**Descripción:** Recupera todas las condiciones contractuales almacenadas en el sistema.
+**Roles permitidos:** ADMIN  
+**Descripción:** Recupera todas las condiciones contractuales almacenadas en el sistema con soporte para paginación.
+
+**Parámetros de consulta:**
+| Parámetro | Tipo | Requerido | Descripción |
+|-----------|--------|-----------|--------------------------------------------------|
+| page | number | No | Número de página a recuperar (por defecto: 1) |
+| limit | number | No | Resultados por página (por defecto: 10) |
+
+**Ejemplos:**
+
+```
+GET /api/contractual_conditions
+GET /api/contractual_conditions?page=2&limit=20
+```
 
 **Respuesta Exitosa (200 OK):**
 
 ```json
-[
-  {
-    "condicionContractualId": 1,
-    "cliente": {
-      "clienteId": 1,
-      "nombre": "Constructora ABC",
-      "cuit": "30-71234567-0"
+{
+  "items": [
+    {
+      "condicionContractualId": 1,
+      "cliente": {
+        "clienteId": 1,
+        "nombre": "Constructora ABC",
+        "cuit": "30-71234567-0"
+      },
+      "tipo_de_contrato": "Permanente",
+      "fecha_inicio": "2025-01-01",
+      "fecha_fin": "2025-12-31",
+      "condiciones_especificas": "Incluye servicio de limpieza semanal sin costo adicional",
+      "tarifa": "2500.00",
+      "periodicidad": "Mensual",
+      "estado": "Activo"
     },
-    "tipo_de_contrato": "Permanente",
-    "fecha_inicio": "2025-01-01",
-    "fecha_fin": "2025-12-31",
-    "condiciones_especificas": "Incluye servicio de limpieza semanal sin costo adicional",
-    "tarifa": "2500.00",
-    "periodicidad": "Mensual",
-    "estado": "Activo"
-  },
-  {
-    "condicionContractualId": 2,
-    "cliente": {
-      "clienteId": 2,
-      "nombre": "Eventos del Sur",
-      "cuit": "30-71234568-1"
-    },
-    "tipo_de_contrato": "Temporal",
-    "fecha_inicio": "2025-05-01",
-    "fecha_fin": "2025-05-31",
-    "condiciones_especificas": "Alquiler con mantenimiento incluido",
-    "tarifa": "1800.00",
-    "periodicidad": "Diaria",
-    "estado": "Activo"
-  }
-]
+    {
+      "condicionContractualId": 2,
+      "cliente": {
+        "clienteId": 2,
+        "nombre": "Eventos del Sur",
+        "cuit": "30-71234568-1"
+      },
+      "tipo_de_contrato": "Temporal",
+      "fecha_inicio": "2025-05-01",
+      "fecha_fin": "2025-05-31",
+      "condiciones_especificas": "Alquiler con mantenimiento incluido",
+      "tarifa": "1800.00",
+      "periodicidad": "Diaria",
+      "estado": "Activo"
+    }
+  ],
+  "total": 25,
+  "page": 1,
+  "limit": 10,
+  "totalPages": 3
+}
 ```
 
 ### 2. Obtener una Condición Contractual Específica
 
 **Endpoint:** `GET /api/contractual_conditions/id/{id}`  
-**Roles permitidos:** Todos los usuarios autenticados  
+**Roles permitidos:** ADMIN  
 **Descripción:** Recupera una condición contractual específica por su ID.
 
 **Ejemplo:**
@@ -127,14 +146,14 @@ GET /api/contractual_conditions/id/1
 
 ### 3. Obtener Condiciones Contractuales por Cliente
 
-**Endpoint:** `GET /api/contractual_conditions/client-name/{clientId}`  
-**Roles permitidos:** Todos los usuarios autenticados  
+**Endpoint:** `GET /api/contractual_conditions/client-id/{clientId}`  
+**Roles permitidos:** ADMIN  
 **Descripción:** Recupera todas las condiciones contractuales asociadas a un cliente específico.
 
 **Ejemplo:**
 
 ```
-GET /api/contractual_conditions/client-name/1
+GET /api/contractual_conditions/client-id/1
 ```
 
 **Respuesta Exitosa (200 OK):**
@@ -177,7 +196,7 @@ GET /api/contractual_conditions/client-name/1
 ### 4. Crear una Nueva Condición Contractual
 
 **Endpoint:** `POST /api/contractual_conditions/create`  
-**Roles permitidos:** ADMIN, SUPERVISOR  
+**Roles permitidos:** ADMIN  
 **Descripción:** Crea una nueva condición contractual para un cliente.
 
 **Request Body:**
@@ -254,14 +273,19 @@ Se pueden crear condiciones contractuales de dos formas:
   "condiciones_especificas": "Incluye servicio de limpieza semanal sin costo adicional",
   "tarifa": "2500.00",
   "periodicidad": "Mensual",
-  "estado": "Activo"
+  "estado": "Activo",
+  "tipo_servicio": "INSTALACION",
+  "cantidad_banos": 5,
+  "tarifa_alquiler": "2000.00",
+  "tarifa_instalacion": "500.00",
+  "tarifa_limpieza": "300.00"
 }
 ```
 
 ### 5. Modificar una Condición Contractual
 
 **Endpoint:** `PUT /api/contractual_conditions/modify/{id}`  
-**Roles permitidos:** ADMIN, SUPERVISOR  
+**Roles permitidos:** ADMIN  
 **Descripción:** Modifica una condición contractual existente.
 
 **Ejemplo:**
@@ -396,7 +420,7 @@ Las condiciones contractuales están directamente relacionadas con los servicios
 2. **Verificar las condiciones creadas**
 
    ```http
-   GET /api/contractual_conditions/client-name/3
+   GET /api/contractual_conditions/client-id/3
    Authorization: Bearer {{token}}
    ```
 
@@ -605,6 +629,16 @@ Este enfoque flexible permite crear un único contrato marco que puede utilizars
 ```json
 {
   "message": "Client with ID: 999 not found",
+  "error": "Bad Request",
+  "statusCode": 400
+}
+```
+
+### Error en la Paginación
+
+```json
+{
+  "message": "Invalid pagination parameters: \"page\" and \"limit\" must both be greater than 0. Received page=0, limit=10.",
   "error": "Bad Request",
   "statusCode": 400
 }
