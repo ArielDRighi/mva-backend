@@ -1,3 +1,4 @@
+import { ResourceState } from 'src/common/enums/resource-states.enum';
 import { ToiletMaintenance } from 'src/toilet_maintenance/entities/toilet_maintenance.entity';
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
@@ -6,7 +7,7 @@ export class ChemicalToilet {
   @PrimaryGeneratedColumn()
   baño_id: number;
 
-  @Column()
+  @Column({ unique: true })
   codigo_interno: string;
 
   @Column()
@@ -15,8 +16,8 @@ export class ChemicalToilet {
   @Column()
   fecha_adquisicion: Date;
 
-  @Column()
-  estado: string;
+  @Column({type: 'enum', enum: ResourceState, default: ResourceState.DISPONIBLE})
+  estado: ResourceState;
 
   @OneToMany(() => ToiletMaintenance, (maintenance) => maintenance.toilet, {
     cascade: true,
