@@ -7,6 +7,25 @@ jest.mock('../services/entities/service.entity', () => ({
   Service: class Service {},
 }));
 
+// Mock del ResourceState enum para usarlo en los tests
+jest.mock('../common/enums/resource-states.enum', () => ({
+  ResourceState: {
+    DISPONIBLE: 'DISPONIBLE',
+    ASIGNADO: 'ASIGNADO',
+    EN_MANTENIMIENTO: 'EN_MANTENIMIENTO',
+    FUERA_DE_SERVICIO: 'FUERA_DE_SERVICIO',
+    BAJA: 'BAJA',
+    VACACIONES: 'VACACIONES',
+    LICENCIA: 'LICENCIA',
+    INACTIVO: 'INACTIVO',
+    EN_CAPACITACION: 'EN_CAPACITACION',
+    RESERVADO: 'RESERVADO',
+    toString: function () {
+      return this;
+    },
+  },
+}));
+
 // Importamos después de los mocks
 import { Test, TestingModule } from '@nestjs/testing';
 import { ChemicalToiletsService } from './chemical_toilets.service';
@@ -18,6 +37,7 @@ import { UpdateChemicalToiletDto } from './dto/update_chemical.toilet.dto';
 import { FilterChemicalToiletDto } from './dto/filter_chemical_toilet.dto';
 import { ChemicalToilet } from './entities/chemical_toilet.entity';
 import { Service } from '../services/entities/service.entity';
+import { ResourceState } from '../common/enums/resource-states.enum';
 
 // Mock de datos para pruebas
 const mockChemicalToilet = {
@@ -25,7 +45,7 @@ const mockChemicalToilet = {
   codigo_interno: 'BQ-2025-001',
   modelo: 'Standard Plus',
   fecha_adquisicion: new Date('2025-01-15'),
-  estado: 'Activo',
+  estado: ResourceState.DISPONIBLE,
   maintenances: [],
 };
 
@@ -33,6 +53,7 @@ const mockServiceMethods = {
   create: jest.fn(),
   findAll: jest.fn(),
   findAllWithFilters: jest.fn(),
+  findAllByState: jest.fn(),
   findById: jest.fn(),
   update: jest.fn(),
   remove: jest.fn(),
@@ -85,7 +106,7 @@ describe('ChemicalToiletsService', () => {
         codigo_interno: 'BQ-2025-001',
         modelo: 'Standard Plus',
         fecha_adquisicion: new Date('2025-01-15'),
-        estado: 'Activo',
+        estado: ResourceState.DISPONIBLE,
       };
 
       mockServiceMethods.create.mockResolvedValue(mockChemicalToilet);
@@ -112,7 +133,10 @@ describe('ChemicalToiletsService', () => {
 
       mockServiceMethods.findAll.mockResolvedValue(mockPaginatedResult);
 
-      const result = await service.findAll({ page: 1, limit: 10 });
+      const result = await service.findAll(
+        { page: 1, limit: 10 },
+        'search term',
+      );
 
       expect(result).toEqual(mockPaginatedResult);
     });
@@ -147,12 +171,12 @@ describe('ChemicalToiletsService', () => {
       console.log('🧪 TEST: Debe actualizar un baño químico');
 
       const updateDto: UpdateChemicalToiletDto = {
-        estado: 'En Mantenimiento',
+        estado: ResourceState.EN_MANTENIMIENTO,
       };
 
       const updatedToilet = {
         ...mockChemicalToilet,
-        estado: 'En Mantenimiento',
+        estado: ResourceState.EN_MANTENIMIENTO,
       };
 
       mockServiceMethods.update.mockResolvedValue(updatedToilet);
@@ -223,6 +247,25 @@ describe('ChemicalToiletsService', () => {
       const result = await service.findByClientId(5);
 
       expect(result).toEqual([mockChemicalToilet]);
+    });
+  });
+
+  describe('findAllByState', () => {
+    it('should return toilets filtered by state', async () => {
+      console.log('🧪 TEST: Debe devolver baños filtrados por estado');
+
+      mockServiceMethods.findAllByState.mockResolvedValue([mockChemicalToilet]);
+
+      const result = await service.findAllByState(ResourceState.DISPONIBLE, {
+        page: 1,
+        limit: 10,
+      });
+
+      expect(result).toEqual([mockChemicalToilet]);
+      expect(service.findAllByState).toHaveBeenCalledWith(
+        ResourceState.DISPONIBLE,
+        { page: 1, limit: 10 },
+      );
     });
   });
 });

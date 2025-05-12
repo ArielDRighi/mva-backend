@@ -171,6 +171,24 @@ jest.mock('../chemical_toilets/chemical_toilets.service', () => ({
   })),
 }));
 
+jest.mock('../common/enums/resource-states.enum', () => ({
+  ResourceState: {
+    DISPONIBLE: 'DISPONIBLE',
+    ASIGNADO: 'ASIGNADO',
+    EN_MANTENIMIENTO: 'EN_MANTENIMIENTO',
+    FUERA_DE_SERVICIO: 'FUERA_DE_SERVICIO',
+    BAJA: 'BAJA',
+    VACACIONES: 'VACACIONES',
+    LICENCIA: 'LICENCIA',
+    INACTIVO: 'INACTIVO',
+    EN_CAPACITACION: 'EN_CAPACITACION',
+    RESERVADO: 'RESERVADO',
+    toString: function () {
+      return this;
+    },
+  },
+}));
+
 // Importamos después de los mocks
 import { Test, TestingModule } from '@nestjs/testing';
 import { ClientController } from './clients.controller';
@@ -187,6 +205,7 @@ import {
   Periodicidad,
 } from '../contractual_conditions/entities/contractual_conditions.entity';
 import { ChemicalToilet } from '../chemical_toilets/entities/chemical_toilet.entity';
+import { ResourceState } from '../common/enums/resource-states.enum';
 
 // Mock del Cliente
 const mockCliente: Cliente = {
@@ -198,7 +217,7 @@ const mockCliente: Cliente = {
   telefono: '11-12345678',
   contacto_principal: 'Juan Pérez',
   contacto_principal_telefono: '11-87654321',
-  estado: 'ACTIVO',
+  estado: ResourceState.DISPONIBLE,
   fecha_registro: new Date('2025-01-15'),
   contratos: [],
   servicios: [],
@@ -233,7 +252,7 @@ const mockToilets: Partial<ChemicalToilet>[] = [
     codigo_interno: 'BQ-2025-001',
     modelo: 'Estándar',
     fecha_adquisicion: new Date('2024-01-01'),
-    estado: 'ACTIVO',
+    estado: ResourceState.DISPONIBLE,
     maintenances: [],
   },
   {
@@ -241,7 +260,7 @@ const mockToilets: Partial<ChemicalToilet>[] = [
     codigo_interno: 'BQ-2025-002',
     modelo: 'Premium',
     fecha_adquisicion: new Date('2024-01-15'),
-    estado: 'ACTIVO',
+    estado: ResourceState.DISPONIBLE,
     maintenances: [],
   },
 ];
@@ -302,7 +321,7 @@ describe('ClientController', () => {
         telefono: '11-12345678',
         contacto_principal: 'Juan Pérez',
         contacto_principal_telefono: '11-87654321',
-        estado: 'ACTIVO',
+        estado: ResourceState.DISPONIBLE,
       };
 
       jest.spyOn(clientService, 'create').mockResolvedValue(mockCliente);
@@ -324,7 +343,7 @@ describe('ClientController', () => {
         telefono: '11-99887766',
         contacto_principal: 'Ana López',
         contacto_principal_telefono: '11-55443322',
-        estado: 'ACTIVO',
+        estado: ResourceState.DISPONIBLE,
       };
 
       jest

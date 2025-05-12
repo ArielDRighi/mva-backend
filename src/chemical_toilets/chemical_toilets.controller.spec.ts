@@ -14,6 +14,25 @@ jest.mock('./chemical_toilets.controller', () => {
   };
 });
 
+// Mock del ResourceState enum para usarlo en los tests
+jest.mock('../common/enums/resource-states.enum', () => ({
+  ResourceState: {
+    DISPONIBLE: 'DISPONIBLE',
+    ASIGNADO: 'ASIGNADO',
+    EN_MANTENIMIENTO: 'EN_MANTENIMIENTO',
+    FUERA_DE_SERVICIO: 'FUERA_DE_SERVICIO',
+    BAJA: 'BAJA',
+    VACACIONES: 'VACACIONES',
+    LICENCIA: 'LICENCIA',
+    INACTIVO: 'INACTIVO',
+    EN_CAPACITACION: 'EN_CAPACITACION',
+    RESERVADO: 'RESERVADO',
+    toString: function () {
+      return this;
+    },
+  },
+}));
+
 jest.mock('./chemical_toilets.service', () => {
   return {
     ChemicalToiletsService: class {
@@ -25,6 +44,7 @@ jest.mock('./chemical_toilets.service', () => {
       remove = jest.fn();
       getMaintenanceStats = jest.fn();
       findByClientId = jest.fn();
+      findAllByState = jest.fn();
     },
   };
 });
@@ -36,6 +56,7 @@ import { CreateChemicalToiletDto } from './dto/create_chemical_toilet.dto';
 import { UpdateChemicalToiletDto } from './dto/update_chemical.toilet.dto';
 import { FilterChemicalToiletDto } from './dto/filter_chemical_toilet.dto';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
+import { ResourceState } from '../common/enums/resource-states.enum';
 
 // En lugar de importar la entidad real, creamos un mock
 const mockChemicalToilet = {
@@ -43,7 +64,7 @@ const mockChemicalToilet = {
   codigo_interno: 'BQ-2025-001',
   modelo: 'Standard Plus',
   fecha_adquisicion: new Date('2025-01-15'),
-  estado: 'Activo',
+  estado: ResourceState.DISPONIBLE,
   maintenances: [],
 };
 
@@ -65,6 +86,7 @@ const mockChemicalToiletsService = {
   remove: jest.fn(),
   getMaintenanceStats: jest.fn(),
   findByClientId: jest.fn(),
+  findAllByState: jest.fn(),
 };
 
 describe('ChemicalToiletsController', () => {
@@ -120,7 +142,7 @@ describe('ChemicalToiletsController', () => {
         codigo_interno: 'BQ-2025-001',
         modelo: 'Standard Plus',
         fecha_adquisicion: new Date('2025-01-15'),
-        estado: 'Activo',
+        estado: ResourceState.DISPONIBLE,
       };
 
       (controller.create as jest.Mock).mockResolvedValue(mockChemicalToilet);
@@ -140,7 +162,7 @@ describe('ChemicalToiletsController', () => {
 
       (controller.findAll as jest.Mock).mockResolvedValue(mockPaginatedToilets);
 
-      const result = await controller.findAll('1', '10');
+      const result = await controller.findAll('1', '10', 'search term');
 
       expect(result).toEqual(mockPaginatedToilets);
     });

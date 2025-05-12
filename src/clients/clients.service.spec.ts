@@ -150,10 +150,27 @@ jest.mock('../chemical_toilets/chemical_toilets.service', () => ({
   })),
 }));
 
+jest.mock('../common/enums/resource-states.enum', () => ({
+  ResourceState: {
+    DISPONIBLE: 'DISPONIBLE',
+    ASIGNADO: 'ASIGNADO',
+    EN_MANTENIMIENTO: 'EN_MANTENIMIENTO',
+    FUERA_DE_SERVICIO: 'FUERA_DE_SERVICIO',
+    BAJA: 'BAJA',
+    VACACIONES: 'VACACIONES',
+    LICENCIA: 'LICENCIA',
+    INACTIVO: 'INACTIVO',
+    EN_CAPACITACION: 'EN_CAPACITACION',
+    RESERVADO: 'RESERVADO',
+    toString: function () {
+      return this;
+    },
+  },
+}));
+
 // Importamos después de los mocks
 import { Test, TestingModule } from '@nestjs/testing';
 import { ClientService } from './clients.service';
-import { Repository } from 'typeorm';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { NotFoundException, ConflictException } from '@nestjs/common';
 import { CreateClientDto } from './dto/create_client.dto';
@@ -168,6 +185,7 @@ import {
 } from '../contractual_conditions/entities/contractual_conditions.entity';
 import { ChemicalToiletsService } from '../chemical_toilets/chemical_toilets.service';
 import { ChemicalToilet } from '../chemical_toilets/entities/chemical_toilet.entity';
+import { ResourceState } from '../common/enums/resource-states.enum';
 
 // Mock de datos para pruebas
 const mockCliente = {
@@ -179,7 +197,7 @@ const mockCliente = {
   telefono: '11-12345678',
   contacto_principal: 'Juan Pérez',
   contacto_principal_telefono: '11-87654321',
-  estado: 'ACTIVO',
+  estado: ResourceState.DISPONIBLE,
   fecha_registro: new Date('2025-01-15'),
   contratos: [],
   servicios: [],
@@ -251,7 +269,7 @@ describe('ClientService', () => {
         telefono: '11-12345678',
         contacto_principal: 'Juan Pérez',
         contacto_principal_telefono: '11-87654321',
-        estado: 'ACTIVO',
+        estado: ResourceState.DISPONIBLE,
       };
 
       mockServiceMethods.create.mockResolvedValue(mockCliente);
@@ -265,7 +283,6 @@ describe('ClientService', () => {
       console.log(
         '🧪 TEST: Debe lanzar ConflictException cuando el CUIT ya existe',
       );
-
       const createDto: CreateClientDto = {
         nombre: 'Empresa XYZ',
         email: 'contacto@xyz.com',
@@ -274,7 +291,7 @@ describe('ClientService', () => {
         telefono: '11-99887766',
         contacto_principal: 'Ana López',
         contacto_principal_telefono: '11-55443322',
-        estado: 'ACTIVO',
+        estado: ResourceState.DISPONIBLE,
       };
 
       mockServiceMethods.create.mockRejectedValue(
@@ -433,10 +450,23 @@ describe('ClientService', () => {
       console.log(
         '🧪 TEST: Debe devolver contrato activo y baños asignados para un cliente',
       );
-
       const mockContract: Partial<CondicionesContractuales> = {
         condicionContractualId: 1,
-        cliente: { clienteId: 1, nombre: 'Empresa ABC' } as any,
+        cliente: {
+          clienteId: 1,
+          nombre: 'Empresa ABC',
+          email: 'contacto@abc.com',
+          cuit: '30-12345678-9',
+          direccion: 'Calle Principal 123',
+          telefono: '11-12345678',
+          contacto_principal: 'Juan Pérez',
+          contacto_principal_telefono: '11-87654321',
+          estado: ResourceState.DISPONIBLE,
+          fecha_registro: new Date('2025-01-15'),
+          contratos: [],
+          servicios: [],
+          futurasLimpiezas: [],
+        } as Cliente,
         tipo_de_contrato: TipoContrato.PERMANENTE,
         fecha_inicio: new Date('2025-01-01'),
         fecha_fin: new Date('2025-12-31'),
@@ -452,7 +482,7 @@ describe('ClientService', () => {
           codigo_interno: 'BQ-2025-001',
           modelo: 'Estándar',
           fecha_adquisicion: new Date('2024-01-01'),
-          estado: 'ACTIVO',
+          estado: ResourceState.DISPONIBLE,
           maintenances: [],
         },
         {
@@ -460,7 +490,7 @@ describe('ClientService', () => {
           codigo_interno: 'BQ-2025-002',
           modelo: 'Premium',
           fecha_adquisicion: new Date('2024-01-15'),
-          estado: 'ACTIVO',
+          estado: ResourceState.DISPONIBLE,
           maintenances: [],
         },
       ];
