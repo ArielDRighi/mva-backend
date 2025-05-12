@@ -152,7 +152,7 @@ export class ToiletMaintenanceService {
       });
 
       // Actualizar el estado del baño en el objeto en memoria también
-      maintenance.toilet.estado = ResourceState.DISPONIBLE.toString();
+      maintenance.toilet.estado = ResourceState.DISPONIBLE;
     } else {
       // Si maintenance.toilet no está cargado, hay que obtener la referencia al baño
       // Primero necesitamos obtener el ID del baño asociado a este mantenimiento
