@@ -8,6 +8,7 @@ import {
   Param,
   Post,
   Put,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { ClothingService } from './clothing.service';
@@ -17,6 +18,7 @@ import { CreateRopaTallesDto } from './dto/CreateRopaTalles.dto';
 import { Roles } from 'src/roles/decorators/roles.decorator';
 import { UpdateRopaTallesDto } from './dto/updateRopaTalles.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { Response } from 'express';
 
 @Controller('clothing')
 @UseGuards(JwtAuthGuard)
@@ -60,6 +62,14 @@ export class ClothingController {
   ) {
     return this.clothingService.updateClothingSpecs(talles, empleadoId);
   }
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @HttpCode(HttpStatus.OK)
+  @Get('export')
+async exportExcel(@Res() res: Response) {
+  return this.clothingService.exportToExcel(res);
+}
+
 
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
