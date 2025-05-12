@@ -981,7 +981,7 @@ export class ServicesService {
       for (const toilet of allToilets) {
         if (toilet.estado !== ResourceState.ASIGNADO.toString()) {
           await this.updateToiletState(toilet, ResourceState.ASIGNADO);
-          toilet.estado = ResourceState.ASIGNADO.toString();
+          toilet.estado = ResourceState.ASIGNADO;
         }
 
         const toiletAssignment = new ResourceAssignment();
@@ -1188,7 +1188,7 @@ export class ServicesService {
             assignments.push(toiletAssignment);
 
             if (entityManager) {
-              toilet.estado = ResourceState.ASIGNADO.toString();
+              toilet.estado = ResourceState.ASIGNADO;
               await entityManager.save(toilet);
             } else {
               await this.updateToiletState(toilet, ResourceState.ASIGNADO);
