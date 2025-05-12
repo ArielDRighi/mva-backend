@@ -90,29 +90,38 @@ Content-Type: application/json
 }
 ```
 
-## 2. Obtener Clientes ##
+**Respuesta de Error (409 Conflict):**
+
+```json
+{
+  "message": "Ya existe un cliente con el CUIT 30-71234572-5",
+  "error": "Conflict",
+  "statusCode": 409
+}
+```
+
+## 2. Obtener Clientes
+
 **Endpoint: GET /api/clients**
 **Roles permitidos: Todos los usuarios autenticados**
-**Descripción: Recupera los clientes registrados en el sistema, con opciones de búsqueda, filtrado por estado y paginación.**
+**Descripción: Recupera los clientes registrados en el sistema, con soporte para paginación y búsqueda por texto.**
 
 **Parámetros de Query Opcionales:**
 
-| Parámetro | Tipo   | Descripción                                                                 |
-|-----------|--------|-----------------------------------------------------------------------------|
-| estado    | string | Filtra por estado del cliente (ej. `ACTIVO`, `INACTIVO`)                    |
-| search    | string | Búsqueda parcial por nombre, CUIT o email (no sensible a mayúsculas/minúsculas) |
-| page      | number | Número de página a recuperar (por defecto: 1)                               |
-| limit     | number | Cantidad de resultados por página (por defecto: 10)                         |
+| Parámetro | Tipo   | Descripción                                                           |
+| --------- | ------ | --------------------------------------------------------------------- |
+| search    | string | Búsqueda por texto (nombre, CUIT, email, estado, dirección, contacto) |
+| page      | number | Número de página a recuperar (por defecto: 1)                         |
+| limit     | number | Cantidad de resultados por página (por defecto: 10)                   |
 
-**Nota sobre filtros:** Los filtros (como el parámetro `estado`) son insensibles a mayúsculas/minúsculas, tildes y caracteres especiales. Por ejemplo, "activo", "ACTIVO", "Activo" o "áctivo" funcionarán de la misma manera.
+**Nota sobre búsqueda:** El parámetro `search` permite buscar coincidencias en cualquiera de los siguientes campos: nombre, CUIT, email, estado, dirección o contacto principal. La búsqueda es insensible a mayúsculas/minúsculas, tildes y caracteres especiales.
 
 **Ejemplos:**
 
 GET /api/clients
-GET /api/clients?estado=ACTIVO
 GET /api/clients?search=constructora
-GET /api/clients?estado=ACTIVO&search=30-71234567-0&page=2&limit=5
-
+GET /api/clients?search=ACTIVO
+GET /api/clients?search=30-71234567-0&page=2&limit=5
 
 **Respuesta Exitosa (200 OK):**
 
@@ -150,7 +159,8 @@ GET /api/clients?estado=ACTIVO&search=30-71234567-0&page=2&limit=5
 }
 ```
 
-### 3. Obtener un Cliente Específico ###
+### 3. Obtener un Cliente Específico
+
 **Endpoint:** `GET /api/clients/{id}`  
 **Roles permitidos:** Todos los usuarios autenticados  
 **Descripción:** Recupera la información de un cliente específico por su ID.
@@ -216,7 +226,9 @@ Content-Type: application/json
 
 **Endpoint:** `DELETE /api/clients/{id}`  
 **Roles permitidos:** ADMIN  
-**Descripción:** Elimina un cliente del sistema. Esta operación sólo está disponible si el cliente no tiene contratos ni servicios asociados activos.
+**Descripción:** Elimina un cliente del sistema.
+
+**Nota importante:** El sistema no verifica automáticamente si el cliente tiene contratos activos o servicios asociados. Es responsabilidad del desarrollador verificar esto antes de eliminar un cliente.
 
 **Ejemplo:**
 
@@ -224,9 +236,9 @@ Content-Type: application/json
 DELETE /api/clients/6
 ```
 
-**Respuesta Exitosa (204 No Content):**
+**Respuesta Exitosa (200 OK):**
 
-No devuelve contenido.
+No devuelve contenido específico.
 
 ### 6. Obtener Contrato Activo de un Cliente
 
@@ -470,13 +482,13 @@ Authorization: Bearer {{token}}
 }
 ```
 
-### Error de cliente con servicios activos
+### Cliente con CUIT duplicado
 
 **Respuesta de Error (409 Conflict):**
 
 ```json
 {
-  "message": "Cannot delete client with active services or contracts",
+  "message": "Ya existe un cliente con el CUIT 30-71234572-5",
   "error": "Conflict",
   "statusCode": 409
 }
