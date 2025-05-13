@@ -570,10 +570,8 @@ export class ServicesService {
 
       // Eliminar todas las asignaciones de recursos para este servicio
       await this.assignmentRepository.delete({ servicioId: id });
-    }
-
-    // Eliminar el servicio después de eliminar las asignaciones
-    await this.serviceRepository.remove(service);
+    } // Eliminar el servicio después de eliminar las asignaciones
+    await this.serviceRepository.delete(id);
   }
 
   async changeStatus(
