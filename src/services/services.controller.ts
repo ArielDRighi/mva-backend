@@ -26,7 +26,6 @@ import { Roles } from '../roles/decorators/roles.decorator';
 import { Role } from '../roles/enums/role.enum';
 import { ServiceState } from '../common/enums/resource-states.enum';
 import { ChangeServiceStatusDto } from './dto/change-service-status.dto';
-import { FutureCleaningsService } from 'src/future_cleanings/futureCleanings.service';
 
 import { MailerInterceptor } from 'src/mailer/interceptor/mailer.interceptor';
 import { FilterServicesDto } from './dto/filter-service.dto';
@@ -38,8 +37,41 @@ export class ServicesController {
 
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Post('create/automatic')
+  createWithAutomaticAssignment(
+    @Body() createServiceDto: CreateServiceDto,
+  ): Promise<Service> {
+    createServiceDto.asignacionAutomatica = true;
+    return this.servicesService.create(createServiceDto);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Post('create/manual')
+  createWithManualAssignment(
+    @Body() createServiceDto: CreateServiceDto,
+  ): Promise<Service> {
+    createServiceDto.asignacionAutomatica = false;
+
+    if (
+      !createServiceDto.asignacionesManual ||
+      createServiceDto.asignacionesManual.length === 0
+    ) {
+      throw new BadRequestException(
+        'Para la asignación manual se requiere proporcionar al menos una asignación',
+      );
+    }
+
+    return this.servicesService.create(createServiceDto);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Post()
   create(@Body() createServiceDto: CreateServiceDto): Promise<Service> {
+    console.warn(
+      'La ruta POST /services está obsoleta. Usar /services/automatic o /services/manual',
+    );
     return this.servicesService.create(createServiceDto);
   }
 

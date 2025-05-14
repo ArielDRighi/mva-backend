@@ -14,6 +14,7 @@ import { ResourceState } from '../common/enums/resource-states.enum';
 import { ChemicalToiletsService } from '../chemical_toilets/chemical_toilets.service';
 import { Cron } from '@nestjs/schedule';
 import { Periodicidad } from 'src/contractual_conditions/entities/contractual_conditions.entity';
+import { Pagination } from 'src/common/interfaces/paginations.interface';
 
 @Injectable()
 export class ToiletMaintenanceService {
@@ -197,10 +198,26 @@ export class ToiletMaintenanceService {
     return maintenanceCount > 0;
   }
 
-  async findAll(): Promise<ToiletMaintenance[]> {
-    return await this.maintenanceRepository.find({
-      relations: ['toilet'], // Aseguramos que se incluya la relación con la entidad ChemicalToilet
+  async findAll(
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<Pagination<ToiletMaintenance>> {
+    const [items, total] = await this.maintenanceRepository.findAndCount({
+      skip: (page - 1) * limit,
+      take: limit,
+      relations: ['bano'],
+      order: {
+        fecha_mantenimiento: 'DESC',
+      },
     });
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async findById(mantenimiento_id: number): Promise<ToiletMaintenance> {
