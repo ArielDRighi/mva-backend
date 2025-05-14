@@ -205,7 +205,7 @@ export class ToiletMaintenanceService {
     const [items, total] = await this.maintenanceRepository.findAndCount({
       skip: (page - 1) * limit,
       take: limit,
-      relations: ['bano'],
+      relations: ['toilet'],
       order: {
         fecha_mantenimiento: 'DESC',
       },
