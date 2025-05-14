@@ -14,6 +14,7 @@ import {
   HttpException,
   HttpStatus,
   UseInterceptors,
+  DefaultValuePipe,
 } from '@nestjs/common';
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto/create-service.dto';
@@ -43,16 +44,31 @@ export class ServicesController {
   }
 
   @Get()
-  async findAll(
-    @Query() filterDto: FilterServicesDto, // Recibe los filtros como parámetros de consulta
-    @Query('page') page: number = 1, // Recibe el número de página desde los parámetros de consulta
-    @Query('limit') limit: number = 10, // Recibe el límite de registros por página desde los parámetros de consulta
-  ): Promise<any> {
+  async findAll(@Query() filterDto: FilterServicesDto): Promise<any> {
     try {
-      // Llama al servicio con los filtros, página y límite
+      // Use default values if not provided
+      const page = filterDto.page || 1;
+      const limit = filterDto.limit || 10;
+
+      // Validate values are positive
+      if (page < 1) {
+        throw new BadRequestException(
+          'El parámetro "page" debe ser un número entero positivo',
+        );
+      }
+      if (limit < 1) {
+        throw new BadRequestException(
+          'El parámetro "limit" debe ser un número entero positivo',
+        );
+      }
+
+      // Call service with filters, page, and limit
       return await this.servicesService.findAll(filterDto, page, limit);
     } catch (error) {
-      // Manejo de errores
+      // Handle errors as before
+      if (error instanceof HttpException) {
+        throw error;
+      }
       throw new HttpException(
         'Error al obtener los servicios',
         HttpStatus.BAD_REQUEST,

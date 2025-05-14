@@ -1,5 +1,15 @@
-import { IsOptional, IsString, IsEnum, IsDateString, IsNumber } from 'class-validator';
-import { ServiceState, ServiceType } from '../../common/enums/resource-states.enum';
+import {
+  IsOptional,
+  IsString,
+  IsEnum,
+  IsDateString,
+  IsNumber,
+  isNumber,
+} from 'class-validator';
+import {
+  ServiceState,
+  ServiceType,
+} from '../../common/enums/resource-states.enum';
 
 export class FilterServicesDto {
   @IsOptional()
@@ -25,4 +35,12 @@ export class FilterServicesDto {
   @IsOptional()
   @IsDateString()
   fechaHasta?: string;
+
+  @IsNumber()
+  @IsOptional()
+  page?: number;
+
+  @IsNumber()
+  @IsOptional()
+  limit?: number;
 }
