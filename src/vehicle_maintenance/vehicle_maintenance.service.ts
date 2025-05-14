@@ -12,6 +12,7 @@ import { UpdateMaintenanceDto } from './dto/update_maintenance.dto';
 import { VehiclesService } from '../vehicles/vehicles.service';
 import { ResourceState } from '../common/enums/resource-states.enum';
 import { Cron } from '@nestjs/schedule';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Injectable()
 export class VehicleMaintenanceService {
@@ -114,11 +115,32 @@ export class VehicleMaintenanceService {
     return maintenanceCount > 0;
   }
 
-  async findAll(): Promise<VehicleMaintenanceRecord[]> {
-    this.logger.log('Recuperando todos los registros de mantenimiento');
-    return this.maintenanceRepository.find({
-      relations: ['vehicle'],
-    });
+  async findAll(paginationDto: PaginationDto): Promise<{
+    data: VehicleMaintenanceRecord[];
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+  }> {
+    const { page = 1, limit = 10 } = paginationDto;
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.maintenanceRepository.find({
+        skip,
+        take: limit,
+        order: { fechaMantenimiento: 'DESC' },
+      }),
+      this.maintenanceRepository.count(),
+    ]);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      pages: Math.ceil(total / limit),
+    };
   }
 
   async findOne(id: number): Promise<VehicleMaintenanceRecord> {
