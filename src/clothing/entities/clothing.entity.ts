@@ -7,7 +7,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Empleado } from 'src/employees/entities/employee.entity';
+import { Empleado } from '../../employees/entities/employee.entity';
 
 @Entity({ name: 'clothing_specs' })
 export class RopaTalles {
