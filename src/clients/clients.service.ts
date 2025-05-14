@@ -8,7 +8,7 @@ import { CreateClientDto } from './dto/create_client.dto';
 import { UpdateClientDto } from './dto/update_client.dto';
 import { Cliente } from './entities/client.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan, ILike } from 'typeorm';
+import { Repository, MoreThan } from 'typeorm';
 import { ChemicalToiletsService } from '../chemical_toilets/chemical_toilets.service';
 import {
   CondicionesContractuales,
@@ -47,23 +47,46 @@ export class ClientService {
 
   async findAll(paginationDto: PaginationDto): Promise<Pagination<Cliente>> {
     const { page = 1, limit = 10, search } = paginationDto;
-  
-    this.logger.log(`Recuperando clientes - Página: ${page}, Límite: ${limit}, Búsqueda: ${search}`);
-  
+
+    this.logger.log(
+      `Recuperando clientes - Página: ${page}, Límite: ${limit}, Búsqueda: ${search}`,
+    );
+
     const query = this.clientRepository.createQueryBuilder('cliente');
-  
+
     if (search) {
-      const term = `%${search.toLowerCase()}%`;
-      query.where('LOWER(cliente.nombre) LIKE :term', { term })
-           .orWhere('LOWER(cliente.cuit) LIKE :term', { term })
-           .orWhere('LOWER(cliente.email) LIKE :term', { term });
+      const searchTerms = search.toLowerCase().split(' ');
+
+      // Usar primera palabra con WHERE
+      query.where(
+        `LOWER(UNACCENT(cliente.nombre)) LIKE :term
+        OR LOWER(UNACCENT(cliente.cuit)) LIKE :term
+        OR LOWER(UNACCENT(cliente.email)) LIKE :term
+        OR LOWER(UNACCENT(cliente.estado)) LIKE :term
+        OR LOWER(UNACCENT(cliente.direccion)) LIKE :term
+        OR LOWER(UNACCENT(cliente.contacto_principal)) LIKE :term`,
+        { term: `%${searchTerms[0]}%` },
+      );
+
+      // Palabras adicionales con AND
+      for (let i = 1; i < searchTerms.length; i++) {
+        query.andWhere(
+          `LOWER(UNACCENT(cliente.nombre)) LIKE :term${i}
+          OR LOWER(UNACCENT(cliente.cuit)) LIKE :term${i}
+          OR LOWER(UNACCENT(cliente.email)) LIKE :term${i}
+          OR LOWER(UNACCENT(cliente.estado)) LIKE :term${i}
+          OR LOWER(UNACCENT(cliente.direccion)) LIKE :term${i}
+          OR LOWER(UNACCENT(cliente.contacto_principal)) LIKE :term${i}`,
+          { [`term${i}`]: `%${searchTerms[i]}%` },
+        );
+      }
     }
-  
+
     const [items, total] = await query
       .skip((page - 1) * limit)
       .take(limit)
       .getManyAndCount();
-  
+
     return {
       items,
       total,
@@ -72,11 +95,9 @@ export class ClientService {
       totalPages: Math.ceil(total / limit),
     };
   }
-  
+
   //Desde el Front esta es la forma de obtener el GETall
   //GET /clientes?limit=10&page=1&nombre=juan&email=gmail
-
-  
 
   async findOneClient(clienteId: number): Promise<Cliente> {
     this.logger.log(`Buscando cliente con id: ${clienteId}`);

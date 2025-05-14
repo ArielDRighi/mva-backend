@@ -20,6 +20,7 @@
    - Ciclo de Vida de un Contrato
    - Actualización de Tarifas
    - Creación de Servicio de Instalación Vinculado
+   - Contrato Flexible con Definición de Servicio Posterior
 7. Manejo de Errores
 8. Consideraciones Importantes
 
@@ -52,50 +53,69 @@ Content-Type: application/json
 ### 1. Obtener Todas las Condiciones Contractuales
 
 **Endpoint:** `GET /api/contractual_conditions`  
-**Roles permitidos:** Todos los usuarios autenticados  
-**Descripción:** Recupera todas las condiciones contractuales almacenadas en el sistema.
+**Roles permitidos:** ADMIN  
+**Descripción:** Recupera todas las condiciones contractuales almacenadas en el sistema con soporte para paginación.
+
+**Parámetros de consulta:**
+| Parámetro | Tipo | Requerido | Descripción |
+|-----------|--------|-----------|--------------------------------------------------|
+| page | number | No | Número de página a recuperar (por defecto: 1) |
+| limit | number | No | Resultados por página (por defecto: 10) |
+
+**Ejemplos:**
+
+```
+GET /api/contractual_conditions
+GET /api/contractual_conditions?page=2&limit=20
+```
 
 **Respuesta Exitosa (200 OK):**
 
 ```json
-[
-  {
-    "condicionContractualId": 1,
-    "cliente": {
-      "clienteId": 1,
-      "nombre": "Constructora ABC",
-      "cuit": "30-71234567-0"
+{
+  "items": [
+    {
+      "condicionContractualId": 1,
+      "cliente": {
+        "clienteId": 1,
+        "nombre": "Constructora ABC",
+        "cuit": "30-71234567-0"
+      },
+      "tipo_de_contrato": "Permanente",
+      "fecha_inicio": "2025-01-01",
+      "fecha_fin": "2025-12-31",
+      "condiciones_especificas": "Incluye servicio de limpieza semanal sin costo adicional",
+      "tarifa": "2500.00",
+      "periodicidad": "Mensual",
+      "estado": "Activo"
     },
-    "tipo_de_contrato": "Permanente",
-    "fecha_inicio": "2025-01-01",
-    "fecha_fin": "2025-12-31",
-    "condiciones_especificas": "Incluye servicio de limpieza semanal sin costo adicional",
-    "tarifa": "2500.00",
-    "periodicidad": "Mensual",
-    "estado": "Activo"
-  },
-  {
-    "condicionContractualId": 2,
-    "cliente": {
-      "clienteId": 2,
-      "nombre": "Eventos del Sur",
-      "cuit": "30-71234568-1"
-    },
-    "tipo_de_contrato": "Temporal",
-    "fecha_inicio": "2025-05-01",
-    "fecha_fin": "2025-05-31",
-    "condiciones_especificas": "Alquiler con mantenimiento incluido",
-    "tarifa": "1800.00",
-    "periodicidad": "Diaria",
-    "estado": "Activo"
-  }
-]
+    {
+      "condicionContractualId": 2,
+      "cliente": {
+        "clienteId": 2,
+        "nombre": "Eventos del Sur",
+        "cuit": "30-71234568-1"
+      },
+      "tipo_de_contrato": "Temporal",
+      "fecha_inicio": "2025-05-01",
+      "fecha_fin": "2025-05-31",
+      "condiciones_especificas": "Alquiler con mantenimiento incluido",
+      "tarifa": "1800.00",
+      "periodicidad": "Diaria",
+      "estado": "Activo"
+    }
+  ],
+  "total": 25,
+  "page": 1,
+  "limit": 10,
+  "totalPages": 3
+}
 ```
 
 ### 2. Obtener una Condición Contractual Específica
 
 **Endpoint:** `GET /api/contractual_conditions/id/{id}`  
-**Roles permitidos:** Todos los usuarios autenticados  
+**Roles permitidos:** ADMIN  
 **Descripción:** Recupera una condición contractual específica por su ID.
 
 **Ejemplo:**
@@ -126,14 +146,14 @@ GET /api/contractual_conditions/id/1
 
 ### 3. Obtener Condiciones Contractuales por Cliente
 
-**Endpoint:** `GET /api/contractual_conditions/client-name/{clientId}`  
-**Roles permitidos:** Todos los usuarios autenticados  
+**Endpoint:** `GET /api/contractual_conditions/client-id/{clientId}`  
+**Roles permitidos:** ADMIN  
 **Descripción:** Recupera todas las condiciones contractuales asociadas a un cliente específico.
 
 **Ejemplo:**
 
 ```
-GET /api/contractual_conditions/client-name/1
+GET /api/contractual_conditions/client-id/1
 ```
 
 **Respuesta Exitosa (200 OK):**
@@ -176,20 +196,47 @@ GET /api/contractual_conditions/client-name/1
 ### 4. Crear una Nueva Condición Contractual
 
 **Endpoint:** `POST /api/contractual_conditions/create`  
-**Roles permitidos:** ADMIN, SUPERVISOR  
+**Roles permitidos:** ADMIN  
 **Descripción:** Crea una nueva condición contractual para un cliente.
 
 **Request Body:**
 
+Se pueden crear condiciones contractuales de dos formas:
+
+#### A. Con tipo de servicio y cantidad de baños especificados
+
 ```json
 {
   "clientId": 1,
-  "tipo_de_contrato": "Permanente",
-  "fecha_inicio": "2025-01-01T00:00:00.000Z",
-  "fecha_fin": "2025-12-31T00:00:00.000Z",
-  "condiciones_especificas": "Incluye servicio de limpieza semanal sin costo adicional",
+  "tipo_de_contrato": "Temporal",
+  "fecha_inicio": "2025-05-10T00:00:00.000Z",
+  "fecha_fin": "2025-06-10T00:00:00.000Z",
+  "condiciones_especificas": "Contrato para evento de 30 días",
+  "tarifa": 3000,
+  "periodicidad": "Semanal",
+  "estado": "Activo",
+  "tipo_servicio": "INSTALACION",
+  "cantidad_banos": 5,
+  "tarifa_alquiler": 2000,
+  "tarifa_instalacion": 500,
+  "tarifa_limpieza": 300
+}
+```
+
+#### B. Sin tipo de servicio ni cantidad de baños (contrato marco flexible)
+
+```json
+{
+  "clientId": 2,
+  "tipo_de_contrato": "Temporal",
+  "fecha_inicio": "2025-06-10T00:00:00.000Z",
+  "fecha_fin": "2025-07-10T00:00:00.000Z",
+  "condiciones_especificas": "Contrato para obra de construcción. Cliente regulará los servicios según necesidad.",
   "tarifa": 2500,
-  "periodicidad": "Mensual",
+  "tarifa_alquiler": 1500,
+  "tarifa_instalacion": 400,
+  "tarifa_limpieza": 250,
+  "periodicidad": "Semanal",
   "estado": "Activo"
 }
 ```
@@ -202,6 +249,11 @@ GET /api/contractual_conditions/client-name/1
 | fecha_fin               | string (fecha ISO) | Sí        | Fecha de finalización del contrato                             |
 | condiciones_especificas | string             | No        | Texto libre para condiciones adicionales (máx. 500 caracteres) |
 | tarifa                  | number             | Sí        | Monto a cobrar según la periodicidad establecida               |
+| tarifa_alquiler         | number             | No        | Tarifa específica para el alquiler de los baños                |
+| tarifa_instalacion      | number             | No        | Tarifa específica para la instalación de los baños             |
+| tarifa_limpieza         | number             | No        | Tarifa específica para la limpieza de los baños                |
+| tipo_servicio           | string (enum)      | No        | Tipo de servicio específico para el contrato                   |
+| cantidad_banos          | number             | No        | Cantidad de baños establecida en el contrato                   |
 | periodicidad            | string (enum)      | Sí        | "Diaria", "Semanal", "Mensual" o "Anual"                       |
 | estado                  | string (enum)      | No        | "Activo", "Inactivo" o "Terminado" (default: "Activo")         |
 
@@ -221,14 +273,19 @@ GET /api/contractual_conditions/client-name/1
   "condiciones_especificas": "Incluye servicio de limpieza semanal sin costo adicional",
   "tarifa": "2500.00",
   "periodicidad": "Mensual",
-  "estado": "Activo"
+  "estado": "Activo",
+  "tipo_servicio": "INSTALACION",
+  "cantidad_banos": 5,
+  "tarifa_alquiler": "2000.00",
+  "tarifa_instalacion": "500.00",
+  "tarifa_limpieza": "300.00"
 }
 ```
 
 ### 5. Modificar una Condición Contractual
 
 **Endpoint:** `PUT /api/contractual_conditions/modify/{id}`  
-**Roles permitidos:** ADMIN, SUPERVISOR  
+**Roles permitidos:** ADMIN  
 **Descripción:** Modifica una condición contractual existente.
 
 **Ejemplo:**
@@ -363,7 +420,7 @@ Las condiciones contractuales están directamente relacionadas con los servicios
 2. **Verificar las condiciones creadas**
 
    ```http
-   GET /api/contractual_conditions/client-name/3
+   GET /api/contractual_conditions/client-id/3
    Authorization: Bearer {{token}}
    ```
 
@@ -488,6 +545,73 @@ Las condiciones contractuales están directamente relacionadas con los servicios
    Authorization: Bearer {{token}}
    ```
 
+### Contrato Flexible con Definición de Servicio Posterior
+
+1. **Crear un contrato sin especificar tipo de servicio ni cantidad de baños**
+
+   ```http
+   POST /api/contractual_conditions/create
+   Authorization: Bearer {{token}}
+   Content-Type: application/json
+
+   {
+     "clientId": 5,
+     "tipo_de_contrato": "Temporal",
+     "fecha_inicio": "2025-06-10T00:00:00.000Z",
+     "fecha_fin": "2025-07-10T00:00:00.000Z",
+     "condiciones_especificas": "Contrato para obra de construcción. Cliente regulará los servicios según necesidad.",
+     "tarifa": 2500,
+     "tarifa_alquiler": 1500,
+     "tarifa_instalacion": 400,
+     "tarifa_limpieza": 250,
+     "periodicidad": "Semanal",
+     "estado": "Activo"
+   }
+   ```
+
+2. **Crear un servicio especificando el tipo y cantidad explícitamente**
+
+   ```http
+   POST /api/services
+   Authorization: Bearer {{token}}
+   Content-Type: application/json
+
+   {
+     "clienteId": 5,
+     "fechaProgramada": "2025-06-15T10:00:00.000Z",
+     "tipoServicio": "INSTALACION",
+     "cantidadBanos": 3,
+     "cantidadVehiculos": 1,
+     "ubicacion": "Av. Corrientes 1234, Buenos Aires",
+     "notas": "Cliente solicitó entrega antes de las 9am",
+     "asignacionAutomatica": true,
+     "condicionContractualId": 9
+   }
+   ```
+
+3. **Crear otro servicio del mismo contrato con diferente tipo y cantidad**
+
+   ```http
+   POST /api/services
+   Authorization: Bearer {{token}}
+   Content-Type: application/json
+
+   {
+     "clienteId": 5,
+     "fechaProgramada": "2025-06-25T14:00:00.000Z",
+     "tipoServicio": "MANTENIMIENTO_IN_SITU",
+     "cantidadBanos": 0,
+     "cantidadVehiculos": 1,
+     "ubicacion": "Av. Corrientes 1234, Buenos Aires",
+     "notas": "Mantenimiento mensual acordado",
+     "asignacionAutomatica": true,
+     "condicionContractualId": 9,
+     "banosInstalados": [10, 11, 12]
+   }
+   ```
+
+Este enfoque flexible permite crear un único contrato marco que puede utilizarse para distintos tipos de servicios a lo largo de su vigencia, adaptándose a las necesidades cambiantes del cliente.
+
 ## Manejo de Errores
 
 ### Respuesta de Error (404 Not Found)
@@ -505,6 +629,16 @@ Las condiciones contractuales están directamente relacionadas con los servicios
 ```json
 {
   "message": "Client with ID: 999 not found",
+  "error": "Bad Request",
+  "statusCode": 400
+}
+```
+
+### Error en la Paginación
+
+```json
+{
+  "message": "Invalid pagination parameters: \"page\" and \"limit\" must both be greater than 0. Received page=0, limit=10.",
   "error": "Bad Request",
   "statusCode": 400
 }

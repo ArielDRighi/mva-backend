@@ -33,6 +33,7 @@ export class AuthService {
 
     // Buscar usuario por username
     const user = await this.usersService.findByUsername(username);
+    console.log('Usuario encontrado:', user);
 
     // Si no se encuentra el usuario o la contraseña es incorrecta, lanzar excepción
     if (!user || !(await user.comparePassword(password))) {
@@ -43,13 +44,13 @@ export class AuthService {
     if (user.estado !== 'ACTIVO') {
       throw new UnauthorizedException('Usuario inactivo');
     }
-
     // Crear payload para el token JWT
     const payload = {
       sub: user.id,
       nombre: user.nombre,
       email: user.email,
       roles: user.roles || [],
+      empleadoId: user.empleadoId,
     };
 
     // Retornar token y datos del usuario

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { CreateChemicalToiletDto } from './dto/create_chemical_toilet.dto';
 import { UpdateChemicalToiletDto } from './dto/update_chemical.toilet.dto';
 import { FilterChemicalToiletDto } from './dto/filter_chemical_toilet.dto';
@@ -29,27 +33,40 @@ export class ChemicalToiletsService {
     return await this.chemicalToiletRepository.save(newToilet);
   }
 
-  async findAll(paginationDto: PaginationDto, search?: string): Promise<Pagination<ChemicalToilet>> {
+  async findAll(
+    paginationDto: PaginationDto,
+    search?: string,
+  ): Promise<Pagination<ChemicalToilet>> {
     const { limit = 10, page = 1 } = paginationDto;
-  
-    const query = this.chemicalToiletRepository
-      .createQueryBuilder('toilet');
-  
+
+    const query = this.chemicalToiletRepository.createQueryBuilder('toilet');
+
     if (search) {
-      const searchTerm = `%${search.toLowerCase()}%`;
-  
+      const searchTerms = search.toLowerCase().split(' ');
+
+      // First term uses WHERE
       query.where(
-        `LOWER(toilet.estado) LIKE :searchTerm
-        OR LOWER(toilet.modelo) LIKE :searchTerm
-        OR LOWER(toilet.codigo_interno) LIKE :searchTerm`,
-        { searchTerm },
+        `LOWER(UNACCENT(toilet.estado)) LIKE :searchTerm
+        OR LOWER(UNACCENT(toilet.modelo)) LIKE :searchTerm
+        OR LOWER(UNACCENT(toilet.codigo_interno)) LIKE :searchTerm`,
+        { searchTerm: `%${searchTerms[0]}%` },
       );
+
+      // Additional terms use AND with OR conditions for each field
+      for (let i = 1; i < searchTerms.length; i++) {
+        query.andWhere(
+          `LOWER(UNACCENT(toilet.estado)) LIKE :searchTerm${i}
+          OR LOWER(UNACCENT(toilet.modelo)) LIKE :searchTerm${i}
+          OR LOWER(UNACCENT(toilet.codigo_interno)) LIKE :searchTerm${i}`,
+          { [`searchTerm${i}`]: `%${searchTerms[i]}%` },
+        );
+      }
     }
-  
+
     query.skip((page - 1) * limit).take(limit);
-  
+
     const [items, total] = await query.getManyAndCount();
-  
+
     return {
       items,
       total,
@@ -58,74 +75,80 @@ export class ChemicalToiletsService {
       totalPages: Math.ceil(total / limit),
     };
   }
-  
 
   async findAllWithFilters(
-  filterDto: FilterChemicalToiletDto,
-): Promise<Pagination<ChemicalToilet>> {
-  const {
-    estado,
-    modelo,
-    codigoInterno,
-    fechaDesde,
-    fechaHasta,
-    page = 1,
-    limit = 10,
-  } = filterDto;
-
-  const query = this.chemicalToiletRepository
-    .createQueryBuilder('toilet');
-
-  if (estado) {
-    query.andWhere('LOWER(toilet.estado) LIKE :estado', {
-      estado: `%${estado.toLowerCase()}%`,
-    });
-  }
-
-  if (modelo) {
-    query.andWhere('LOWER(toilet.modelo) LIKE :modelo', {
-      modelo: `%${modelo.toLowerCase()}%`,
-    });
-  }
-
-  if (codigoInterno) {
-    query.andWhere('LOWER(toilet.codigo_interno) LIKE :codigoInterno', {
-      codigoInterno: `%${codigoInterno.toLowerCase()}%`,
-    });
-  }
-
-  if (fechaDesde) {
-    query.andWhere('toilet.fecha_adquisicion >= :fechaDesde', {
+    filterDto: FilterChemicalToiletDto,
+  ): Promise<Pagination<ChemicalToilet>> {
+    const {
+      estado,
+      modelo,
+      codigoInterno,
       fechaDesde,
-    });
-  }
-
-  if (fechaHasta) {
-    query.andWhere('toilet.fecha_adquisicion <= :fechaHasta', {
       fechaHasta,
-    });
+      page = 1,
+      limit = 10,
+    } = filterDto;
+
+    const query = this.chemicalToiletRepository.createQueryBuilder('toilet');
+
+    if (estado) {
+      query.andWhere(
+        'LOWER(UNACCENT(toilet.estado)) LIKE LOWER(UNACCENT(:estado))',
+        {
+          estado: `%${estado}%`,
+        },
+      );
+    }
+
+    if (modelo) {
+      query.andWhere(
+        'LOWER(UNACCENT(toilet.modelo)) LIKE LOWER(UNACCENT(:modelo))',
+        {
+          modelo: `%${modelo}%`,
+        },
+      );
+    }
+
+    if (codigoInterno) {
+      query.andWhere(
+        'LOWER(UNACCENT(toilet.codigo_interno)) LIKE LOWER(UNACCENT(:codigoInterno))',
+        {
+          codigoInterno: `%${codigoInterno}%`,
+        },
+      );
+    }
+
+    if (fechaDesde) {
+      query.andWhere('toilet.fecha_adquisicion >= :fechaDesde', {
+        fechaDesde,
+      });
+    }
+
+    if (fechaHasta) {
+      query.andWhere('toilet.fecha_adquisicion <= :fechaHasta', {
+        fechaHasta,
+      });
+    }
+
+    query.skip((page - 1) * limit).take(limit);
+
+    const [items, total] = await query.getManyAndCount();
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
-
-  query.skip((page - 1) * limit).take(limit);
-
-  const [items, total] = await query.getManyAndCount();
-
-  return {
-    items,
-    total,
-    page,
-    limit,
-    totalPages: Math.ceil(total / limit),
-  };
-}
-
 
   async findAllByState(
     estado: ResourceState,
     paginationDto: PaginationDto,
   ): Promise<ChemicalToilet[]> {
     const { page = 1, limit = 10 } = paginationDto;
-  
+
     return this.chemicalToiletRepository.find({
       where: { estado },
       skip: (page - 1) * limit,
@@ -166,10 +189,44 @@ export class ChemicalToiletsService {
   async remove(id: number): Promise<void> {
     const toilet = await this.chemicalToiletRepository.findOne({
       where: { baño_id: id },
+      relations: ['maintenances'],
     });
 
     if (!toilet) {
       throw new NotFoundException(`Baño químico con ID ${id} no encontrado`);
+    }
+
+    // Check if the toilet is assigned to any service
+    const toiletWithAssignments = await this.chemicalToiletRepository
+      .createQueryBuilder('toilet')
+      .leftJoinAndSelect(
+        'asignacion_recursos',
+        'asignacion',
+        'asignacion.bano_id = toilet.baño_id',
+      )
+      .leftJoinAndSelect(
+        'servicios',
+        'servicio',
+        'asignacion.servicio_id = servicio.servicio_id',
+      )
+      .where('toilet.baño_id = :id', { id })
+      .andWhere('asignacion.bano_id IS NOT NULL')
+      .getOne();
+
+    if (toiletWithAssignments) {
+      throw new BadRequestException(
+        `El baño químico no puede ser eliminado ya que se encuentra asignado a uno o más servicios.`,
+      );
+    }
+
+    // Check if the toilet has pending/scheduled maintenance
+    if (
+      toilet.maintenances &&
+      toilet.maintenances.some((maintenance) => !maintenance.completado)
+    ) {
+      throw new BadRequestException(
+        `El baño químico no puede ser eliminado ya que tiene mantenimientos programados pendientes.`,
+      );
     }
 
     await this.chemicalToiletRepository.remove(toilet);

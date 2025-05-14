@@ -1,6 +1,7 @@
 import { IsEnum, IsNotEmpty, IsOptional, Length, Min } from 'class-validator';
 import { Cliente } from 'src/clients/entities/client.entity';
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { ServiceType } from 'src/common/enums/resource-states.enum';
 
 export enum TipoContrato {
   TEMPORAL = 'Temporal',
@@ -56,6 +57,58 @@ export class CondicionesContractuales {
   })
   @Min(0)
   tarifa: number;
+
+  @Column({
+    name: 'tarifa_alquiler',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+  })
+  @IsOptional()
+  @Min(0)
+  tarifa_alquiler: number;
+
+  @Column({
+    name: 'tarifa_instalacion',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+  })
+  @IsOptional()
+  @Min(0)
+  tarifa_instalacion: number;
+
+  @Column({
+    name: 'tarifa_limpieza',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+  })
+  @IsOptional()
+  @Min(0)
+  tarifa_limpieza: number;
+
+  @Column({
+    name: 'tipo_servicio',
+    type: 'enum',
+    enum: ServiceType,
+    nullable: true,
+  })
+  @IsOptional()
+  @IsEnum(ServiceType)
+  tipo_servicio: ServiceType;
+
+  @Column({
+    name: 'cantidad_banos',
+    type: 'int',
+    nullable: true,
+  })
+  @IsOptional()
+  @Min(0)
+  cantidad_banos: number;
 
   @Column({
     name: 'periodicidad',

@@ -36,12 +36,10 @@ export class UsersController {
   async findAll(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
-    @Query('search') search?: string,  // 👈 acá lo agregás
+    @Query('search') search?: string, // 👈 acá lo agregás
   ): Promise<any> {
-    return this.usersService.findAll(page, limit, search);  // 👈 y lo pasás
+    return this.usersService.findAll(page, limit, search); // 👈 y lo pasás
   }
-  
-  
 
   @UseGuards(JwtAuthGuard)
   @Get(':id')
@@ -57,13 +55,13 @@ export class UsersController {
   ): Promise<User> {
     return this.usersService.update(id, updateUserDto);
   }
-
+  @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
     return this.usersService.remove(id);
   }
-
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
   @UseGuards(JwtAuthGuard)
   @Patch(':id/status')
   changeStatus(

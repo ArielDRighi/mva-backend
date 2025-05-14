@@ -15,6 +15,8 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { FutureCleaningsService } from './futureCleanings.service';
 import { ModifyFutureCleaningDto } from './dto/modifyFutureCleanings.dto';
 import { CreateFutureCleaningDto } from './dto/createFutureCleanings.dto';
+import { Roles } from 'src/roles/decorators/roles.decorator';
+import { Role } from 'src/roles/enums/role.enum';
 
 @Controller('future_cleanings')
 @UseGuards(JwtAuthGuard)
@@ -34,6 +36,7 @@ export class FutureCleaningsController {
       );
     }
   }
+  @Roles(Role.ADMIN)
   @Delete('delete/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteFutureCleaning(@Param('id') id: number) {
@@ -57,7 +60,7 @@ export class FutureCleaningsController {
       );
     }
   }
-
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async createFutureCleaning(@Body() data: CreateFutureCleaningDto) {
@@ -69,7 +72,7 @@ export class FutureCleaningsController {
       );
     }
   }
-
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Put('modify/:id')
   @HttpCode(HttpStatus.OK)
   async updateFutureCleaning(

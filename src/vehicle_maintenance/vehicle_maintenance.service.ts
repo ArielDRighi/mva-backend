@@ -36,14 +36,8 @@ export class VehicleMaintenanceService {
       createMaintenanceDto.vehiculoId,
     );
 
-    // Verificar si el vehículo está disponible
-    if ((vehicle.estado as ResourceState) !== ResourceState.DISPONIBLE) {
-      throw new BadRequestException(
-        `El vehículo no está disponible para mantenimiento. Estado actual: ${vehicle.estado}`,
-      );
-    }
-
-    // AQUÍ ESTÁ EL CAMBIO CLAVE: Solo cambiar estado si el mantenimiento es para hoy o antes
+    // NUEVO CÓDIGO: Permitir ASIGNADO y DISPONIBLE para mantenimientos futuros
+    // Solo verificamos el estado cuando es para hoy o una fecha pasada
     const now = new Date();
     now.setHours(0, 0, 0, 0); // Inicio del día actual
 
@@ -51,15 +45,31 @@ export class VehicleMaintenanceService {
     maintenanceDate.setHours(0, 0, 0, 0); // Inicio del día de mantenimiento
 
     if (maintenanceDate <= now) {
-      // El mantenimiento es para hoy o una fecha pasada, cambiar estado inmediatamente
+      // El mantenimiento es para hoy o una fecha pasada, verificamos que esté DISPONIBLE
+      if ((vehicle.estado as ResourceState) !== ResourceState.DISPONIBLE) {
+        throw new BadRequestException(
+          `El vehículo no está disponible para mantenimiento inmediato. Estado actual: ${vehicle.estado}`,
+        );
+      }
+
+      // Cambiar estado inmediatamente
       await this.vehiclesService.changeStatus(
         vehicle.id,
         ResourceState.EN_MANTENIMIENTO,
       );
       // Actualizar también el estado en el objeto en memoria
       vehicle.estado = ResourceState.EN_MANTENIMIENTO.toString();
+    } else {
+      // Es un mantenimiento futuro, verificar que el vehículo esté DISPONIBLE o ASIGNADO
+      if (
+        (vehicle.estado as ResourceState) !== ResourceState.DISPONIBLE &&
+        (vehicle.estado as ResourceState) !== ResourceState.ASIGNADO
+      ) {
+        throw new BadRequestException(
+          `Solo vehículos en estado DISPONIBLE o ASIGNADO pueden programar mantenimientos futuros. Estado actual: ${vehicle.estado}`,
+        );
+      }
     }
-    // Si es para una fecha futura, no cambiar el estado ahora
 
     const maintenanceRecord =
       this.maintenanceRepository.create(createMaintenanceDto);

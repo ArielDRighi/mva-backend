@@ -75,3 +75,4 @@ Si encuentras errores al ejecutar el script, verifica lo siguiente:
 - Las credenciales de conexión son correctas
 - El esquema de la tabla usuarios existe y tiene la estructura esperada
 - Los módulos necesarios están instalados (bcrypt, dotenv, etc.)
+.
