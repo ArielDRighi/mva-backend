@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   UseGuards,
   Patch,
+  Query,
 } from '@nestjs/common';
 import { VehicleMaintenanceService } from './vehicle_maintenance.service';
 import { CreateMaintenanceDto } from './dto/create_maintenance.dto';
@@ -18,6 +19,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../roles/guards/roles.guard';
 import { Roles } from '../roles/decorators/roles.decorator';
 import { Role } from '../roles/enums/role.enum';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Controller('vehicle_maintenance')
 @UseGuards(JwtAuthGuard)
@@ -34,8 +36,14 @@ export class VehicleMaintenanceController {
   }
 
   @Get()
-  findAll(): Promise<VehicleMaintenanceRecord[]> {
-    return this.maintenanceService.findAll();
+  async findAll(@Query() paginationDto: PaginationDto): Promise<{
+    data: VehicleMaintenanceRecord[];
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+  }> {
+    return await this.maintenanceService.findAll(paginationDto);
   }
 
   @Get('upcoming')
