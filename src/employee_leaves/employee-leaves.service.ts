@@ -63,11 +63,25 @@ export class EmployeeLeavesService {
     return this.leaveRepository.save(leave);
   }
 
-  async findAll(): Promise<EmployeeLeave[]> {
-    return this.leaveRepository.find({
+  async findAll(options: { page: number; limit: number }) {
+    const { page, limit } = options;
+
+    const [items, total] = await this.leaveRepository.findAndCount({
       relations: ['employee'],
       order: { fechaInicio: 'ASC' },
+      take: limit,
+      skip: (page - 1) * limit,
     });
+
+    return {
+      items,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async findOne(id: number): Promise<EmployeeLeave> {
