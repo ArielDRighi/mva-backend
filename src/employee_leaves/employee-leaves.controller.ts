@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -28,10 +29,12 @@ export class EmployeeLeavesController {
   }
 
   @Get()
-  findAll() {
-    return this.leavesService.findAll();
+  findAll(@Query('page') page = 1, @Query('limit') limit = 10) {
+    return this.leavesService.findAll({
+      page: +page,
+      limit: +limit,
+    });
   }
-
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.leavesService.findOne(+id);
