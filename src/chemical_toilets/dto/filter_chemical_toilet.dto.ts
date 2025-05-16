@@ -1,10 +1,11 @@
-import { IsOptional, IsString, IsDateString } from 'class-validator';
+import { IsOptional, IsString, IsDateString, IsEnum } from 'class-validator';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { ResourceState } from 'src/common/enums/resource-states.enum';
 
-export class FilterChemicalToiletDto  extends PaginationDto {
+export class FilterChemicalToiletDto extends PaginationDto {
   @IsOptional()
-  @IsString()
-  estado?: string;
+  @IsEnum(ResourceState, { each: true })
+  estado?: ResourceState;
 
   @IsOptional()
   @IsString()

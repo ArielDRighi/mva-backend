@@ -32,6 +32,26 @@ export class CreateClientDto {
   @IsNotEmpty()
   contacto_principal: string;
 
+  @IsString()
+  @IsOptional()
+  contacto_principal_telefono: string;
+
+  @IsString()
+  @IsOptional()
+  contactoObra1?: string;
+
+  @IsString()
+  @IsOptional()
+  contacto_obra1_telefono?: string;
+
+  @IsString()
+  @IsOptional()
+  contactoObra2?: string;
+
+  @IsString()
+  @IsOptional()
+  contacto_obra2_telefono?: string;
+
   @IsDate()
   @IsOptional()
   @Type(() => Date)

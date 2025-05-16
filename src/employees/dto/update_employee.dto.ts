@@ -1,5 +1,11 @@
 import { Transform } from 'class-transformer';
-import { IsEmail, IsOptional, IsString, Length } from 'class-validator';
+import {
+  IsEmail,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Length,
+} from 'class-validator';
 
 export class UpdateEmployeeDto {
   @IsString()
@@ -57,4 +63,26 @@ export class UpdateEmployeeDto {
   @IsString()
   @IsOptional()
   estado?: string;
+
+  @IsNumber()
+  @IsOptional()
+  numero_legajo?: number;
+
+  @IsString()
+  @IsOptional()
+  @Length(11, 20, { message: 'El CUIL debe tener entre 11 y 20 caracteres' })
+  cuil?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(11, 20, { message: 'El CBU debe tener entre 11 y 20 caracteres' })
+  cbu?: string;
+
+  @IsOptional()
+  @IsNumber()
+  diasVacacionesRestantes?: number;
+
+  @IsOptional()
+  @IsNumber()
+  diasVacacionesUsados?: number;
 }

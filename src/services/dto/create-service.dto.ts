@@ -19,8 +19,12 @@ import {
 import { CreateResourceAssignmentDto } from './create-resource-assignment.dto';
 
 export class CreateServiceDto {
+  @IsOptional()
   @IsNumber()
-  clienteId: number;
+  @ValidateIf(
+    (o: CreateServiceDto) => o.tipoServicio !== ServiceType.CAPACITACION,
+  )
+  clienteId?: number;
 
   @IsDate()
   @Type(() => Date)
@@ -34,22 +38,33 @@ export class CreateServiceDto {
   @IsDateString()
   fechaFin?: string;
 
+  @IsOptional()
   @IsEnum(ServiceType)
-  tipoServicio: ServiceType;
+  @ValidateIf((o: CreateServiceDto) => !o.condicionContractualId)
+  tipoServicio?: ServiceType;
 
   @IsOptional()
   @IsEnum(ServiceState)
   estado?: ServiceState;
 
+  @IsOptional()
   @IsNumber()
   @Min(0)
-  cantidadBanos: number;
+  @ValidateIf((o: CreateServiceDto) => !o.condicionContractualId)
+  cantidadBanos?: number;
+
+  @IsOptional()
+  @IsNumber()
+  empleadoAId?: number;
+
+  @IsOptional()
+  @IsNumber()
+  empleadoBId?: number;
 
   @IsNumber()
-  @Min(1, { message: 'La cantidad de empleados debe ser al menos 1' })
-  cantidadEmpleados: number;
-
-  @IsNumber()
+  @ValidateIf(
+    (o: CreateServiceDto) => o.tipoServicio !== ServiceType.CAPACITACION,
+  )
   @Min(1, { message: 'La cantidad de vehículos debe ser al menos 1' })
   cantidadVehiculos: number;
 
@@ -71,14 +86,16 @@ export class CreateServiceDto {
 
   @IsArray()
   @IsOptional()
-  @ValidateIf((o: CreateServiceDto) =>
-    [
-      'LIMPIEZA',
-      'RETIRO',
-      'REEMPLAZO',
-      'MANTENIMIENTO_IN_SITU',
-      'REPARACION',
-    ].includes(o.tipoServicio),
+  @ValidateIf(
+    (o: CreateServiceDto) =>
+      !!o.tipoServicio &&
+      [
+        'LIMPIEZA',
+        'RETIRO',
+        'REEMPLAZO',
+        'MANTENIMIENTO_IN_SITU',
+        'REPARACION',
+      ].includes(o.tipoServicio),
   )
   banosInstalados?: number[];
 

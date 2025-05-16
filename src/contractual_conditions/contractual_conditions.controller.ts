@@ -19,6 +19,8 @@ import {
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { Pagination } from 'src/common/interfaces/paginations.interface';
 import { CondicionesContractuales } from './entities/contractual_conditions.entity';
+import { Roles } from 'src/roles/decorators/roles.decorator';
+import { Role } from 'src/roles/enums/role.enum';
 
 @Controller('contractual_conditions')
 @UseGuards(JwtAuthGuard)
@@ -26,30 +28,34 @@ export class ContractualConditionsController {
   constructor(
     private readonly contractualConditionsService: ContractualConditionsService,
   ) {}
-
+  @Roles(Role.ADMIN)
   @Get()
   @HttpCode(HttpStatus.OK)
   async getAllContractualConditions(
-    @Query('page') page: number = 1,        // Recibe el número de página desde la URL
-    @Query('limit') limit: number = 10,     // Recibe el límite de registros por página desde la URL
+    @Query('page') page: number = 1, // Recibe el número de página desde la URL
+    @Query('limit') limit: number = 10, // Recibe el límite de registros por página desde la URL
   ): Promise<Pagination<CondicionesContractuales>> {
     try {
       // Llamamos al servicio pasando los parámetros de paginación
-      return await this.contractualConditionsService.getAllContractualConditions(page, limit);
+      return await this.contractualConditionsService.getAllContractualConditions(
+        page,
+        limit,
+      );
     } catch (error: unknown) {
       // Si ocurre un error, lo lanzamos con un mensaje adecuado
-      const message = error instanceof Error ? error.message : 'Unknown error occurred';
+      const message =
+        error instanceof Error ? error.message : 'Unknown error occurred';
       throw new HttpException(message, HttpStatus.BAD_REQUEST);
     }
   }
-  
+  @Roles(Role.ADMIN)
   @Get('id/:id')
   @HttpCode(HttpStatus.OK)
-  getContractualConditionById(
+  async getContractualConditionById(
     @Param('id', ParseIntPipe) contractualConditionId: number,
   ) {
     try {
-      return this.contractualConditionsService.getContractualConditionById(
+      return await this.contractualConditionsService.getContractualConditionById(
         contractualConditionId,
       );
     } catch (error: unknown) {
@@ -58,13 +64,15 @@ export class ContractualConditionsController {
       throw new HttpException(message, HttpStatus.BAD_REQUEST);
     }
   }
-  @Get('client-name/:clientName')
+
+  @Roles(Role.ADMIN)
+  @Get('client-id/:clientId')
   @HttpCode(HttpStatus.OK)
-  getContractualConditionsByClient(
-    @Param('clientName', ParseIntPipe) clientId: number,
+  async getContractualConditionsByClient(
+    @Param('clientId', ParseIntPipe) clientId: number,
   ) {
     try {
-      return this.contractualConditionsService.getContractualConditionsByClient(
+      return await this.contractualConditionsService.getContractualConditionsByClient(
         clientId,
       );
     } catch (error: unknown) {
@@ -73,13 +81,14 @@ export class ContractualConditionsController {
       throw new HttpException(message, HttpStatus.BAD_REQUEST);
     }
   }
+  @Roles(Role.ADMIN)
   @Post('create')
   @HttpCode(HttpStatus.OK)
-  createContractualCondition(
+  async createContractualCondition(
     @Body() createContractualConditionDto: CreateContractualConditionDto,
   ) {
     try {
-      return this.contractualConditionsService.createContractualCondition(
+      return await this.contractualConditionsService.createContractualCondition(
         createContractualConditionDto,
       );
     } catch (error: unknown) {
@@ -88,32 +97,36 @@ export class ContractualConditionsController {
       throw new HttpException(message, HttpStatus.BAD_REQUEST);
     }
   }
+  @Roles(Role.ADMIN)
   @Put('modify/:id')
   @HttpCode(HttpStatus.OK)
-  modifyContractualCondition(
+  async modifyContractualCondition(
     @Body() modifyContractualConditionDto: ModifyCondicionContractualDto,
     @Param('id', ParseIntPipe) id: number,
   ) {
     try {
-      return this.contractualConditionsService.modifyContractualCondition(
+      return await this.contractualConditionsService.modifyContractualCondition(
         modifyContractualConditionDto,
         id,
       );
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : 'Unknown error occurred';
-      throw new HttpException(message, HttpStatus.CREATED);
+      throw new HttpException(message, HttpStatus.BAD_REQUEST);
     }
   }
+  @Roles(Role.ADMIN)
   @Delete('delete/:id')
   @HttpCode(HttpStatus.OK)
-  deleteContractualCondition(@Param('id', ParseIntPipe) id: number) {
+  async deleteContractualCondition(@Param('id', ParseIntPipe) id: number) {
     try {
-      return this.contractualConditionsService.deleteContractualCondition(id);
+      return await this.contractualConditionsService.deleteContractualCondition(
+        id,
+      );
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : 'Unknown error occurred';
-      throw new HttpException(message, HttpStatus.NO_CONTENT);
+      throw new HttpException(message, HttpStatus.BAD_REQUEST);
     }
   }
 }

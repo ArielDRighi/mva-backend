@@ -7,7 +7,7 @@ import { UpdateToiletMaintenanceDto } from './dto/update_toilet_maintenance.dto'
 import { InjectRepository } from '@nestjs/typeorm';
 import { ToiletMaintenance } from './entities/toilet_maintenance.entity';
 import { ChemicalToilet } from '../chemical_toilets/entities/chemical_toilet.entity';
-import { Repository, Between } from 'typeorm';
+import { Repository, Between, MoreThan, Not } from 'typeorm';
 import { CreateToiletMaintenanceDto } from './dto/create_toilet_maintenance.dto';
 import { FilterToiletMaintenanceDto } from './dto/filter_toilet_maintenance.dto';
 import { ResourceState } from '../common/enums/resource-states.enum';
@@ -88,7 +88,6 @@ export class ToiletMaintenanceService {
 
     return maintenanceDates;
   }
-
   async create(
     createMaintenanceDto: CreateToiletMaintenanceDto,
   ): Promise<ToiletMaintenance> {
@@ -104,21 +103,51 @@ export class ToiletMaintenanceService {
     }
 
     // Verificar que el baño está disponible
-    if ((toilet.estado as ResourceState) !== ResourceState.DISPONIBLE) {
+    if (toilet.estado !== ResourceState.DISPONIBLE) {
       throw new BadRequestException(
         `El baño químico no está disponible para mantenimiento. Estado actual: ${toilet.estado}`,
       );
     }
 
-    // CAMBIO CLAVE: Solo cambiar estado si el mantenimiento es para hoy o antes
+    // Verificar la fecha del mantenimiento
     const now = new Date();
     now.setHours(0, 0, 0, 0); // Inicio del día actual
 
     const maintenanceDate = new Date(createMaintenanceDto.fecha_mantenimiento);
     maintenanceDate.setHours(0, 0, 0, 0); // Inicio del día de mantenimiento
 
-    if (maintenanceDate <= now) {
-      // El mantenimiento es para hoy o una fecha pasada, cambiar estado inmediatamente
+    // Verificar que la fecha no sea anterior a hoy
+    if (maintenanceDate < now) {
+      throw new BadRequestException(
+        `No se puede programar un mantenimiento para una fecha pasada. Fecha mínima: ${now.toISOString().split('T')[0]}`,
+      );
+    }
+
+    // 1. Verificar si ya existe un mantenimiento programado para este baño en la misma fecha
+    const hasSameDateMaintenance = await this.hasScheduledMaintenance(
+      createMaintenanceDto.baño_id,
+      maintenanceDate,
+    );
+
+    if (hasSameDateMaintenance) {
+      throw new BadRequestException(
+        `El baño ya tiene un mantenimiento programado para la fecha ${maintenanceDate.toISOString().split('T')[0]}`,
+      );
+    }
+
+    // 2. Verificar si existen CUALQUIER mantenimiento pendiente para este baño
+    const hasAnyPendingMaintenance = await this.hasAnyPendingMaintenances(
+      createMaintenanceDto.baño_id,
+    );
+
+    if (hasAnyPendingMaintenance) {
+      throw new BadRequestException(
+        `No se puede programar este mantenimiento porque el baño ya tiene mantenimientos programados para otras fechas. No se pueden programar múltiples mantenimientos para un mismo baño.`,
+      );
+    }
+
+    if (maintenanceDate.getTime() === now.getTime()) {
+      // El mantenimiento es para hoy, cambiar estado inmediatamente
       await this.chemicalToiletsService.update(toilet.baño_id, {
         estado: ResourceState.EN_MANTENIMIENTO,
       });
@@ -137,7 +166,6 @@ export class ToiletMaintenanceService {
 
     return await this.maintenanceRepository.save(maintenance);
   }
-
   // Método para completar un mantenimiento y devolver el baño a DISPONIBLE
   async completeMaintenace(id: number): Promise<ToiletMaintenance> {
     const maintenance = await this.findById(id);
@@ -153,7 +181,7 @@ export class ToiletMaintenanceService {
       });
 
       // Actualizar el estado del baño en el objeto en memoria también
-      maintenance.toilet.estado = ResourceState.DISPONIBLE.toString();
+      maintenance.toilet.estado = ResourceState.DISPONIBLE;
     } else {
       // Si maintenance.toilet no está cargado, hay que obtener la referencia al baño
       // Primero necesitamos obtener el ID del baño asociado a este mantenimiento
@@ -177,6 +205,23 @@ export class ToiletMaintenanceService {
     }
 
     return this.maintenanceRepository.save(maintenance);
+  }
+
+  // Verifica si hay mantenimientos existentes para un baño (cualquier fecha)
+  async hasAnyPendingMaintenances(banoId: number): Promise<boolean> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Buscar cualquier mantenimiento futuro no completado para este baño
+    const pendingMaintenanceCount = await this.maintenanceRepository.count({
+      where: {
+        toilet: { baño_id: banoId },
+        fecha_mantenimiento: MoreThan(today),
+        completado: false,
+      },
+    });
+
+    return pendingMaintenanceCount > 0;
   }
 
   // Verificar si un baño tiene mantenimiento programado para una fecha
@@ -266,11 +311,99 @@ export class ToiletMaintenanceService {
       maintenance.toilet = toilet;
     }
 
+    // Si se está actualizando la fecha, realizar validaciones adicionales
+    if (updateMaintenanceDto.fecha_mantenimiento) {
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+
+      const banoId = updateMaintenanceDto.baño_id || maintenance.toilet.baño_id;
+      await this.validateMaintenanceDateUpdate(
+        mantenimiento_id,
+        banoId,
+        new Date(updateMaintenanceDto.fecha_mantenimiento),
+        maintenance.completado,
+      );
+
+      // Si la fecha cambió al día actual, cambiar estado del baño a EN_MANTENIMIENTO
+      const newDate = new Date(updateMaintenanceDto.fecha_mantenimiento);
+      newDate.setHours(0, 0, 0, 0);
+      if (newDate.getTime() === now.getTime() && !maintenance.completado) {
+        await this.chemicalToiletsService.update(banoId, {
+          estado: ResourceState.EN_MANTENIMIENTO,
+        });
+      }
+    }
+
     // Usamos Object.assign para actualizar el mantenimiento con los nuevos datos
     Object.assign(maintenance, updateMaintenanceDto);
 
     // Guardamos el mantenimiento actualizado en la base de datos
     return await this.maintenanceRepository.save(maintenance);
+  }
+  // Método auxiliar para validar actualizaciones de fecha de mantenimiento
+  async validateMaintenanceDateUpdate(
+    mantenimiento_id: number,
+    banoId: number,
+    newDate: Date,
+    isCompleted: boolean,
+  ): Promise<void> {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0); // Inicio del día actual
+
+    const newMaintenanceDate = new Date(newDate);
+    newMaintenanceDate.setHours(0, 0, 0, 0); // Inicio del día de mantenimiento
+
+    // Verificar que la fecha no sea anterior a hoy
+    if (newMaintenanceDate < now) {
+      throw new BadRequestException(
+        `No se puede programar un mantenimiento para una fecha pasada. Fecha mínima: ${now.toISOString().split('T')[0]}`,
+      );
+    }
+
+    // Si el mantenimiento ya está completado, no permitir cambiar la fecha
+    if (isCompleted) {
+      throw new BadRequestException(
+        `No se puede modificar la fecha de un mantenimiento ya completado.`,
+      );
+    }
+
+    // 1. Verificar si ya existe un mantenimiento programado para este baño en la misma fecha
+    const startOfDay = new Date(newMaintenanceDate);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(newMaintenanceDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const hasSameDateMaintenance = await this.maintenanceRepository.count({
+      where: {
+        toilet: { baño_id: banoId },
+        fecha_mantenimiento: Between(startOfDay, endOfDay),
+        completado: false,
+        mantenimiento_id: Not(mantenimiento_id), // Excluir el mantenimiento actual
+      },
+    });
+
+    if (hasSameDateMaintenance > 0) {
+      throw new BadRequestException(
+        `El baño ya tiene un mantenimiento programado para la fecha ${newMaintenanceDate.toISOString().split('T')[0]}`,
+      );
+    }
+
+    // 2. Verificar si hay mantenimientos pendientes para este baño (excluyendo el actual)
+    const pendingMaintenanceCount = await this.maintenanceRepository.count({
+      where: {
+        toilet: { baño_id: banoId },
+        fecha_mantenimiento: MoreThan(now),
+        completado: false,
+        mantenimiento_id: Not(mantenimiento_id), // Excluir el mantenimiento actual
+      },
+    });
+
+    if (pendingMaintenanceCount > 0) {
+      throw new BadRequestException(
+        `No se puede programar este mantenimiento porque el baño ya tiene mantenimientos programados para otras fechas. No se pueden programar múltiples mantenimientos para un mismo baño.`,
+      );
+    }
   }
 
   async delete(mantenimiento_id: number): Promise<void> {

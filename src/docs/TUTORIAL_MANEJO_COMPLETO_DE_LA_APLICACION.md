@@ -12,6 +12,7 @@
    - 4.1 Gestión de Empleados
    - 4.2 Gestión de Vehículos
    - 4.3 Gestión de Baños Químicos
+   - 4.4 Gestión de Ropa de Trabajo
 5. Gestión de Mantenimientos
    - 5.1 Mantenimiento de Vehículos
    - 5.2 Mantenimiento de Baños Químicos
@@ -21,19 +22,33 @@
    - 7.2 Asignación Manual de Recursos
    - 7.3 Actualización del Estado de un Servicio
    - 7.4 Servicios para Baños Ya Instalados
-8. Flujos Administrativos Completos
-   - 8.1 Flujo de Instalación
-   - 8.2 Flujo de Mantenimiento Programado
-   - 8.3 Gestión de Imprevistos
-   - 8.4 Flujo de Retiro
-9. Gestión de Informes
-10. Resolución de Problemas Comunes
-11. Mejores Prácticas
-12. Programación de Agenda Extendida
-    - 12.1 Asignación Múltiple de Recursos
-    - 12.2 Cómo Utilizar esta Funcionalidad
-    - 12.3 Consideraciones Importantes
-    - 12.4 Ejemplos Prácticos
+8. Gestión de Personal
+   - 8.1 Licencias de Empleados
+   - 8.2 Sistema de Alertas de Licencias
+   - 8.3 Solicitudes de Adelanto de Sueldo
+9. Portal de Clientes
+   - 9.1 Gestión de Reclamos
+   - 9.2 Encuestas de Satisfacción
+   - 9.3 Solicitudes de Servicio
+10. Limpiezas Futuras
+    - 10.1 Programación de Limpiezas
+    - 10.2 Gestión de Limpiezas Programadas
+11. Flujos Administrativos Completos
+
+- 11.1 Flujo de Instalación
+- 11.2 Flujo de Mantenimiento Programado
+- 11.3 Gestión de Imprevistos
+- 11.4 Flujo de Retiro
+
+12. Gestión de Informes
+13. Servicio de Programación (Scheduler)
+14. Resolución de Problemas Comunes
+15. Mejores Prácticas
+16. Programación de Agenda Extendida
+    - 16.1 Asignación Múltiple de Recursos
+    - 16.2 Cómo Utilizar esta Funcionalidad
+    - 16.3 Consideraciones Importantes
+    - 16.4 Ejemplos Prácticos
 
 ## 1. Preparación del Entorno
 
@@ -74,7 +89,7 @@ Para arrancar con un conjunto mínimo de datos para pruebas, ejecutaremos el scr
 
 ```bash
 # Ejecutar script con ts-node
-npx ts-node src/scripts/seed-test-data.ts
+npm run seed:test-data
 ```
 
 Este script insertará:
@@ -113,7 +128,7 @@ Para comenzar a utilizar el sistema, necesitamos crear un usuario administrador 
 
 ```bash
 # Ejecutar script de creación de usuario administrador
-npx ts-node -r tsconfig-paths/register src/scripts/create-admin-standalone.ts
+npm run seed:admin
 ```
 
 El script mostrará un resultado similar a este:
@@ -345,6 +360,44 @@ Content-Type: application/json
 ```http
 GET /api/chemical_toilets/search?estado=DISPONIBLE
 Authorization: Bearer {{token}}
+```
+
+### 4.4 Gestión de Ropa de Trabajo
+
+#### Crear un nuevo registro de ropa de trabajo
+
+```http
+POST /api/clothing
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "empleadoId": 1,
+  "tipoRopa": "PANTALON",
+  "cantidad": 2,
+  "fechaEntrega": "2025-05-01T00:00:00.000Z",
+  "observaciones": "Pantalones de trabajo talle 42"
+}
+```
+
+#### Consultar entregas de ropa por empleado
+
+```http
+GET /api/clothing/employee/1
+Authorization: Bearer {{token}}
+```
+
+#### Actualizar un registro de ropa
+
+```http
+PUT /api/clothing/5
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "cantidad": 3,
+  "observaciones": "Pantalones de trabajo talle 42 - Se agregó uno adicional"
+}
 ```
 
 ## 5. Gestión de Mantenimientos
@@ -606,9 +659,341 @@ Content-Type: application/json
 }
 ```
 
-## 8. Flujos Administrativos Completos
+## 8. Gestión de Personal
 
-### 8.1 Flujo de Instalación
+### 8.1 Licencias de Empleados
+
+El sistema permite gestionar las licencias y ausencias de los empleados, permitiendo un mejor control de la planificación de recursos.
+
+#### Solicitar una licencia para un empleado
+
+```http
+POST /api/employee-leaves
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "empleadoId": 1,
+  "tipoLicencia": "VACACIONES",
+  "fechaInicio": "2025-07-01T00:00:00.000Z",
+  "fechaFin": "2025-07-15T00:00:00.000Z",
+  "descripcion": "Vacaciones anuales programadas",
+  "documentacionAdjunta": "https://storage.example.com/docs/certificado_vacaciones.pdf"
+}
+```
+
+#### Aprobar una solicitud de licencia
+
+```http
+PATCH /api/employee-leaves/1/aprobar
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "comentariosAprobacion": "Licencia aprobada según planificación anual"
+}
+```
+
+#### Rechazar una solicitud de licencia
+
+```http
+PATCH /api/employee-leaves/2/rechazar
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "comentariosRechazo": "No se puede aprobar por alta demanda de servicios en esas fechas"
+}
+```
+
+#### Consultar licencias de un empleado
+
+```http
+GET /api/employee-leaves/employee/1
+Authorization: Bearer {{token}}
+```
+
+#### Consultar licencias por período
+
+```http
+GET /api/employee-leaves/period?startDate=2025-06-01&endDate=2025-08-31
+Authorization: Bearer {{token}}
+```
+
+### 8.2 Sistema de Alertas de Licencias
+
+El módulo de alertas de licencias monitorea automáticamente los vencimientos de licencias de conducir de los empleados y envía notificaciones a los administradores.
+
+#### Consultar próximas licencias a vencer
+
+```http
+GET /api/employees/license-alerts?days=30
+Authorization: Bearer {{token}}
+```
+
+Este endpoint devuelve todos los empleados cuyas licencias de conducir vencen en los próximos 30 días.
+
+#### Actualizar fecha de vencimiento de licencia
+
+```http
+PATCH /api/employees/1/update-license
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "fechaVencimientoLicencia": "2026-05-01T00:00:00.000Z",
+  "tipoLicencia": "B"
+}
+```
+
+### 8.3 Solicitudes de Adelanto de Sueldo
+
+El sistema permite gestionar solicitudes de adelanto de sueldo por parte de los empleados.
+
+#### Crear una solicitud de adelanto
+
+```http
+POST /api/salary_advance
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "empleadoId": 2,
+  "monto": 15000,
+  "motivo": "Gastos médicos",
+  "fechaSolicitud": "2025-05-05T00:00:00.000Z",
+  "fechaPago": "2025-05-10T00:00:00.000Z"
+}
+```
+
+#### Aprobar una solicitud de adelanto
+
+```http
+PATCH /api/salary_advance/1/approve
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "comentariosAprobacion": "Aprobado según política de la empresa"
+}
+```
+
+#### Rechazar una solicitud de adelanto
+
+```http
+PATCH /api/salary_advance/2/reject
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "comentariosRechazo": "Excede el monto máximo permitido mensual"
+}
+```
+
+#### Consultar solicitudes por estado
+
+```http
+GET /api/salary_advance?estado=PENDIENTE
+Authorization: Bearer {{token}}
+```
+
+## 9. Portal de Clientes
+
+El Portal de Clientes proporciona una interfaz para que los clientes interactúen con MVA, permitiendo enviar encuestas de satisfacción, registrar reclamos y solicitar nuevos servicios.
+
+### 9.1 Gestión de Reclamos
+
+#### Crear un reclamo (acceso público)
+
+```http
+POST /api/clients_portal/claims
+Content-Type: application/json
+
+{
+  "cliente": "Constructora ABC",
+  "titulo": "Baño químico en mal estado",
+  "descripcion": "El baño químico ubicado en la zona norte de la obra presenta pérdidas desde hace tres días.",
+  "tipoReclamo": "MANTENIMIENTO",
+  "prioridad": "ALTA",
+  "fechaIncidente": "2025-05-05T10:00:00.000Z",
+  "adjuntoUrls": ["https://storage.example.com/images/foto1.jpg"],
+  "esUrgente": true,
+  "requiereCompensacion": false
+}
+```
+
+#### Obtener todos los reclamos (solo administradores y supervisores)
+
+```http
+GET /api/clients_portal/claims
+Authorization: Bearer {{token}}
+```
+
+#### Actualizar estado de un reclamo
+
+```http
+PATCH /api/clients_portal/claims/1/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "estado": "EN_PROCESO",
+  "comentarios": "Se ha asignado un técnico para revisión del problema"
+}
+```
+
+### 9.2 Encuestas de Satisfacción
+
+#### Enviar una encuesta de satisfacción (acceso público)
+
+```http
+POST /api/clients_portal/surveys
+Content-Type: application/json
+
+{
+  "nombreCliente": "Constructora ABC",
+  "emailContacto": "cliente@constructoraabc.com",
+  "servicioRealizado": "INSTALACION",
+  "fechaServicio": "2025-05-01T00:00:00.000Z",
+  "calificacionGeneral": 4,
+  "puntualidad": 5,
+  "calidadServicio": 4,
+  "atencionPersonal": 5,
+  "comentarios": "Buen servicio en general, pero uno de los baños tenía problemas con el dispensador de papel."
+}
+```
+
+#### Obtener todas las encuestas
+
+```http
+GET /api/clients_portal/surveys
+Authorization: Bearer {{token}}
+```
+
+#### Obtener estadísticas de satisfacción
+
+```http
+GET /api/clients_portal/surveys/stats
+Authorization: Bearer {{token}}
+```
+
+### 9.3 Solicitudes de Servicio
+
+#### Solicitar un nuevo servicio (acceso público)
+
+```http
+POST /api/clients_portal/service-requests
+Content-Type: application/json
+
+{
+  "nombreEmpresa": "Eventos Corporativos XYZ",
+  "nombreContacto": "Carlos Gómez",
+  "telefonoContacto": "11-5678-9012",
+  "emailContacto": "carlos@eventosxyz.com",
+  "tipoServicio": "INSTALACION",
+  "cantidadBanos": 5,
+  "ubicacion": "Parque Industrial Norte, Galpón 8",
+  "fechaDeseada": "2025-06-10T08:00:00.000Z",
+  "duracionEstimada": 7,
+  "detallesAdicionales": "Evento corporativo para 300 personas, se requiere incluir un baño para personas con movilidad reducida"
+}
+```
+
+#### Obtener todas las solicitudes de servicio
+
+```http
+GET /api/clients_portal/service-requests
+Authorization: Bearer {{token}}
+```
+
+#### Convertir solicitud en servicio programado
+
+```http
+POST /api/clients_portal/service-requests/1/convert
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "clienteId": 5,
+  "fechaProgramada": "2025-06-10T08:00:00.000Z",
+  "cantidadBanos": 5,
+  "cantidadEmpleados": 2,
+  "cantidadVehiculos": 1,
+  "condicionContractualId": 8
+}
+```
+
+## 10. Limpiezas Futuras
+
+El módulo de Limpiezas Futuras permite programar y gestionar las limpiezas programadas de baños químicos para clientes específicos.
+
+### 10.1 Programación de Limpiezas
+
+#### Crear una nueva limpieza futura
+
+```http
+POST /api/future_cleanings
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "clientId": 5,
+  "fecha_de_limpieza": "2025-05-15T09:00:00.000Z",
+  "isActive": true,
+  "servicioId": 8
+}
+```
+
+#### Obtener todas las limpiezas futuras
+
+```http
+GET /api/future_cleanings
+Authorization: Bearer {{token}}
+```
+
+### 10.2 Gestión de Limpiezas Programadas
+
+#### Modificar estado de una limpieza futura
+
+```http
+PUT /api/future_cleanings/modify/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "isActive": false
+}
+```
+
+#### Eliminar una limpieza futura
+
+```http
+DELETE /api/future_cleanings/delete/1
+Authorization: Bearer {{token}}
+```
+
+#### Programación de múltiples limpiezas para un servicio recurrente
+
+Para un cliente con un contrato de mantenimiento semanal, se pueden programar múltiples limpiezas futuras con fechas escalonadas:
+
+```http
+POST /api/future_cleanings
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "clientId": 5,
+  "fecha_de_limpieza": "2025-05-15T09:00:00.000Z",
+  "isActive": true,
+  "servicioId": 8
+}
+```
+
+Repetir este proceso para cada fecha de limpieza (22/05/2025, 29/05/2025, etc.)
+
+## 11. Flujos Administrativos Completos
+
+### 11.1 Flujo de Instalación
 
 Paso a paso para completar una instalación de baños químicos:
 
@@ -747,7 +1132,7 @@ Content-Type: application/json
 }
 ```
 
-### 8.2 Flujo de Mantenimiento Programado
+### 11.2 Flujo de Mantenimiento Programado
 
 Paso a paso para gestionar el mantenimiento programado de recursos:
 
@@ -805,7 +1190,7 @@ PATCH /api/vehicle_maintenance/3/complete
 Authorization: Bearer {{token}}
 ```
 
-### 8.3 Gestión de Imprevistos
+### 11.3 Gestión de Imprevistos
 
 Pasos para manejar situaciones imprevistas:
 
@@ -889,7 +1274,7 @@ Pasos para manejar situaciones imprevistas:
    }
    ```
 
-### 8.4 Flujo de Retiro
+### 11.4 Flujo de Retiro
 
 Este flujo corresponde a la finalización de un contrato y el retiro de los baños instalados en el cliente.
 
@@ -954,7 +1339,7 @@ Authorization: Bearer {{token}}
 
 > **Nota**: Al completar un servicio de RETIRO, el sistema cambia automáticamente el estado de los baños retirados de ASIGNADO a EN_MANTENIMIENTO para su limpieza y acondicionamiento antes de volver a estar disponibles.
 
-## 9. Gestión de Informes
+## 12. Gestión de Informes
 
 ### Generar reportes de servicios por cliente
 
@@ -984,7 +1369,43 @@ GET /api/activity-logs?userId=2&startDate=2025-01-01T00:00:00.000Z&endDate=2025-
 Authorization: Bearer {{token}}
 ```
 
-## 10. Resolución de Problemas Comunes
+## 13. Servicio de Programación (Scheduler)
+
+El sistema incluye un servicio de programación que automatiza varias tareas críticas:
+
+### Cambio automático de estados en mantenimientos programados
+
+El scheduler se encarga de:
+
+- Cambiar automáticamente el estado de vehículos y baños cuando llega la fecha de un mantenimiento programado
+- Actualizar estados al completarse un mantenimiento
+- Enviar notificaciones cuando un recurso entra en mantenimiento
+
+### Alerta de vencimientos de licencias
+
+El scheduler monitorea:
+
+- Fechas de vencimiento de licencias de conducir
+- Genera alertas automáticas cuando una licencia está próxima a vencer
+- Envía correos a los administradores como recordatorio
+
+### Programación de limpiezas futuras
+
+El scheduler gestiona:
+
+- Conversión automática de limpiezas futuras a servicios programados cuando llega la fecha
+- Actualización de estados de limpiezas completadas
+- Gestión de la secuencia de limpiezas programadas para un mismo cliente
+
+### Configuración del Scheduler
+
+El servicio de programación se ejecuta en segundo plano y puede configurarse en el archivo `src/scheduler/scheduler.service.ts`. Las principales configuraciones incluyen:
+
+- Frecuencia de ejecución de las verificaciones
+- Umbrales de alerta (días antes del vencimiento)
+- Destinatarios de notificaciones
+
+## 14. Resolución de Problemas Comunes
 
 ### Problemas de autenticación
 
@@ -1117,7 +1538,7 @@ Si experimentas problemas al crear o actualizar usuarios:
    - Los roles válidos son: ADMIN, SUPERVISOR, OPERARIO
    - Solo un ADMIN puede asignar el rol ADMIN
 
-## 11. Mejores Prácticas
+## 15. Mejores Prácticas
 
 ### Seguridad y Autenticación
 
@@ -1154,9 +1575,9 @@ Si experimentas problemas al crear o actualizar usuarios:
 4. **Utilizar el endpoint /api/chemical_toilets/by-client/{clientId}** para obtener la lista de baños ya instalados en un cliente.
 5. **Vincular los servicios de instalación con las condiciones contractuales** para gestionar correctamente la duración del alquiler.
 
-## 12. Programación de Agenda Extendida
+## 16. Programación de Agenda Extendida
 
-### 12.1 Asignación Múltiple de Recursos
+### 16.1 Asignación Múltiple de Recursos
 
 A partir de ahora, el sistema permite asignar empleados y vehículos que tengan el estado "ASIGNADO" a múltiples servicios programados para la misma fecha o para fechas futuras. Esta funcionalidad facilita la planificación de agendas extendidas.
 
@@ -1177,7 +1598,7 @@ Esta funcionalidad es especialmente útil para:
 2. **Optimización de recursos**: Maximizar la utilización de los recursos disponibles.
 3. **Agendamiento secuencial**: Programar con anticipación una serie de servicios que utilizarán los mismos recursos.
 
-### 12.2 Cómo Utilizar esta Funcionalidad
+### 16.2 Cómo Utilizar esta Funcionalidad
 
 #### Asignación Manual de Recursos
 
@@ -1220,14 +1641,14 @@ Para verificar qué recursos están disponibles para una fecha específica:
 2. Filtre por estado "DISPONIBLE" o "ASIGNADO" para empleados y vehículos.
 3. Filtre por estado "DISPONIBLE" para baños químicos (o "ASIGNADO" si se trata de un servicio de baños ya instalados).
 
-### 12.3 Consideraciones Importantes
+### 16.3 Consideraciones Importantes
 
 - El sistema no considera las horas de los servicios, solo las fechas, por lo que debe planificar adecuadamente para evitar conflictos de horarios.
 - Cuando un servicio se completa o cancela, los recursos asociados se liberan (cambian a "DISPONIBLE") solo si no están asignados a otros servicios activos.
 - Los mantenimientos programados para vehículos y baños químicos son respetados, independientemente del estado actual del recurso.
 - Los baños permanecen en estado ASIGNADO después de completar un servicio de instalación, hasta que se realiza un servicio de RETIRO o hasta que finaliza el contrato asociado.
 
-### 12.4 Ejemplos Prácticos
+### 16.4 Ejemplos Prácticos
 
 #### Ejemplo 1: Creación de múltiples servicios para la misma fecha con los mismos recursos
 

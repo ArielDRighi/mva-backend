@@ -23,8 +23,26 @@ export class Cliente {
   @Column({ name: 'telefono' })
   telefono: string;
 
+  // Contacto principal
   @Column({ name: 'contacto_principal' })
   contacto_principal: string;
+
+  @Column({ name: 'contacto_principal_telefono', nullable: true })
+  contacto_principal_telefono?: string;
+
+  // Contacto obra 1
+  @Column({ name: 'contacto_obra1', nullable: true })
+  contactoObra1?: string;
+
+  @Column({ name: 'contacto_obra1_telefono', nullable: true })
+  contacto_obra1_telefono?: string;
+
+  // Contacto obra 2
+  @Column({ name: 'contacto_obra2', nullable: true })
+  contactoObra2?: string;
+
+  @Column({ name: 'contacto_obra2_telefono', nullable: true })
+  contacto_obra2_telefono?: string;
 
   @Column({
     name: 'fecha_registro',
@@ -45,3 +63,4 @@ export class Cliente {
   @OneToMany(() => FuturasLimpiezas, (futuraLimpieza) => futuraLimpieza.cliente)
   futurasLimpiezas: FuturasLimpiezas[];
 }
+

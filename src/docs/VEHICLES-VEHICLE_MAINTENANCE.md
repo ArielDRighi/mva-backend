@@ -60,19 +60,27 @@ Content-Type: application/json
   "marca": "Toyota",
   "modelo": "Hilux",
   "anio": 2023,
-  "capacidadCarga": 1200,
+  "tipoCabina": "doble",
+  "numeroInterno": "VH-001",
+  "fechaVencimientoVTV": "2026-05-15",
+  "fechaVencimientoSeguro": "2026-01-10",
+  "esExterno": false,
   "estado": "DISPONIBLE"
 }
 ```
 
-| Campo          | Tipo   | Requerido | Descripción                                         |
-| -------------- | ------ | --------- | --------------------------------------------------- |
-| placa          | string | Sí        | Matrícula del vehículo, debe ser única              |
-| marca          | string | Sí        | Marca del vehículo                                  |
-| modelo         | string | Sí        | Modelo del vehículo                                 |
-| anio           | number | Sí        | Año de fabricación (mínimo 1900)                    |
-| capacidadCarga | number | Sí        | Capacidad de carga en kg (mínimo 0)                 |
-| estado         | string | No        | Estado inicial del vehículo (default: "DISPONIBLE") |
+| Campo                  | Tipo    | Requerido | Descripción                                                |
+| ---------------------- | ------- | --------- | ---------------------------------------------------------- |
+| placa                  | string  | Sí        | Matrícula del vehículo, debe ser única                     |
+| marca                  | string  | Sí        | Marca del vehículo                                         |
+| modelo                 | string  | Sí        | Modelo del vehículo                                        |
+| anio                   | number  | Sí        | Año de fabricación (mínimo 1900)                           |
+| tipoCabina             | string  | No        | Tipo de cabina: "simple" o "doble" (por defecto: "simple") |
+| numeroInterno          | string  | No        | Número interno asignado al vehículo                        |
+| fechaVencimientoVTV    | string  | No        | Fecha de vencimiento de la VTV (formato: YYYY-MM-DD)       |
+| fechaVencimientoSeguro | string  | No        | Fecha de vencimiento del seguro (formato: YYYY-MM-DD)      |
+| esExterno              | boolean | No        | Indica si el vehículo es externo (por defecto: false)      |
+| estado                 | string  | No        | Estado inicial del vehículo (por defecto: "DISPONIBLE")    |
 
 **Respuesta Exitosa (201 Created):**
 
@@ -83,53 +91,78 @@ Content-Type: application/json
   "marca": "Toyota",
   "modelo": "Hilux",
   "anio": 2023,
-  "capacidadCarga": "1200.00",
+  "tipoCabina": "doble",
+  "numeroInterno": "VH-001",
+  "fechaVencimientoVTV": "2026-05-15",
+  "fechaVencimientoSeguro": "2026-01-10",
+  "esExterno": false,
   "estado": "DISPONIBLE",
   "maintenanceRecords": []
 }
 ```
 
-### 2. Obtener Todos los Vehículos
+## 2. Obtener Vehículos
 
-**Endpoint:** `GET /api/vehicles`  
-**Roles permitidos:** Todos los usuarios autenticados
+**Endpoint: GET /api/vehicles**
+**Roles permitidos: Todos los usuarios autenticados**
+**Descripción: Recupera todos los vehículos registrados en el sistema. Permite filtrar por estado y realizar paginación.**
 
 **Parámetros de consulta opcionales:**
 
-| Parámetro | Tipo   | Descripción                                                                          |
-| --------- | ------ | ------------------------------------------------------------------------------------ |
-| estado    | string | Filtrar por estado (DISPONIBLE, ASIGNADO, EN_MANTENIMIENTO, FUERA_DE_SERVICIO, BAJA) |
+| Parámetro | Tipo   | Descripción                                                                   |
+| --------- | ------ | ----------------------------------------------------------------------------- |
+| search    | string | Búsqueda parcial por estado del vehículo (no distingue mayúsculas/minúsculas) |
+| page      | number | Número de página a recuperar (por defecto: 1)                                 |
+| limit     | number | Cantidad de resultados por página (por defecto: 10)                           |
+
+El parámetro search filtra vehículos según el valor del campo estado, que puede ser:
+DISPONIBLE, ASIGNADO, EN_MANTENIMIENTO, FUERA_DE_SERVICIO o BAJA.
 
 **Ejemplos:**
 
 ```
 GET /api/vehicles
-GET /api/vehicles?estado=DISPONIBLE
+GET /api/vehicles?search=disponible
+GET /api/vehicles?search=baja&page=2&limit=5
 ```
 
 **Respuesta Exitosa (200 OK):**
 
 ```json
-[
-  {
-    "id": 1,
-    "placa": "AA123BB",
-    "marca": "Ford",
-    "modelo": "F-100",
-    "anio": 2020,
-    "capacidadCarga": "1500.00",
-    "estado": "DISPONIBLE"
-  },
-  {
-    "id": 2,
-    "placa": "AC456DD",
-    "marca": "Chevrolet",
-    "modelo": "S10",
-    "anio": 2021,
-    "capacidadCarga": "1200.00",
-    "estado": "ASIGNADO"
-  }
-]
+{
+  "data": [
+    {
+      "id": 1,
+      "placa": "AA123BB",
+      "marca": "Ford",
+      "modelo": "F-100",
+      "anio": 2020,
+      "tipoCabina": "SIMPLE",
+      "numeroInterno": "VH-001",
+      "fechaVencimientoVTV": "2026-03-15",
+      "fechaVencimientoSeguro": "2026-05-20",
+      "esExterno": false,
+      "estado": "DISPONIBLE"
+    },
+    {
+      "id": 2,
+      "placa": "AC456DD",
+      "marca": "Chevrolet",
+      "modelo": "S10",
+      "anio": 2021,
+      "tipoCabina": "DOBLE",
+      "numeroInterno": "VH-002",
+      "fechaVencimientoVTV": "2026-04-10",
+      "fechaVencimientoSeguro": "2026-06-05",
+      "esExterno": false,
+      "estado": "ASIGNADO"
+    }
+    // Más vehículos...
+  ],
+  "totalItems": 12,
+  "currentPage": 1,
+  "totalPages": 2
+}
 ```
 
 ### 3. Obtener un Vehículo Específico
@@ -152,7 +185,11 @@ GET /api/vehicles/1
   "marca": "Ford",
   "modelo": "F-100",
   "anio": 2020,
-  "capacidadCarga": "1500.00",
+  "tipoCabina": "SIMPLE",
+  "numeroInterno": "VH-001",
+  "fechaVencimientoVTV": "2026-03-15",
+  "fechaVencimientoSeguro": "2026-05-20",
+  "esExterno": false,
   "estado": "DISPONIBLE",
   "maintenanceRecords": [
     {
@@ -190,7 +227,11 @@ GET /api/vehicles/placa/AA123BB
   "marca": "Ford",
   "modelo": "F-100",
   "anio": 2020,
-  "capacidadCarga": "1500.00",
+  "tipoCabina": "SIMPLE",
+  "numeroInterno": "VH-001",
+  "fechaVencimientoVTV": "2026-03-15",
+  "fechaVencimientoSeguro": "2026-05-20",
+  "esExterno": false,
   "estado": "DISPONIBLE"
 }
 ```
@@ -206,7 +247,10 @@ GET /api/vehicles/placa/AA123BB
 {
   "marca": "Ford",
   "modelo": "F-150",
-  "capacidadCarga": 1600
+  "tipoCabina": "DOBLE",
+  "numeroInterno": "VH-001-A",
+  "fechaVencimientoVTV": "2026-06-20",
+  "fechaVencimientoSeguro": "2026-07-15"
 }
 ```
 
@@ -221,7 +265,11 @@ Todos los campos son opcionales. Solo se actualizan los campos incluidos en la s
   "marca": "Ford",
   "modelo": "F-150",
   "anio": 2020,
-  "capacidadCarga": "1600.00",
+  "tipoCabina": "DOBLE",
+  "numeroInterno": "VH-001-A",
+  "fechaVencimientoVTV": "2026-06-20",
+  "fechaVencimientoSeguro": "2026-07-15",
+  "esExterno": false,
   "estado": "DISPONIBLE"
 }
 ```
@@ -256,7 +304,11 @@ Todos los campos son opcionales. Solo se actualizan los campos incluidos en la s
   "marca": "Ford",
   "modelo": "F-100",
   "anio": 2020,
-  "capacidadCarga": "1500.00",
+  "tipoCabina": "SIMPLE",
+  "numeroInterno": "VH-001",
+  "fechaVencimientoVTV": "2026-03-15",
+  "fechaVencimientoSeguro": "2026-05-20",
+  "esExterno": false,
   "estado": "FUERA_DE_SERVICIO"
 }
 ```
@@ -289,46 +341,35 @@ DELETE /api/vehicles/1
   "fechaMantenimiento": "2025-06-15T10:00:00.000Z",
   "tipoMantenimiento": "Preventivo",
   "descripcion": "Cambio de aceite y filtros",
-  "costo": 15000,
-  "proximoMantenimiento": "2025-09-15T10:00:00.000Z"
+  "costo": 15000.5,
+  "proximoMantenimiento": "2025-09-15"
 }
 ```
 
-| Campo                | Tipo               | Requerido | Descripción                                          |
-| -------------------- | ------------------ | --------- | ---------------------------------------------------- |
-| vehiculoId           | number             | Sí        | ID del vehículo a mantener                           |
-| fechaMantenimiento   | string (fecha ISO) | Sí        | Fecha y hora del mantenimiento                       |
-| tipoMantenimiento    | string             | Sí        | Tipo de mantenimiento (Preventivo, Correctivo, etc.) |
-| descripcion          | string             | No        | Descripción detallada del mantenimiento              |
-| costo                | number             | Sí        | Costo estimado del mantenimiento                     |
-| proximoMantenimiento | string (fecha ISO) | No        | Fecha recomendada para el próximo mantenimiento      |
+| Campo                | Tipo   | Requerido | Descripción                                           |
+| -------------------- | ------ | --------- | ----------------------------------------------------- |
+| vehiculoId           | number | Sí        | ID del vehículo                                       |
+| fechaMantenimiento   | string | Sí        | Fecha y hora programada (formato ISO)                 |
+| tipoMantenimiento    | string | Sí        | Tipo de mantenimiento (Preventivo, Correctivo, etc.)  |
+| descripcion          | string | Sí        | Descripción del mantenimiento                         |
+| costo                | number | No        | Costo estimado del mantenimiento                      |
+| proximoMantenimiento | string | No        | Fecha estimada del próximo mantenimiento (YYYY-MM-DD) |
 
 **Respuesta Exitosa (201 Created):**
 
 ```json
 {
-  "id": 5,
+  "id": 3,
   "vehiculoId": 1,
   "fechaMantenimiento": "2025-06-15T10:00:00.000Z",
   "tipoMantenimiento": "Preventivo",
   "descripcion": "Cambio de aceite y filtros",
-  "costo": "15000.00",
+  "costo": "15000.50",
   "proximoMantenimiento": "2025-09-15",
-  "vehicle": {
-    "id": 1,
-    "placa": "AA123BB",
-    "marca": "Ford",
-    "modelo": "F-100",
-    "anio": 2020,
-    "capacidadCarga": "1500.00",
-    "estado": "DISPONIBLE"
-  },
   "completado": false,
   "fechaCompletado": null
 }
 ```
-
-**Nota:** Si el mantenimiento se programa para la fecha actual o una fecha pasada, el estado del vehículo cambiará automáticamente a "EN_MANTENIMIENTO". Si se programa para una fecha futura, el vehículo permanecerá en su estado actual.
 
 ### 2. Completar Mantenimiento
 
@@ -338,31 +379,22 @@ DELETE /api/vehicles/1
 **Ejemplo:**
 
 ```
-PATCH /api/vehicle_maintenance/5/complete
+PATCH /api/vehicle_maintenance/3/complete
 ```
 
 **Respuesta Exitosa (200 OK):**
 
 ```json
 {
-  "id": 5,
+  "id": 3,
   "vehiculoId": 1,
   "fechaMantenimiento": "2025-06-15T10:00:00.000Z",
   "tipoMantenimiento": "Preventivo",
   "descripcion": "Cambio de aceite y filtros",
-  "costo": "15000.00",
+  "costo": "15000.50",
   "proximoMantenimiento": "2025-09-15",
-  "vehicle": {
-    "id": 1,
-    "placa": "AA123BB",
-    "marca": "Ford",
-    "modelo": "F-100",
-    "anio": 2020,
-    "capacidadCarga": "1500.00",
-    "estado": "DISPONIBLE"
-  },
   "completado": true,
-  "fechaCompletado": "2025-06-15T15:30:00.000Z"
+  "fechaCompletado": "2025-06-15T14:30:00.000Z"
 }
 ```
 
@@ -371,34 +403,128 @@ PATCH /api/vehicle_maintenance/5/complete
 **Endpoint:** `GET /api/vehicle_maintenance/upcoming`  
 **Roles permitidos:** Todos los usuarios autenticados
 
+**Ejemplo:**
+
+```
+GET /api/vehicle_maintenance/upcoming
+```
+
 **Respuesta Exitosa (200 OK):**
 
 ```json
 [
   {
-    "id": 6,
+    "id": 4,
     "vehiculoId": 2,
-    "fechaMantenimiento": "2025-07-20T10:00:00.000Z",
+    "fechaMantenimiento": "2025-06-20T09:00:00.000Z",
     "tipoMantenimiento": "Preventivo",
     "descripcion": "Revisión general",
-    "costo": "10000.00",
-    "proximoMantenimiento": "2025-10-20",
-    "vehicle": {
+    "costo": "8000.00",
+    "proximoMantenimiento": "2025-09-20",
+    "completado": false,
+    "fechaCompletado": null,
+    "vehiculo": {
       "id": 2,
       "placa": "AC456DD",
       "marca": "Chevrolet",
-      "modelo": "S10",
-      "anio": 2021,
-      "capacidadCarga": "1200.00",
-      "estado": "ASIGNADO"
-    },
+      "modelo": "S10"
+    }
+  },
+  {
+    "id": 5,
+    "vehiculoId": 3,
+    "fechaMantenimiento": "2025-06-22T11:00:00.000Z",
+    "tipoMantenimiento": "Correctivo",
+    "descripcion": "Reparación de frenos",
+    "costo": "12500.00",
+    "proximoMantenimiento": null,
     "completado": false,
-    "fechaCompletado": null
+    "fechaCompletado": null,
+    "vehiculo": {
+      "id": 3,
+      "placa": "DE789FF",
+      "marca": "Toyota",
+      "modelo": "Hilux"
+    }
   }
 ]
 ```
 
-### 4. Ver Historial de Mantenimiento
+### 4. Ver Todos los Mantenimientos
+
+**Endpoint:** `GET /api/vehicle_maintenance`  
+**Roles permitidos:** Todos los usuarios autenticados
+
+**Ejemplo:**
+
+```
+GET /api/vehicle_maintenance
+```
+
+**Respuesta Exitosa (200 OK):**
+
+```json
+[
+  {
+    "id": 1,
+    "vehiculoId": 1,
+    "fechaMantenimiento": "2025-02-15T10:00:00.000Z",
+    "tipoMantenimiento": "Preventivo",
+    "descripcion": "Cambio de aceite y filtros",
+    "costo": "12000.00",
+    "proximoMantenimiento": "2025-05-15",
+    "completado": true,
+    "fechaCompletado": "2025-02-15T15:30:00.000Z"
+  },
+  {
+    "id": 2,
+    "vehiculoId": 1,
+    "fechaMantenimiento": "2025-05-15T11:00:00.000Z",
+    "tipoMantenimiento": "Preventivo",
+    "descripcion": "Cambio de correas",
+    "costo": "9500.00",
+    "proximoMantenimiento": "2025-08-15",
+    "completado": true,
+    "fechaCompletado": "2025-05-15T14:45:00.000Z"
+  }
+  // Más registros...
+]
+```
+
+### 5. Ver Mantenimiento Específico
+
+**Endpoint:** `GET /api/vehicle_maintenance/{id}`  
+**Roles permitidos:** Todos los usuarios autenticados
+
+**Ejemplo:**
+
+```
+GET /api/vehicle_maintenance/1
+```
+
+**Respuesta Exitosa (200 OK):**
+
+```json
+{
+  "id": 1,
+  "vehiculoId": 1,
+  "fechaMantenimiento": "2025-02-15T10:00:00.000Z",
+  "tipoMantenimiento": "Preventivo",
+  "descripcion": "Cambio de aceite y filtros",
+  "costo": "12000.00",
+  "proximoMantenimiento": "2025-05-15",
+  "completado": true,
+  "fechaCompletado": "2025-02-15T15:30:00.000Z",
+  "vehiculo": {
+    "id": 1,
+    "placa": "AA123BB",
+    "marca": "Ford",
+    "modelo": "F-100"
+  }
+}
+```
+
+### 6. Ver Mantenimientos por Vehículo
 
 **Endpoint:** `GET /api/vehicle_maintenance/vehiculo/{id}`  
 **Roles permitidos:** Todos los usuarios autenticados
@@ -421,40 +547,69 @@ GET /api/vehicle_maintenance/vehiculo/1
     "descripcion": "Cambio de aceite y filtros",
     "costo": "12000.00",
     "proximoMantenimiento": "2025-05-15",
-    "vehicle": {
-      "id": 1,
-      "placa": "AA123BB",
-      "marca": "Ford",
-      "modelo": "F-100",
-      "anio": 2020,
-      "capacidadCarga": "1500.00",
-      "estado": "DISPONIBLE"
-    },
     "completado": true,
     "fechaCompletado": "2025-02-15T15:30:00.000Z"
   },
   {
-    "id": 5,
+    "id": 2,
     "vehiculoId": 1,
-    "fechaMantenimiento": "2025-06-15T10:00:00.000Z",
+    "fechaMantenimiento": "2025-05-15T11:00:00.000Z",
     "tipoMantenimiento": "Preventivo",
-    "descripcion": "Cambio de aceite y filtros",
-    "costo": "15000.00",
-    "proximoMantenimiento": "2025-09-15",
-    "vehicle": {
-      "id": 1,
-      "placa": "AA123BB",
-      "marca": "Ford",
-      "modelo": "F-100",
-      "anio": 2020,
-      "capacidadCarga": "1500.00",
-      "estado": "DISPONIBLE"
-    },
+    "descripcion": "Cambio de correas",
+    "costo": "9500.00",
+    "proximoMantenimiento": "2025-08-15",
     "completado": true,
-    "fechaCompletado": "2025-06-15T15:30:00.000Z"
+    "fechaCompletado": "2025-05-15T14:45:00.000Z"
   }
 ]
 ```
+
+### 7. Actualizar Mantenimiento
+
+**Endpoint:** `PUT /api/vehicle_maintenance/{id}`  
+**Roles permitidos:** ADMIN, SUPERVISOR
+
+**Request Body:**
+
+```json
+{
+  "fechaMantenimiento": "2025-06-18T14:00:00.000Z",
+  "tipoMantenimiento": "Preventivo Completo",
+  "descripcion": "Cambio de aceite, filtros y revisión de frenos",
+  "costo": 18000.75
+}
+```
+
+Todos los campos son opcionales. Solo se actualizan los campos incluidos en la solicitud.
+
+**Respuesta Exitosa (200 OK):**
+
+```json
+{
+  "id": 3,
+  "vehiculoId": 1,
+  "fechaMantenimiento": "2025-06-18T14:00:00.000Z",
+  "tipoMantenimiento": "Preventivo Completo",
+  "descripcion": "Cambio de aceite, filtros y revisión de frenos",
+  "costo": "18000.75",
+  "proximoMantenimiento": "2025-09-15",
+  "completado": false,
+  "fechaCompletado": null
+}
+```
+
+### 8. Eliminar Mantenimiento
+
+**Endpoint:** `DELETE /api/vehicle_maintenance/{id}`  
+**Roles permitidos:** ADMIN
+
+**Ejemplo:**
+
+```
+DELETE /api/vehicle_maintenance/6
+```
+
+**Respuesta Exitosa (204 No Content)**
 
 ## Estados de Vehículos
 
@@ -513,7 +668,11 @@ Los vehículos pueden tener los siguientes estados:
      "marca": "Toyota",
      "modelo": "Hilux",
      "anio": 2023,
-     "capacidadCarga": 1200
+     "tipoCabina": "DOBLE",
+     "numeroInterno": "VH-010",
+     "fechaVencimientoVTV": "2026-05-15",
+     "fechaVencimientoSeguro": "2026-01-10",
+     "esExterno": false
    }
    ```
 
@@ -554,7 +713,7 @@ Los vehículos pueden tener los siguientes estados:
 1. **Obtener todos los vehículos disponibles**
 
    ```
-   GET /api/vehicles?estado=DISPONIBLE
+   GET /api/vehicles?search=DISPONIBLE
    ```
 
 2. **Verificar próximos mantenimientos programados**
@@ -569,11 +728,11 @@ Los vehículos pueden tener los siguientes estados:
    GET /api/vehicle_maintenance/vehiculo/1
    ```
 
-4. **Actualizar capacidad de carga de un vehículo**
+4. **Actualizar tipo de cabina de un vehículo**
    ```
    PUT /api/vehicles/1
    {
-     "capacidadCarga": 1600
+     "tipoCabina": "DOBLE"
    }
    ```
 

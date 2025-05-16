@@ -5,6 +5,7 @@ import { User } from 'src/users/entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ArrayContains, Repository } from 'typeorm';
 import { generateEmailContent } from './utils/mailer.utils';
+import { Licencias } from 'src/employees/entities/license.entity';
 
 // Definición de interfaces para mejorar el tipado
 interface MailOptions {
@@ -575,7 +576,6 @@ export class MailerService {
       body,
     );
 
-    
     // Usamos array como destino para ser consistentes
     const mailOptions: MailOptions = {
       from: process.env.EMAIL_USER || 'notificacion@mva.com',
@@ -604,7 +604,7 @@ export class MailerService {
       dateStyle: 'long',
       timeStyle: 'short',
     });
-  
+
     const body = `
       <p>Hola ${name}👋,</p>
       <p>Te informamos que en el día de la fecha (<strong>${currentDate}</strong>) realizaste una modificación de contraseña en tu cuenta.</p>
@@ -613,22 +613,227 @@ export class MailerService {
       <p>Si no realizaste esta acción, comunícate de inmediato con nuestro equipo de soporte.</p>
       <p>Saludos,<br>El equipo de soporte</p>
     `;
-  
+
     const htmlContent = this.generateEmailContent(subject, body);
-  
+
     const mailOptions: MailOptions = {
       from: process.env.EMAIL_USER || 'notificacion@mva.com',
       to: email,
       subject,
       html: htmlContent,
     };
-  
+
     try {
-      console.log('📧 Enviando correo de confirmación de cambio de contraseña...');
+      console.log(
+        '📧 Enviando correo de confirmación de cambio de contraseña...',
+      );
       await this.sendMail(mailOptions);
     } catch (error) {
       console.error('❌ Error al enviar correo de cambio de contraseña', error);
     }
   }
-  
+  async sendSalaryAdvanceRequestToAdmins(data: any): Promise<void> {
+    console.log('[MailerService] Datos recibidos para solicitud:', data);
+    const { employee, amount, reason, createdAt } = data;
+    const adminEmails = await this.getAdminEmails();
+    console.log('[MailerService] Correos de administradores:', adminEmails);
+    if (!adminEmails || adminEmails.length === 0) {
+      console.warn(
+        '[MailerService] No se encontraron correos de administradores',
+      );
+      return;
+    }
+
+    if (
+      !employee?.nombre ||
+      !employee?.apellido ||
+      !employee?.email ||
+      !amount ||
+      !createdAt
+    ) {
+      console.warn(
+        '[MailerService] Datos insuficientes para enviar solicitud de adelanto',
+      );
+      return;
+    }
+
+    const subject = 'Nueva solicitud de adelanto salarial 📩';
+    const formattedDate = new Date(createdAt).toLocaleString('es-AR', {
+      dateStyle: 'long',
+      timeStyle: 'short',
+    });
+
+    const body = `
+      <p>Hola equipo,</p>
+      <p>El empleado <strong>${employee.nombre} ${employee.apellido}</strong> (<a href="mailto:${employee.email}">${employee.email}</a>) ha solicitado un adelanto salarial.</p>
+      <ul>
+        <li><strong>Monto solicitado:</strong> $${parseFloat(amount).toFixed(2)}</li>
+        <li><strong>Motivo:</strong> ${reason}</li>
+        <li><strong>Fecha de solicitud:</strong> ${formattedDate}</li>
+      </ul>
+      <p>Por favor, gestionen esta solicitud a la brevedad.</p>
+      <p>Saludos,<br>El sistema de notificaciones</p>
+    `;
+
+    const htmlContent = this.generateEmailContent(subject, body);
+    console.log('[MailerService] Contenido del correo:', htmlContent);
+    const mailOptions: MailOptions = {
+      from: process.env.EMAIL_USER || 'notificacion@mva.com',
+      to: adminEmails.join(','),
+      subject,
+      html: htmlContent,
+    };
+    console.log('[MailerService] Opciones de correo:', mailOptions);
+    try {
+      console.log(
+        '📧 Enviando correo de solicitud de adelanto salarial a administradores...',
+      );
+      await this.sendMail(mailOptions);
+    } catch (error) {
+      console.error(
+        '❌ Error al enviar correo de adelanto salarial a administradores',
+        error,
+      );
+    }
+  }
+
+  async sendSalaryAdvanceResponseToEmployee(data: any): Promise<void> {
+    const { employee, status, updatedAt, reason } = data;
+
+    if (!employee?.nombre || !employee?.email || !status || !updatedAt) {
+      return;
+    }
+
+    const subject = 'Respuesta a tu solicitud de adelanto salarial 💬';
+    const formattedDate = new Date(updatedAt).toLocaleString('es-AR', {
+      dateStyle: 'long',
+      timeStyle: 'short',
+    });
+
+    const statusText =
+      status === 'approved'
+        ? 'Aprobada ✅'
+        : status === 'rejected'
+          ? 'Rechazada ❌'
+          : 'Pendiente ⏳';
+
+    let body = `
+      <p>Hola <strong>${employee.nombre}</strong>,</p>
+      <p>Tu solicitud de adelanto salarial ha sido <strong>${statusText}</strong>.</p>
+      <p><strong>Fecha de respuesta:</strong> ${formattedDate}</p>
+    `;
+
+    body += `
+      <p>Gracias por utilizar nuestro sistema.</p>
+      <p>Saludos,<br>El equipo administrativo</p>
+    `;
+
+    const htmlContent = this.generateEmailContent(subject, body);
+
+    const mailOptions: MailOptions = {
+      from: process.env.EMAIL_USER || 'notificacion@mva.com',
+      to: employee.email,
+      subject,
+      html: htmlContent,
+    };
+
+    try {
+      console.log(
+        '[MailerService] Enviando correo de respuesta de adelanto al empleado...',
+      );
+      await this.sendMail(mailOptions);
+    } catch (error) {
+      console.error(
+        '❌ Error al enviar correo al empleado sobre adelanto salarial',
+        error,
+      );
+    }
+  }
+  async sendExpiringLicenseAlert(
+    adminsEmails: string[],
+    supervisorsEmails: string[],
+    licenses: Licencias[],
+  ): Promise<void> {
+    const subject = '🚨 Alerta: Licencias de conducir próximas a vencer';
+
+    // Crear tabla HTML con las licencias por vencer
+    let licensesTable = `
+      <table style="width:100%; border-collapse: collapse; margin-top: 10px;">
+        <thead>
+          <tr style="background-color: #f2f2f2;">
+            <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Empleado</th>
+            <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Categoría</th>
+            <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Fecha Vencimiento</th>
+            <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Días Restantes</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    // Hoy para calcular días restantes
+    const today = new Date();
+
+    // Agregar cada licencia a la tabla
+    licenses.forEach((license) => {
+      const empleadoNombre = license.empleado
+        ? `${license.empleado.nombre} ${license.empleado.apellido}`
+        : 'Empleado no especificado';
+
+      const vencimiento = new Date(license.fecha_vencimiento);
+      const diasRestantes = Math.ceil(
+        (vencimiento.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+      );
+
+      // Color de fondo según urgencia
+      let rowColor = '';
+      if (diasRestantes <= 7) {
+        rowColor = 'background-color: #ffcccc;'; // Rojo claro para muy urgente
+      } else if (diasRestantes <= 15) {
+        rowColor = 'background-color: #fff2cc;'; // Amarillo claro para urgente
+      }
+
+      licensesTable += `
+        <tr style="${rowColor}">
+          <td style="padding: 8px; border: 1px solid #ddd;">${empleadoNombre}</td>
+          <td style="padding: 8px; border: 1px solid #ddd;">${license.categoria}</td>
+          <td style="padding: 8px; border: 1px solid #ddd;">${vencimiento.toLocaleDateString('es-AR')}</td>
+          <td style="padding: 8px; border: 1px solid #ddd;">${diasRestantes} días</td>
+        </tr>
+      `;
+    });
+
+    licensesTable += `
+        </tbody>
+      </table>
+    `;
+
+    const body = `
+      <p style="font-size: 16px;">¡Atención!</p>
+      <p style="font-size: 16px;">Las siguientes licencias de conducir están próximas a vencer:</p>
+      ${licensesTable}
+      <p style="font-size: 16px; margin-top: 15px;">Por favor, notifique a los empleados afectados para que renueven sus licencias lo antes posible.</p>
+    `;
+
+    const htmlContent = this.generateEmailContent(subject, body);
+
+    // Combinar destinatarios
+    const safeAdminEmails = adminsEmails || [];
+    const safeSupervisorEmails = supervisorsEmails || [];
+
+    const mailOptions: MailOptions = {
+      from: process.env.EMAIL_USER || 'notificacion@mva.com',
+      to: [...safeAdminEmails, ...safeSupervisorEmails],
+      subject,
+      html: htmlContent,
+    };
+
+    try {
+      console.log(
+        '📧 Enviando correo de alerta de licencias próximas a vencer...',
+      );
+      await this.sendMail(mailOptions);
+    } catch (error) {
+      console.error('❌ Error al enviar correo de alerta de licencias', error);
+    }
+  }
 }
