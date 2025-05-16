@@ -21,6 +21,8 @@ import { SchedulerModule } from './scheduler/scheduler.module';
 import { ClientsPortalModule } from './clients_portal/clientsPortal.module';
 import { EmployeeLeavesModule } from './employee_leaves/employee-leaves.module';
 import { MailerModule } from './mailer/mailer.module';
+import { SalaryAdvanceModule } from './salary_advance/salary_advance.module';
+import { ClothingModule } from './clothing/clothing.module';
 
 @Module({
   imports: [
@@ -48,6 +50,8 @@ import { MailerModule } from './mailer/mailer.module';
     ClientsPortalModule,
     EmployeeLeavesModule,
     MailerModule,
+    SalaryAdvanceModule,
+    ClothingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -45,10 +45,14 @@ export class UpdateServiceDto {
   @Min(1, { message: 'La cantidad de baños debe ser al menos 1' })
   cantidadBanos?: number;
 
+  // Eliminamos cantidadEmpleados y agregamos empleadoA y empleadoB
   @IsOptional()
   @IsNumber()
-  @Min(1, { message: 'La cantidad de empleados debe ser al menos 1' })
-  cantidadEmpleados?: number;
+  empleadoAId?: number;
+
+  @IsOptional()
+  @IsNumber()
+  empleadoBId?: number;
 
   @IsOptional()
   @IsNumber()

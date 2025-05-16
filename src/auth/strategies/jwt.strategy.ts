@@ -6,8 +6,9 @@ import { Role } from '../../roles/enums/role.enum';
 
 interface JwtPayload {
   sub: number;
-  username: string;
+  nombre: string;
   email: string;
+  empleadoId: number;
   roles: Role[];
   iat?: number;
   exp?: number;
@@ -46,9 +47,10 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 
     const user = {
       userId: payload.sub,
-      username: payload.username,
+      username: payload.nombre,
       email: payload.email,
       roles: Array.isArray(payload.roles) ? payload.roles : [],
+      empleadoId: payload.empleadoId,
     };
 
     this.logger.debug(`JWT validated successfully for user: ${user.username}`);

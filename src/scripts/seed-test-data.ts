@@ -220,7 +220,11 @@ async function seedTestData() {
         marca: 'Ford',
         modelo: 'F-100',
         año: 2020,
-        capacidad_carga: 1500.0,
+        tipo_cabina: 'simple',
+        numero_interno: 'VH-001',
+        fecha_vencimiento_vtv: new Date('2026-05-15'),
+        fecha_vencimiento_seguro: new Date('2026-07-20'),
+        es_externo: false,
         estado: ResourceState.DISPONIBLE,
       },
       {
@@ -228,7 +232,11 @@ async function seedTestData() {
         marca: 'Chevrolet',
         modelo: 'S10',
         año: 2021,
-        capacidad_carga: 1200.0,
+        tipo_cabina: 'doble',
+        numero_interno: 'VH-002',
+        fecha_vencimiento_vtv: new Date('2026-06-10'),
+        fecha_vencimiento_seguro: new Date('2026-08-15'),
+        es_externo: false,
         estado: ResourceState.DISPONIBLE,
       },
       {
@@ -236,7 +244,11 @@ async function seedTestData() {
         marca: 'Toyota',
         modelo: 'Hilux',
         año: 2022,
-        capacidad_carga: 1300.0,
+        tipo_cabina: 'doble',
+        numero_interno: 'VH-003',
+        fecha_vencimiento_vtv: new Date('2026-07-20'),
+        fecha_vencimiento_seguro: new Date('2026-09-25'),
+        es_externo: false,
         estado: ResourceState.DISPONIBLE,
       },
       {
@@ -244,7 +256,11 @@ async function seedTestData() {
         marca: 'Volkswagen',
         modelo: 'Amarok',
         año: 2021,
-        capacidad_carga: 1400.0,
+        tipo_cabina: 'doble',
+        numero_interno: 'VH-004',
+        fecha_vencimiento_vtv: new Date('2026-08-05'),
+        fecha_vencimiento_seguro: new Date('2026-10-10'),
+        es_externo: false,
         estado: ResourceState.DISPONIBLE,
       },
       {
@@ -252,7 +268,23 @@ async function seedTestData() {
         marca: 'Fiat',
         modelo: 'Strada',
         año: 2023,
-        capacidad_carga: 900.0,
+        tipo_cabina: 'simple',
+        numero_interno: 'VH-005',
+        fecha_vencimiento_vtv: new Date('2026-09-15'),
+        fecha_vencimiento_seguro: new Date('2026-11-20'),
+        es_externo: false,
+        estado: ResourceState.DISPONIBLE,
+      },
+      {
+        placa: 'AG678KK',
+        marca: 'Nissan',
+        modelo: 'Frontier',
+        año: 2022,
+        tipo_cabina: 'doble',
+        numero_interno: null,
+        fecha_vencimiento_vtv: new Date('2026-08-30'),
+        fecha_vencimiento_seguro: new Date('2026-10-05'),
+        es_externo: true,
         estado: ResourceState.DISPONIBLE,
       },
     ];
@@ -268,14 +300,18 @@ async function seedTestData() {
       if (!vehiculoExistente || vehiculoExistente.length === 0) {
         // Insertar solo si no existe
         await dataSource.query(
-          `INSERT INTO vehicles (placa, marca, modelo, año, capacidad_carga, estado)
-           VALUES ($1, $2, $3, $4, $5, $6)`,
+          `INSERT INTO vehicles (placa, marca, modelo, año, tipo_cabina, numero_interno, fecha_vencimiento_vtv, fecha_vencimiento_seguro, es_externo, estado)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
           [
             vehiculo.placa,
             vehiculo.marca,
             vehiculo.modelo,
             vehiculo.año,
-            vehiculo.capacidad_carga,
+            vehiculo.tipo_cabina,
+            vehiculo.numero_interno,
+            vehiculo.fecha_vencimiento_vtv,
+            vehiculo.fecha_vencimiento_seguro,
+            vehiculo.es_externo,
             vehiculo.estado,
           ],
         );

@@ -33,6 +33,7 @@ export class ClientsPortalController {
     try {
       return this.clientsPortalService.getSatisfactionSurveys();
     } catch (error) {
+      console.error('Error retrieving satisfaction surveys:', error);
       throw new HttpException(
         'Error retrieving satisfaction surveys',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -48,6 +49,7 @@ export class ClientsPortalController {
     try {
       return this.clientsPortalService.getSatisfactionSurveyById(id);
     } catch (error) {
+      console.error('Error retrieving satisfaction survey:', error);
       throw new HttpException(
         'Error retrieving satisfaction survey',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -63,6 +65,7 @@ export class ClientsPortalController {
     try {
       return this.clientsPortalService.getClaims();
     } catch (error) {
+      console.error('Error retrieving claims:', error);
       throw new HttpException(
         'Error retrieving claims',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -77,6 +80,7 @@ export class ClientsPortalController {
     try {
       return this.clientsPortalService.getClaimById(id);
     } catch (error) {
+      console.error('Error retrieving claim:', error);
       throw new HttpException(
         'Error retrieving claim',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -90,6 +94,7 @@ export class ClientsPortalController {
     try {
       return await this.clientsPortalService.createClaim(claimData);
     } catch (error) {
+      console.error('Error creating claim:', error);
       throw new HttpException(
         'Error creating claim',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -108,6 +113,7 @@ export class ClientsPortalController {
         surveyData,
       );
     } catch (error) {
+      console.error('Error creating satisfaction survey:', error);
       throw new HttpException(
         'Error creating satisfaction survey',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -126,6 +132,7 @@ export class ClientsPortalController {
     try {
       return await this.clientsPortalService.updateClaim(id, claimData);
     } catch (error) {
+      console.error('Error updating claim:', error);
       throw new HttpException(
         'Error updating claim',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -147,6 +154,7 @@ export class ClientsPortalController {
         surveyData,
       );
     } catch (error) {
+      console.error('Error updating satisfaction survey:', error);
       throw new HttpException(
         'Error updating satisfaction survey',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -159,9 +167,11 @@ export class ClientsPortalController {
   async askForServiceForm(@Body() formData: AskForServiceDto) {
     try {
       return await this.clientsPortalService.askForService(formData);
-    } catch (error) {
+    } catch (error: unknown) {
+      console.error('Error creating ask for service form:', error);
+      const message = error instanceof Error ? error.message : 'Unknown error';
       throw new HttpException(
-        'Error creating ask for service form',
+        `Error creating ask for service form: ${message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -174,6 +184,7 @@ export class ClientsPortalController {
     try {
       return await this.clientsPortalService.getStats();
     } catch (error) {
+      console.error('Error retrieving stats:', error);
       throw new HttpException(
         'Error retrieving stats',
         HttpStatus.INTERNAL_SERVER_ERROR,

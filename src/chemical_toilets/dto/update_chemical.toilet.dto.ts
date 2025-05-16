@@ -1,4 +1,5 @@
-import { IsOptional, IsString, IsDateString } from 'class-validator';
+import { IsOptional, IsString, IsDateString, IsEnum } from 'class-validator';
+import { ResourceState } from 'src/common/enums/resource-states.enum';
 
 export class UpdateChemicalToiletDto {
   @IsOptional()
@@ -14,6 +15,6 @@ export class UpdateChemicalToiletDto {
   fecha_adquisicion?: Date;
 
   @IsOptional()
-  @IsString()
-  estado?: string;
+  @IsEnum(ResourceState)
+  estado?: ResourceState;
 }

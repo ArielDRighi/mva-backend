@@ -12,6 +12,7 @@ import { UpdateMaintenanceDto } from './dto/update_maintenance.dto';
 import { VehiclesService } from '../vehicles/vehicles.service';
 import { ResourceState } from '../common/enums/resource-states.enum';
 import { Cron } from '@nestjs/schedule';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Injectable()
 export class VehicleMaintenanceService {
@@ -35,14 +36,8 @@ export class VehicleMaintenanceService {
       createMaintenanceDto.vehiculoId,
     );
 
-    // Verificar si el vehículo está disponible
-    if ((vehicle.estado as ResourceState) !== ResourceState.DISPONIBLE) {
-      throw new BadRequestException(
-        `El vehículo no está disponible para mantenimiento. Estado actual: ${vehicle.estado}`,
-      );
-    }
-
-    // AQUÍ ESTÁ EL CAMBIO CLAVE: Solo cambiar estado si el mantenimiento es para hoy o antes
+    // NUEVO CÓDIGO: Permitir ASIGNADO y DISPONIBLE para mantenimientos futuros
+    // Solo verificamos el estado cuando es para hoy o una fecha pasada
     const now = new Date();
     now.setHours(0, 0, 0, 0); // Inicio del día actual
 
@@ -50,15 +45,31 @@ export class VehicleMaintenanceService {
     maintenanceDate.setHours(0, 0, 0, 0); // Inicio del día de mantenimiento
 
     if (maintenanceDate <= now) {
-      // El mantenimiento es para hoy o una fecha pasada, cambiar estado inmediatamente
+      // El mantenimiento es para hoy o una fecha pasada, verificamos que esté DISPONIBLE
+      if ((vehicle.estado as ResourceState) !== ResourceState.DISPONIBLE) {
+        throw new BadRequestException(
+          `El vehículo no está disponible para mantenimiento inmediato. Estado actual: ${vehicle.estado}`,
+        );
+      }
+
+      // Cambiar estado inmediatamente
       await this.vehiclesService.changeStatus(
         vehicle.id,
         ResourceState.EN_MANTENIMIENTO,
       );
       // Actualizar también el estado en el objeto en memoria
       vehicle.estado = ResourceState.EN_MANTENIMIENTO.toString();
+    } else {
+      // Es un mantenimiento futuro, verificar que el vehículo esté DISPONIBLE o ASIGNADO
+      if (
+        (vehicle.estado as ResourceState) !== ResourceState.DISPONIBLE &&
+        (vehicle.estado as ResourceState) !== ResourceState.ASIGNADO
+      ) {
+        throw new BadRequestException(
+          `Solo vehículos en estado DISPONIBLE o ASIGNADO pueden programar mantenimientos futuros. Estado actual: ${vehicle.estado}`,
+        );
+      }
     }
-    // Si es para una fecha futura, no cambiar el estado ahora
 
     const maintenanceRecord =
       this.maintenanceRepository.create(createMaintenanceDto);
@@ -114,11 +125,32 @@ export class VehicleMaintenanceService {
     return maintenanceCount > 0;
   }
 
-  async findAll(): Promise<VehicleMaintenanceRecord[]> {
-    this.logger.log('Recuperando todos los registros de mantenimiento');
-    return this.maintenanceRepository.find({
-      relations: ['vehicle'],
-    });
+  async findAll(paginationDto: PaginationDto): Promise<{
+    data: VehicleMaintenanceRecord[];
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+  }> {
+    const { page = 1, limit = 10 } = paginationDto;
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.maintenanceRepository.find({
+        skip,
+        take: limit,
+        order: { fechaMantenimiento: 'DESC' },
+      }),
+      this.maintenanceRepository.count(),
+    ]);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      pages: Math.ceil(total / limit),
+    };
   }
 
   async findOne(id: number): Promise<VehicleMaintenanceRecord> {

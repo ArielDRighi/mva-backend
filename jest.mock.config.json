@@ -1,0 +1,16 @@
+{
+  "preset": "ts-jest",
+  "testEnvironment": "node",
+  "testMatch": ["**/?(*.)+(spec|test).(ts|js)"],
+  "testPathIgnorePatterns": ["/node_modules/"],
+  "moduleNameMapper": {
+    "^src/(.*)$": "<rootDir>/src/$1",
+    "^src/clients/entities/client.entity$": "<rootDir>/__mocks__/src/clients/entities/client.entity.ts",
+    "^src/common/enums/resource-states.enum$": "<rootDir>/src/common/enums/__mocks__/resource-states.enum.mock.ts",
+    "^src/contractual_conditions/entities/contractual_conditions.entity$": "<rootDir>/src/contractual_conditions/entities/__mocks__/contractual_conditions.entity.ts",
+    "^src/employee_leaves/entities/employee-leave.entity$": "<rootDir>/src/employee_leaves/entities/__mocks__/employee-leave.entity.ts",
+    "^src/employees/entities/employee.entity$": "<rootDir>/src/employees/entities/__mocks__/employee.entity.ts"
+  },
+  "setupFiles": ["<rootDir>/jest-mock-setup.js"],
+  "rootDir": "."
+}

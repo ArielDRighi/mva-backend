@@ -13,9 +13,11 @@ export default registerAs('database', () => ({
   logging: false,
   dropSchema: false,
 
-  timezone: 'UTC',
+  // Usar configuración local para evitar conversiones automáticas
+  timezone: 'local',
   extra: {
-    parseInputDatesAsUTC: true,
-    writeDatesAsUTC: true,
+    // Deshabilitar conversiones automáticas para conservar fechas exactas
+    parseInputDatesAsUTC: false,
+    writeDatesAsUTC: false,
   },
 }));

@@ -30,6 +30,12 @@ export class EmployeeLeavesService {
     const employeeId = Number(createLeaveDto.employeeId);
     const employee = await this.employeesService.findOne(employeeId);
 
+    if (!employee) {
+      throw new NotFoundException(
+        `Empleado con ID ${employeeId} no encontrado`,
+      );
+    }
+
     const fechaInicio = createLeaveDto.fechaInicio;
     const fechaFin = createLeaveDto.fechaFin;
 
@@ -128,8 +134,34 @@ export class EmployeeLeavesService {
         leave.fechaInicio !== updateLeaveDto.fechaInicio) ||
       (updateLeaveDto.fechaFin && leave.fechaFin !== updateLeaveDto.fechaFin)
     ) {
+      const employee = await this.employeesService.findOne(
+        updateLeaveDto.employeeId || leave.employeeId,
+      );
+      if (!employee) {
+        throw new NotFoundException(
+          `Empleado con ID ${updateLeaveDto.employeeId} no encontrado`,
+        );
+      }
       const fechaInicio = updateLeaveDto.fechaInicio || leave.fechaInicio;
       const fechaFin = updateLeaveDto.fechaFin || leave.fechaFin;
+      const diasUsados = fechaFin.getTime() - fechaInicio.getTime();
+      const diasUsadosEnLicencia = Math.ceil(diasUsados / (1000 * 3600 * 24));
+      const diasDisponibles = employee.diasVacacionesRestantes;
+      if (diasUsadosEnLicencia > diasDisponibles) {
+        throw new BadRequestException(
+          `El empleado no tiene suficientes días de licencia disponibles`,
+        );
+      }
+
+      const diasRestantes = diasDisponibles - diasUsadosEnLicencia;
+      console.log('Dias restantes: ', diasRestantes);
+      console.log('Dias usados en licencia: ', diasUsadosEnLicencia);
+
+      await this.employeesService.update(employee.id, {
+        diasVacacionesRestantes: diasRestantes,
+        diasVacacionesUsados:
+          employee.diasVacacionesUsados + diasUsadosEnLicencia,
+      });
 
       if (fechaFin < fechaInicio) {
         throw new BadRequestException(
@@ -201,5 +233,69 @@ export class EmployeeLeavesService {
       },
       relations: ['employee'],
     });
+  }
+
+  async approve(id: number): Promise<EmployeeLeave> {
+    this.logger.log(`Aprobando licencia con ID: ${id}`);
+
+    const leave = await this.findOne(id);
+    if (leave.aprobado === true) {
+      throw new BadRequestException(
+        `La licencia con ID ${id} ya está aprobada`,
+      );
+    }
+
+    // Convertir las fechas a objetos Date si son strings
+    const fechaInicio =
+      leave.fechaInicio instanceof Date
+        ? leave.fechaInicio
+        : new Date(leave.fechaInicio);
+    const fechaFin =
+      leave.fechaFin instanceof Date
+        ? leave.fechaFin
+        : new Date(leave.fechaFin);
+
+    // Verificar disponibilidad de días
+    const employee = await this.employeesService.findOne(leave.employeeId);
+    if (!employee) {
+      throw new NotFoundException(
+        `Empleado con ID ${leave.employeeId} no encontrado`,
+      );
+    }
+
+    // Calcular días usados
+    const diasUsados = fechaFin.getTime() - fechaInicio.getTime();
+    const diasUsadosEnLicencia = Math.ceil(diasUsados / (1000 * 3600 * 24));
+    const diasDisponibles = employee.diasVacacionesRestantes;
+    console.log('employee: ', employee);
+
+    this.logger.log(`Días usados en licencia: ${diasUsadosEnLicencia}`);
+    this.logger.log(`Días disponibles: ${diasDisponibles}`);
+
+    if (diasUsadosEnLicencia > diasDisponibles) {
+      throw new BadRequestException(
+        `El empleado no tiene suficientes días de licencia disponibles`,
+      );
+    }
+
+    // Actualizar los días del empleado
+    const diasRestantes = diasDisponibles - diasUsadosEnLicencia;
+
+    this.logger.log(
+      `Actualizando empleado ID ${employee.id}, días restantes: ${diasRestantes}`,
+    );
+
+    await this.employeesService.update(employee.id, {
+      diasVacacionesRestantes: diasRestantes,
+      diasVacacionesUsados:
+        employee.diasVacacionesUsados + diasUsadosEnLicencia,
+    });
+
+    // Aprobar la licencia
+    leave.aprobado = true;
+
+    await this.leaveRepository.save(leave);
+
+    return await this.findOne(id);
   }
 }
