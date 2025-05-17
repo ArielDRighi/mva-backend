@@ -1571,6 +1571,20 @@ export class ServicesService {
       fechaHasta: end.toISOString(),
     });
   }
+  async getRemainingWeekServices(): Promise<Service[]> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Inicio del día actual
+
+  // Calcular el próximo domingo (fin de la semana actual)
+  const sunday = new Date(today);
+  const currentDay = today.getDay(); // 0 = domingo, 6 = sábado
+  const daysUntilSunday = (7 - currentDay) % 7;
+  sunday.setDate(sunday.getDate() + daysUntilSunday);
+  sunday.setHours(23, 59, 59, 999); // Fin del domingo
+
+  return this.findByDateRange(today.toISOString(), sunday.toISOString());
+}
+
 
   async findToday(): Promise<Service[]> {
     const today = new Date();
