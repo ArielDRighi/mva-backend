@@ -14,6 +14,7 @@ import { ResourceState } from '../common/enums/resource-states.enum';
 import { ChemicalToiletsService } from '../chemical_toilets/chemical_toilets.service';
 import { Cron } from '@nestjs/schedule';
 import { Periodicidad } from 'src/contractual_conditions/entities/contractual_conditions.entity';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Injectable()
 export class ToiletMaintenanceService {
@@ -197,11 +198,28 @@ export class ToiletMaintenanceService {
     return maintenanceCount > 0;
   }
 
-  async findAll(): Promise<ToiletMaintenance[]> {
-    return await this.maintenanceRepository.find({
-      relations: ['toilet'], // Aseguramos que se incluya la relación con la entidad ChemicalToilet
-    });
-  }
+  async findAll(paginationDto: PaginationDto): Promise<{
+  data: ToiletMaintenance[];
+  total: number;
+  page: number;
+  limit: number;
+}> {
+  const { page = 1, limit = 10 } = paginationDto;
+
+  const [data, total] = await this.maintenanceRepository.findAndCount({
+    relations: ['toilet'],
+    skip: (page - 1) * limit,
+    take: limit,
+  });
+
+  return {
+    data,
+    total,
+    page,
+    limit,
+  };
+}
+
 
   async findById(mantenimiento_id: number): Promise<ToiletMaintenance> {
     const maintenance = await this.maintenanceRepository.findOne({
@@ -273,45 +291,58 @@ export class ToiletMaintenanceService {
   }
 
   async findAllWithFilters(
-    filterDto: FilterToiletMaintenanceDto,
-  ): Promise<ToiletMaintenance[]> {
-    const query = this.maintenanceRepository
-      .createQueryBuilder('maintenance')
-      .leftJoinAndSelect('maintenance.toilet', 'toilet');
+  filterDto: FilterToiletMaintenanceDto,
+): Promise<{ data: ToiletMaintenance[]; total: number; page: number; limit: number }> {
+  const { page = 1, limit = 10 } = filterDto;
 
-    if (filterDto.baño_id) {
-      const toiletId = parseInt(String(filterDto.baño_id), 10);
-      if (!isNaN(toiletId)) {
-        query.andWhere('toilet.baño_id = :toiletId', { toiletId });
-      }
+  const query = this.maintenanceRepository
+    .createQueryBuilder('maintenance')
+    .leftJoinAndSelect('maintenance.toilet', 'toilet');
+
+  if (filterDto.baño_id) {
+    const toiletId = parseInt(String(filterDto.baño_id), 10);
+    if (!isNaN(toiletId)) {
+      query.andWhere('toilet.baño_id = :toiletId', { toiletId });
     }
-
-    if (filterDto.tipo_mantenimiento) {
-      query.andWhere('maintenance.tipo_mantenimiento LIKE :tipo', {
-        tipo: `%${filterDto.tipo_mantenimiento}%`,
-      });
-    }
-
-    if (filterDto.tecnico_responsable) {
-      query.andWhere('maintenance.tecnico_responsable LIKE :tecnico', {
-        tecnico: `%${filterDto.tecnico_responsable}%`,
-      });
-    }
-
-    if (filterDto.fechaDesde) {
-      query.andWhere('maintenance.fecha_mantenimiento >= :fechaDesde', {
-        fechaDesde: filterDto.fechaDesde,
-      });
-    }
-
-    if (filterDto.fechaHasta) {
-      query.andWhere('maintenance.fecha_mantenimiento <= :fechaHasta', {
-        fechaHasta: filterDto.fechaHasta,
-      });
-    }
-
-    return await query.getMany();
   }
+
+  if (filterDto.tipo_mantenimiento) {
+    query.andWhere('maintenance.tipo_mantenimiento LIKE :tipo', {
+      tipo: `%${filterDto.tipo_mantenimiento}%`,
+    });
+  }
+
+  if (filterDto.tecnico_responsable) {
+    query.andWhere('maintenance.tecnico_responsable LIKE :tecnico', {
+      tecnico: `%${filterDto.tecnico_responsable}%`,
+    });
+  }
+
+  if (filterDto.fechaDesde) {
+    query.andWhere('maintenance.fecha_mantenimiento >= :fechaDesde', {
+      fechaDesde: filterDto.fechaDesde,
+    });
+  }
+
+  if (filterDto.fechaHasta) {
+    query.andWhere('maintenance.fecha_mantenimiento <= :fechaHasta', {
+      fechaHasta: filterDto.fechaHasta,
+    });
+  }
+
+  const [data, total] = await query
+    .skip((page - 1) * limit)
+    .take(limit)
+    .getManyAndCount();
+
+  return {
+    data,
+    total,
+    page,
+    limit,
+  };
+}
+
 
   async getMantenimientosStats(baño_id: number): Promise<any> {
     const maintenances = await this.maintenanceRepository.find({
