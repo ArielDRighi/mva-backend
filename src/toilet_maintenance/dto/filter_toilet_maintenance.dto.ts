@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsInt, IsDateString } from 'class-validator';
+import { IsOptional, IsString, IsInt, IsDateString, IsNumber, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class FilterToiletMaintenanceDto {
@@ -22,4 +22,14 @@ export class FilterToiletMaintenanceDto {
   @IsOptional()
   @IsDateString()
   fechaHasta?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  page?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  limit?: number;
 }

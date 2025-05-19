@@ -20,6 +20,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../roles/guards/roles.guard';
 import { Roles } from '../roles/decorators/roles.decorator';
 import { Role } from '../roles/enums/role.enum';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Controller('toilet_maintenance')
 @UseGuards(JwtAuthGuard)
@@ -36,18 +37,21 @@ export class ToiletMaintenanceController {
     return this.maintenanceService.create(createMaintenanceDto);
   }
 
-  @Get()
-  async findAll(): Promise<ToiletMaintenance[]> {
-    return this.maintenanceService.findAll();
-  }
+@Get()
+async findAll(
+  @Query() paginationDto: PaginationDto,
+): Promise<{ data: ToiletMaintenance[]; total: number; page: number; limit: number }> {
+  return this.maintenanceService.findAll(paginationDto);
+}
+
 
   // Rutas con prefijos específicos deben ir ANTES que rutas con parámetros
   @Get('search')
-  async search(
-    @Query() filterDto: FilterToiletMaintenanceDto,
-  ): Promise<ToiletMaintenance[]> {
-    return this.maintenanceService.findAllWithFilters(filterDto);
-  }
+async search(
+  @Query() filterDto: FilterToiletMaintenanceDto,
+): Promise<{ data: ToiletMaintenance[]; total: number; page: number; limit: number }> {
+  return this.maintenanceService.findAllWithFilters(filterDto);
+}
 
   @Get('stats/:toiletId')
   async getMaintenanceStats(
