@@ -59,6 +59,10 @@ async search(
   ): Promise<any> {
     return this.maintenanceService.getMantenimientosStats(toiletId);
   }
+   @Get('proximos')
+  async getUpcomingMaintenances() {
+    return this.maintenanceService.getUpcomingMaintenances();
+  }
 
   // Esta ruta con parámetro debe ir DESPUÉS de las específicas
   @Get(':id')
