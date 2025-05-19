@@ -219,7 +219,21 @@ export class ToiletMaintenanceService {
     limit,
   };
 }
+async getUpcomingMaintenances(): Promise<ToiletMaintenance[]> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // El inicio del día de hoy
 
+  return this.maintenanceRepository.find({
+    where: {
+      fecha_mantenimiento: Between(today, new Date('9999-12-31')),
+      completado: false,
+    },
+    relations: ['toilet'],
+    order: {
+      fecha_mantenimiento: 'ASC',
+    },
+  });
+}
 
   async findById(mantenimiento_id: number): Promise<ToiletMaintenance> {
     const maintenance = await this.maintenanceRepository.findOne({
