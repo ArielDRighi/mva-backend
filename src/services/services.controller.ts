@@ -72,6 +72,11 @@ export class ServicesController {
   ): Promise<Service[]> {
     return this.servicesService.findByDateRange(startDate, endDate);
   }
+// services.controller.ts
+ @Get('semana-restante')
+  async getRemainingWeekServices() {
+    return this.servicesService.getRemainingWeekServices();
+  }
 
   @Get('today')
   findToday(): Promise<Service[]> {
