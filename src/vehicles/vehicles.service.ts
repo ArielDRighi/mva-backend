@@ -191,28 +191,4 @@ export class VehiclesService {
       where: { estado },
     });
   }
-
-  async getTotalVehicles(): Promise<{
-    total: number;
-    totalDisponibles: number;
-    totalMantenimiento: number;
-    totalAsignado: number;
-  }> {
-    const total = await this.vehicleRepository.count();
-    const totalDisponibles = await this.vehicleRepository.count({
-      where: { estado: ResourceState.DISPONIBLE },
-    });
-    const totalMantenimiento = await this.vehicleRepository.count({
-      where: { estado: ResourceState.EN_MANTENIMIENTO },
-    });
-    const totalAsignado = await this.vehicleRepository.count({
-      where: { estado: ResourceState.ASIGNADO },
-    });
-    return {
-      total,
-      totalDisponibles,
-      totalMantenimiento,
-      totalAsignado,
-    };
-  }
 }

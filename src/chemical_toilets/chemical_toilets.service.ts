@@ -293,28 +293,4 @@ export class ChemicalToiletsService {
 
     return toilets;
   }
-
-  async getTotalChemicalToilets(): Promise<{
-    total: number;
-    totalDisponibles: number;
-    totalMantenimiento: number;
-    totalAsignado: number;
-  }> {
-    const total = await this.chemicalToiletRepository.count();
-    const totalDisponibles = await this.chemicalToiletRepository.count({
-      where: { estado: ResourceState.DISPONIBLE },
-    });
-    const totalMantenimiento = await this.chemicalToiletRepository.count({
-      where: { estado: ResourceState.EN_MANTENIMIENTO },
-    });
-    const totalAsignado = await this.chemicalToiletRepository.count({
-      where: { estado: ResourceState.ASIGNADO },
-    });
-    return {
-      total,
-      totalDisponibles,
-      totalMantenimiento,
-      totalAsignado,
-    };
-  }
 }

@@ -12,7 +12,6 @@ import {
   IsNull,
   EntityManager,
   DataSource,
-  MoreThanOrEqual,
 } from 'typeorm';
 import { FilterServicesDto } from './dto/filter-service.dto';
 import { ClientService } from '../clients/clients.service';
@@ -1573,18 +1572,19 @@ export class ServicesService {
     });
   }
   async getRemainingWeekServices(): Promise<Service[]> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Inicio del día actual
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Inicio del día actual
 
-    // Calcular el próximo domingo (fin de la semana actual)
-    const sunday = new Date(today);
-    const currentDay = today.getDay(); // 0 = domingo, 6 = sábado
-    const daysUntilSunday = (7 - currentDay) % 7;
-    sunday.setDate(sunday.getDate() + daysUntilSunday);
-    sunday.setHours(23, 59, 59, 999); // Fin del domingo
+  // Calcular el próximo domingo (fin de la semana actual)
+  const sunday = new Date(today);
+  const currentDay = today.getDay(); // 0 = domingo, 6 = sábado
+  const daysUntilSunday = (7 - currentDay) % 7;
+  sunday.setDate(sunday.getDate() + daysUntilSunday);
+  sunday.setHours(23, 59, 59, 999); // Fin del domingo
 
-    return this.findByDateRange(today.toISOString(), sunday.toISOString());
-  }
+  return this.findByDateRange(today.toISOString(), sunday.toISOString());
+}
+
 
   async findToday(): Promise<Service[]> {
     const today = new Date();
@@ -1895,43 +1895,6 @@ export class ServicesService {
           `Para servicios de ${service.tipoServicio}, no se debe especificar el campo 'banosInstalados'`,
         );
       }
-    }
-  }
-
-  async getProximosServicios(): Promise<Service[]> {
-    this.logger.log('Obteniendo los próximos 5 servicios');
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Inicio del día actual
-
-    try {
-      const servicios = await this.serviceRepository.find({
-        where: {
-          fechaProgramada: MoreThanOrEqual(today),
-          estado: ServiceState.PROGRAMADO,
-        },
-        relations: [
-          'cliente',
-          'asignaciones',
-          'asignaciones.empleado',
-          'asignaciones.vehiculo',
-          'asignaciones.bano',
-        ],
-        order: {
-          fechaProgramada: 'ASC',
-        },
-        take: 5,
-      });
-
-      this.logger.log(`Encontrados ${servicios.length} próximos servicios`);
-      return servicios;
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Error desconocido';
-      this.logger.error(`Error al obtener próximos servicios: ${errorMessage}`);
-      throw new BadRequestException(
-        `Error al obtener próximos servicios: ${errorMessage}`,
-      );
     }
   }
 }
