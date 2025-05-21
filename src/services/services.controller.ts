@@ -15,6 +15,7 @@ import {
   HttpStatus,
   UseInterceptors,
   ClassSerializerInterceptor,
+  Req,
 } from '@nestjs/common';
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto/create-service.dto';
@@ -49,6 +50,13 @@ export class ServicesController {
   @Post()
   create(@Body() createServiceDto: CreateServiceDto): Promise<Service> {
     return this.servicesService.create(createServiceDto);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.OPERARIO, Role.SUPERVISOR)
+  @Get('/assigned/pendings/:employeeId')
+  async getAssignedPendings(@Param('employeeId') employeeId: number) {
+    return this.servicesService.getAssignedPendings(employeeId);
   }
 
   @Get()

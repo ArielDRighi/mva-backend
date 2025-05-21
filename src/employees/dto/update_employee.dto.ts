@@ -60,6 +60,10 @@ export class UpdateEmployeeDto {
   @IsOptional()
   cargo?: string;
 
+  @IsOptional()
+  @IsString()
+  password?: string;
+
   @IsString()
   @IsOptional()
   estado?: string;

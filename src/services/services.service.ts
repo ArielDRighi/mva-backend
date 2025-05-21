@@ -2031,4 +2031,23 @@ export class ServicesService {
       );
     }
   }
+
+  async getAssignedPendings(employeeId: number) {
+    const services = await this.serviceRepository.find({
+      where: {
+        estado: ServiceState.PROGRAMADO,
+        asignaciones: {
+          empleadoId: employeeId,
+        },
+      },
+      relations: [
+        'cliente',
+        'asignaciones',
+        'asignaciones.empleado',
+        'asignaciones.vehiculo',
+        'asignaciones.bano',
+      ],
+    });
+    return services;
+  }
 }

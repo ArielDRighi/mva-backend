@@ -20,6 +20,7 @@ import { UpdateLicenseDto } from './dto/update_license.dto';
 import { ExamenPreocupacional } from './entities/examenPreocupacional.entity';
 import { CreateExamenPreocupacionalDto } from './dto/create_examen.dto';
 import { UpdateExamenPreocupacionalDto } from './dto/modify_examen.dto';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class EmployeesService {
@@ -183,6 +184,13 @@ export class EmployeesService {
           `Ya existe un empleado con el email ${updateEmployeeDto.email}`,
         );
       }
+    }
+    if (updateEmployeeDto.password) {
+      const hashedPassword = await bcrypt.hash(
+        updateEmployeeDto.password,
+        Number(process.env.BCRYPT_SALT),
+      );
+      updateEmployeeDto.password = hashedPassword;
     }
 
     Object.assign(employee, updateEmployeeDto);
