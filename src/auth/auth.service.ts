@@ -29,10 +29,10 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto) {
-    const { username, password } = loginDto;
+    const { email, password } = loginDto;
 
     // Buscar usuario por username
-    const user = await this.usersService.findByUsername(username);
+    const user = await this.usersService.findByEmail(email);
     console.log('Usuario encontrado:', user);
 
     // Si no se encuentra el usuario o la contraseña es incorrecta, lanzar excepción
