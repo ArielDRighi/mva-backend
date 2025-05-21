@@ -2050,4 +2050,53 @@ export class ServicesService {
     });
     return services;
   }
+
+  async getLastServices(employeeId: number) {
+    this.logger.log(
+      `Obteniendo últimos servicios realizados por el empleado ${employeeId}`,
+    );
+
+    try {
+      const services = await this.serviceRepository.find({
+        where: {
+          estado: ServiceState.COMPLETADO,
+          asignaciones: {
+            empleadoId: employeeId,
+          },
+        },
+        relations: [
+          'cliente',
+          'asignaciones',
+          'asignaciones.empleado',
+          'asignaciones.vehiculo',
+          'asignaciones.bano',
+        ],
+        order: {
+          fechaFin: 'DESC',
+        },
+        take: 5, // Limitar a los 5 últimos servicios
+      });
+
+      if (services.length === 0) {
+        this.logger.log(
+          `No se encontraron servicios completados para el empleado ${employeeId}`,
+        );
+      } else {
+        this.logger.log(
+          `Se encontraron ${services.length} servicios completados para el empleado ${employeeId}`,
+        );
+      }
+
+      return services;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
+      this.logger.error(
+        `Error al obtener los últimos servicios del empleado ${employeeId}: ${errorMessage}`,
+      );
+      throw new BadRequestException(
+        `Error al obtener los últimos servicios: ${errorMessage}`,
+      );
+    }
+  }
 }

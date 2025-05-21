@@ -1,3 +1,4 @@
+import { UpdateLicenseDto } from './__mocks__/dto/update_license.dto';
 import {
   Injectable,
   NotFoundException,
@@ -16,11 +17,12 @@ import { CreateLicenseDto } from './dto/create_license.dto';
 import { CreateContactEmergencyDto } from './dto/create_contact_emergency.dto';
 import { ContactosEmergencia } from './entities/emergencyContacts.entity';
 import { UpdateContactEmergencyDto } from './dto/update_contact_emergency.dto';
-import { UpdateLicenseDto } from './dto/update_license.dto';
 import { ExamenPreocupacional } from './entities/examenPreocupacional.entity';
 import { CreateExamenPreocupacionalDto } from './dto/create_examen.dto';
 import { UpdateExamenPreocupacionalDto } from './dto/modify_examen.dto';
 import * as bcrypt from 'bcrypt';
+import { UsersService } from 'src/users/users.service';
+import { Role } from 'src/roles/enums/role.enum';
 
 @Injectable()
 export class EmployeesService {
@@ -35,6 +37,7 @@ export class EmployeesService {
     private readonly emergencyContactRepository: Repository<ContactosEmergencia>,
     @InjectRepository(ExamenPreocupacional)
     private readonly examenPreocupacionalRepository: Repository<ExamenPreocupacional>,
+    private usersService: UsersService, // Inyecta el servicio de usuarios
   ) {}
 
   async create(createEmployeeDto: CreateEmployeeDto): Promise<Empleado> {
@@ -64,8 +67,29 @@ export class EmployeesService {
       );
     }
 
-    const employee = this.employeeRepository.create(createEmployeeDto);
-    return this.employeeRepository.save(employee);
+    // Crear el empleado
+    const newEmployee = this.employeeRepository.create(createEmployeeDto);
+    const savedEmployee = await this.employeeRepository.save(newEmployee);
+
+    // Crear automáticamente un usuario para el empleado
+    try {
+      await this.usersService.create({
+        nombre: `${createEmployeeDto.nombre} ${createEmployeeDto.apellido}`,
+        email: createEmployeeDto.email,
+        password: createEmployeeDto.documento,
+        roles: [Role.OPERARIO], // Rol por defecto para empleados
+        empleadoId: savedEmployee.id,
+      });
+
+      // Opcionalmente, enviar un correo con las credenciales iniciales
+    } catch (error) {
+      this.logger.error(
+        `Error al crear usuario para empleado: ${error.message}`,
+      );
+      // Decide si quieres manejar este error o simplemente registrarlo
+    }
+
+    return savedEmployee;
   }
 
   async findAll(paginationDto: PaginationDto): Promise<any> {
@@ -186,10 +210,7 @@ export class EmployeesService {
       }
     }
     if (updateEmployeeDto.password) {
-      const hashedPassword = await bcrypt.hash(
-        updateEmployeeDto.password,
-        Number(process.env.BCRYPT_SALT),
-      );
+      const hashedPassword = await bcrypt.hash(updateEmployeeDto.password, 10);
       updateEmployeeDto.password = hashedPassword;
     }
 
@@ -578,5 +599,18 @@ export class EmployeesService {
       totalDisponibles,
       totalInactivos,
     };
+  }
+
+  // Añadir método para buscar empleado por email
+  async findByEmail(email: string): Promise<Empleado> {
+    const employee = await this.employeeRepository.findOne({
+      where: { email },
+    });
+
+    if (!employee) {
+      throw new NotFoundException(`Empleado con email ${email} no encontrado`);
+    }
+
+    return employee;
   }
 }

@@ -58,10 +58,17 @@ export class UsersService {
   async findByUsername(nombre: string): Promise<User | null> {
     return this.usersRepository.findOne({
       where: { nombre },
-      select: ['id', 'nombre', 'email', 'password', 'estado', 'roles', 'empleadoId'],
+      select: [
+        'id',
+        'nombre',
+        'email',
+        'password',
+        'estado',
+        'roles',
+        'empleadoId',
+      ],
     });
   }
-  
 
   async findByEmail(email: string): Promise<User | null> {
     return this.usersRepository.findOne({ where: { email } });
