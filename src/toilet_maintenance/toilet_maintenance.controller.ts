@@ -37,21 +37,30 @@ export class ToiletMaintenanceController {
     return this.maintenanceService.create(createMaintenanceDto);
   }
 
-@Get()
-async findAll(
-  @Query() paginationDto: PaginationDto,
-): Promise<{ data: ToiletMaintenance[]; total: number; page: number; limit: number }> {
-  return this.maintenanceService.findAll(paginationDto);
-}
-
+  @Get()
+  async findAll(
+    @Query() paginationDto: PaginationDto,
+  ): Promise<{
+    data: ToiletMaintenance[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    return this.maintenanceService.findAll(paginationDto);
+  }
 
   // Rutas con prefijos específicos deben ir ANTES que rutas con parámetros
   @Get('search')
-async search(
-  @Query() filterDto: FilterToiletMaintenanceDto,
-): Promise<{ data: ToiletMaintenance[]; total: number; page: number; limit: number }> {
-  return this.maintenanceService.findAllWithFilters(filterDto);
-}
+  async search(
+    @Query() filterDto: FilterToiletMaintenanceDto,
+  ): Promise<{
+    data: ToiletMaintenance[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    return this.maintenanceService.findAllWithFilters(filterDto);
+  }
 
   @Get('stats/:toiletId')
   async getMaintenanceStats(
@@ -59,7 +68,8 @@ async search(
   ): Promise<any> {
     return this.maintenanceService.getMantenimientosStats(toiletId);
   }
-   @Get('proximos')
+
+  @Get('proximos')
   async getUpcomingMaintenances() {
     return this.maintenanceService.getUpcomingMaintenances();
   }

@@ -34,6 +34,16 @@ export class VehiclesController {
     return this.vehiclesService.create(createVehicleDto);
   }
 
+  @Get('total_vehicles')
+  async getTotalVehicles(): Promise<{
+    total: number;
+    totalDisponibles: number;
+    totalMantenimiento: number;
+    totalAsignado: number;
+  }> {
+    return this.vehiclesService.getTotalVehicles();
+  }
+
   @Get()
   findAll(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
