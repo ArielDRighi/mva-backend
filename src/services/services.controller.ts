@@ -15,6 +15,7 @@ import {
   HttpStatus,
   UseInterceptors,
   ClassSerializerInterceptor,
+  Req,
 } from '@nestjs/common';
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto/create-service.dto';
@@ -37,6 +38,13 @@ import { FilterServicesDto } from './dto/filter-service.dto';
 export class ServicesController {
   constructor(private readonly servicesService: ServicesService) {}
 
+  @Get('employee/:employeeId/last')
+  @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
+  async getLastServicesByEmployee(
+    @Param('employeeId', ParseIntPipe) employeeId: number,
+  ) {
+    return this.servicesService.getLastServices(employeeId);
+  }
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Get('proximos')
@@ -49,6 +57,14 @@ export class ServicesController {
   @Post()
   create(@Body() createServiceDto: CreateServiceDto): Promise<Service> {
     return this.servicesService.create(createServiceDto);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.OPERARIO, Role.SUPERVISOR)
+  @Get('/assigned/pendings/:employeeId')
+  async getAssignedPendings(@Param('employeeId') employeeId: number) {
+    console.log('employeeId', employeeId);
+    return this.servicesService.getAssignedPendings(employeeId);
   }
 
   @Get()

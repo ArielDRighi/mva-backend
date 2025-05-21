@@ -29,12 +29,12 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto) {
-    const { username, password } = loginDto;
+    const { email, password } = loginDto;
 
     // Buscar usuario por username
-    const user = await this.usersService.findByUsername(username);
+    const user = await this.usersService.findByEmail(email);
     console.log('Usuario encontrado:', user);
-
+    console.log('Contraseña proporcionada:', password);
     // Si no se encuentra el usuario o la contraseña es incorrecta, lanzar excepción
     if (!user || !(await user.comparePassword(password))) {
       throw new UnauthorizedException('Credenciales inválidas');
