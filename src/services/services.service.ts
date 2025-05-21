@@ -13,6 +13,7 @@ import {
   EntityManager,
   DataSource,
   MoreThanOrEqual,
+  Between,
 } from 'typeorm';
 import { FilterServicesDto } from './dto/filter-service.dto';
 import { ClientService } from '../clients/clients.service';
@@ -1931,6 +1932,102 @@ export class ServicesService {
       this.logger.error(`Error al obtener próximos servicios: ${errorMessage}`);
       throw new BadRequestException(
         `Error al obtener próximos servicios: ${errorMessage}`,
+      );
+    }
+  }
+
+  async getStats(): Promise<{
+    totalInstalacion: number;
+    totalLimpieza: number;
+    totalRetiro: number;
+    total: number;
+  }> {
+    const total = await this.serviceRepository.count();
+    const totalInstalacion = await this.serviceRepository.count({
+      where: { tipoServicio: ServiceType.INSTALACION },
+    });
+    const totalLimpieza = await this.serviceRepository.count({
+      where: { tipoServicio: ServiceType.LIMPIEZA },
+    });
+    const totalRetiro = await this.serviceRepository.count({
+      where: { tipoServicio: ServiceType.RETIRO },
+    });
+
+    return {
+      totalInstalacion,
+      totalLimpieza,
+      totalRetiro,
+      total,
+    };
+  }
+
+  async getResumenServicios() {
+    this.logger.log('Obteniendo resumen de servicios');
+
+    try {
+      // Obtener fecha actual y configurar inicio del día
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Calcular el domingo (fin de la semana actual)
+      const endOfWeek = new Date(today);
+      const currentDay = today.getDay(); // 0 = domingo, 6 = sábado
+      const daysUntilSunday = (7 - currentDay) % 7;
+      endOfWeek.setDate(endOfWeek.getDate() + daysUntilSunday);
+      endOfWeek.setHours(23, 59, 59, 999);
+
+      // Calcular inicio de la semana anterior (7 días atrás desde hoy)
+      const startOfLastWeek = new Date(today);
+      startOfLastWeek.setDate(startOfLastWeek.getDate() - 7);
+
+      // 1. Servicios pendientes para esta semana (PROGRAMADOS)
+      const serviciosPendientes = await this.serviceRepository.find({
+        where: {
+          fechaProgramada: Between(today, endOfWeek),
+          estado: ServiceState.PROGRAMADO,
+        },
+        relations: [
+          'cliente',
+          'asignaciones',
+          'asignaciones.empleado',
+          'asignaciones.vehiculo',
+          'asignaciones.bano',
+        ],
+        order: {
+          fechaProgramada: 'ASC',
+        },
+      });
+
+      // 2. Servicios completados en la última semana
+      const serviciosCompletados = await this.serviceRepository.find({
+        where: {
+          fechaFin: Between(startOfLastWeek, today),
+          estado: ServiceState.COMPLETADO,
+        },
+        relations: [
+          'cliente',
+          'asignaciones',
+          'asignaciones.empleado',
+          'asignaciones.vehiculo',
+          'asignaciones.bano',
+        ],
+        order: {
+          fechaFin: 'DESC',
+        },
+      });
+
+      return {
+        pendientes: serviciosPendientes.length,
+        completados: serviciosCompletados.length,
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
+      this.logger.error(
+        `Error al obtener resumen de servicios: ${errorMessage}`,
+      );
+      throw new BadRequestException(
+        `Error al obtener resumen de servicios: ${errorMessage}`,
       );
     }
   }

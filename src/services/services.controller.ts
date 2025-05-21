@@ -71,6 +71,21 @@ export class ServicesController {
     }
   }
 
+  @Get('stats')
+  async getServicesStats(): Promise<{
+    totalInstalacion: number;
+    totalLimpieza: number;
+    totalRetiro: number;
+    total: number;
+  }> {
+    return this.servicesService.getStats();
+  }
+
+  @Get('resumen')
+  async getResumenServicios() {
+    return this.servicesService.getResumenServicios();
+  }
+
   // Agrega estas rutas específicas antes de la ruta con parámetro :id
   @Get('date-range')
   findByDateRange(
