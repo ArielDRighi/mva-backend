@@ -1,8 +1,8 @@
 import { IsNotEmpty, IsString, Matches } from 'class-validator';
 
 export class LoginDto {
-  @IsNotEmpty({ message: 'El nombre de usuario es requerido' })
-  username: string;
+  @IsNotEmpty({ message: 'El email es requerido' })
+  email: string;
 
   @IsNotEmpty({ message: 'La contraseña es requerida' })
   password: string;
