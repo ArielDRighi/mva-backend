@@ -28,6 +28,15 @@ export class ChemicalToiletsController {
     private readonly chemicalToiletsService: ChemicalToiletsService,
   ) {}
 
+  @Get('total_chemical_toilets')
+  async getTotalChemicalToilets(): Promise<{
+    total: number;
+    totalDisponibles: number;
+    totalMantenimiento: number;
+    totalAsignado: number;
+  }> {
+    return this.chemicalToiletsService.getTotalChemicalToilets();
+  }
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Post()

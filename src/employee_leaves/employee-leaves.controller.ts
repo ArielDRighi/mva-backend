@@ -7,7 +7,6 @@ import {
   Param,
   Delete,
   UseGuards,
-  Query,
 } from '@nestjs/common';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -29,12 +28,10 @@ export class EmployeeLeavesController {
   }
 
   @Get()
-  findAll(@Query('page') page = 1, @Query('limit') limit = 10) {
-    return this.leavesService.findAll({
-      page: +page,
-      limit: +limit,
-    });
+  findAll() {
+    return this.leavesService.findAll();
   }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.leavesService.findOne(+id);
@@ -58,6 +55,12 @@ export class EmployeeLeavesController {
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   approve(@Param('id') id: number) {
     return this.leavesService.approve(id);
+  }
+
+  @Patch(':id/reject')
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  reject(@Param('id') id: number) {
+    return this.leavesService.reject(id);
   }
 
   @Delete(':id')

@@ -10,8 +10,6 @@ import {
   ParseIntPipe,
   UseGuards,
   Patch,
-  DefaultValuePipe,
-  BadRequestException,
 } from '@nestjs/common';
 import { ToiletMaintenanceService } from './toilet_maintenance.service';
 import { CreateToiletMaintenanceDto } from './dto/create_toilet_maintenance.dto';
@@ -22,13 +20,14 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../roles/guards/roles.guard';
 import { Roles } from '../roles/decorators/roles.decorator';
 import { Role } from '../roles/enums/role.enum';
-import { Pagination } from 'src/common/interfaces/paginations.interface';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Controller('toilet_maintenance')
 @UseGuards(JwtAuthGuard)
 export class ToiletMaintenanceController {
   constructor(private readonly maintenanceService: ToiletMaintenanceService) {}
 
+  // Endpoint para crear un nuevo mantenimiento de baño
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Post()
@@ -37,30 +36,29 @@ export class ToiletMaintenanceController {
   ): Promise<ToiletMaintenance> {
     return this.maintenanceService.create(createMaintenanceDto);
   }
+
   @Get()
   async findAll(
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
-    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number = 10,
-  ): Promise<Pagination<ToiletMaintenance>> {
-    if (page < 1) {
-      throw new BadRequestException(
-        'El parámetro "page" debe ser un número entero positivo',
-      );
-    }
-    if (limit < 1) {
-      throw new BadRequestException(
-        'El parámetro "limit" debe ser un número entero positivo',
-      );
-    }
-
-    return this.maintenanceService.findAll(page, limit);
+    @Query() paginationDto: PaginationDto,
+  ): Promise<{
+    data: ToiletMaintenance[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    return this.maintenanceService.findAll(paginationDto);
   }
 
   // Rutas con prefijos específicos deben ir ANTES que rutas con parámetros
   @Get('search')
   async search(
     @Query() filterDto: FilterToiletMaintenanceDto,
-  ): Promise<ToiletMaintenance[]> {
+  ): Promise<{
+    data: ToiletMaintenance[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
     return this.maintenanceService.findAllWithFilters(filterDto);
   }
 
@@ -69,6 +67,11 @@ export class ToiletMaintenanceController {
     @Param('toiletId', ParseIntPipe) toiletId: number,
   ): Promise<any> {
     return this.maintenanceService.getMantenimientosStats(toiletId);
+  }
+
+  @Get('proximos')
+  async getUpcomingMaintenances() {
+    return this.maintenanceService.getUpcomingMaintenances();
   }
 
   // Esta ruta con parámetro debe ir DESPUÉS de las específicas

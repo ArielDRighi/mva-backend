@@ -32,7 +32,6 @@ export class UpdateEmployeeLeaveDto {
   @IsOptional()
   notas?: string;
 
-  @IsBoolean()
   @IsOptional()
-  aprobado?: boolean;
+  status?: string;
 }

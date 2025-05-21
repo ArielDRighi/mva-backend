@@ -23,6 +23,7 @@ import { EmployeeLeavesModule } from './employee_leaves/employee-leaves.module';
 import { MailerModule } from './mailer/mailer.module';
 import { SalaryAdvanceModule } from './salary_advance/salary_advance.module';
 import { ClothingModule } from './clothing/clothing.module';
+import { RecentActivityModule } from './recent-activity/recent-activity.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { ClothingModule } from './clothing/clothing.module';
     MailerModule,
     SalaryAdvanceModule,
     ClothingModule,
+    RecentActivityModule,
   ],
   controllers: [AppController],
   providers: [AppService],

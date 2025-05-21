@@ -9,6 +9,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
@@ -17,6 +18,7 @@ import { ModifyFutureCleaningDto } from './dto/modifyFutureCleanings.dto';
 import { CreateFutureCleaningDto } from './dto/createFutureCleanings.dto';
 import { Roles } from 'src/roles/decorators/roles.decorator';
 import { Role } from 'src/roles/enums/role.enum';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Controller('future_cleanings')
 @UseGuards(JwtAuthGuard)
@@ -27,15 +29,24 @@ export class FutureCleaningsController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  async getAllFutureClenaings() {
+  async getAllFutureClenaings(
+    @Query('page') page = '1',
+    @Query('limit') limit = '5',
+  ) {
     try {
-      return await this.futureCleaningsService.getAll();
+      const paginationDto: PaginationDto = {
+        page: Number(page),
+        limit: Number(limit),
+      };
+
+      return await this.futureCleaningsService.getAll(paginationDto);
     } catch (error) {
       throw new BadRequestException(
         error instanceof Error ? error.message : 'Unknown error occurred',
       );
     }
   }
+
   @Roles(Role.ADMIN)
   @Delete('delete/:id')
   @HttpCode(HttpStatus.NO_CONTENT)

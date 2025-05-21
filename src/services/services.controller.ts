@@ -39,64 +39,26 @@ export class ServicesController {
 
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
-  @Post('create/automatic')
-  createWithAutomaticAssignment(
-    @Body() createServiceDto: CreateServiceDto,
-  ): Promise<Service> {
-    createServiceDto.asignacionAutomatica = true;
-    return this.servicesService.create(createServiceDto);
-  }
-
-  @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPERVISOR)
-  @Post('create/manual')
-  createWithManualAssignment(
-    @Body() createServiceDto: CreateServiceDto,
-  ): Promise<Service> {
-    createServiceDto.asignacionAutomatica = false;
-
-    if (
-      !createServiceDto.asignacionesManual ||
-      createServiceDto.asignacionesManual.length === 0
-    ) {
-      throw new BadRequestException(
-        'Para la asignación manual se requiere proporcionar al menos una asignación',
-      );
-    }
-
-    return this.servicesService.create(createServiceDto);
+  @Get('proximos')
+  async getProximosServicios() {
+    return this.servicesService.getProximosServicios();
   }
 
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Post()
   create(@Body() createServiceDto: CreateServiceDto): Promise<Service> {
-    console.warn(
-      'La ruta POST /services está obsoleta. Usar /services/automatic o /services/manual',
-    );
     return this.servicesService.create(createServiceDto);
   }
 
   @Get()
-  async findAll(@Query() filterDto: FilterServicesDto): Promise<any> {
+  async findAll(
+    @Query() filterDto: FilterServicesDto, // Recibe los filtros como parámetros de consulta
+    @Query('page') page: number = 1, // Recibe el número de página desde los parámetros de consulta
+    @Query('limit') limit: number = 10, // Recibe el límite de registros por página desde los parámetros de consulta
+  ): Promise<any> {
     try {
-      // Use default values if not provided
-      const page = filterDto.page || 1;
-      const limit = filterDto.limit || 10;
-
-      // Validate values are positive
-      if (page < 1) {
-        throw new BadRequestException(
-          'El parámetro "page" debe ser un número entero positivo',
-        );
-      }
-      if (limit < 1) {
-        throw new BadRequestException(
-          'El parámetro "limit" debe ser un número entero positivo',
-        );
-      }
-
-      // Call service with filters, page, and limit
+      // Llama al servicio con los filtros, página y límite
       return await this.servicesService.findAll(filterDto, page, limit);
     } catch (error: unknown) {
       // Manejo de errores
@@ -109,6 +71,21 @@ export class ServicesController {
     }
   }
 
+  @Get('stats')
+  async getServicesStats(): Promise<{
+    totalInstalacion: number;
+    totalLimpieza: number;
+    totalRetiro: number;
+    total: number;
+  }> {
+    return this.servicesService.getStats();
+  }
+
+  @Get('resumen')
+  async getResumenServicios() {
+    return this.servicesService.getResumenServicios();
+  }
+
   // Agrega estas rutas específicas antes de la ruta con parámetro :id
   @Get('date-range')
   findByDateRange(
@@ -116,6 +93,11 @@ export class ServicesController {
     @Query('endDate') endDate: string,
   ): Promise<Service[]> {
     return this.servicesService.findByDateRange(startDate, endDate);
+  }
+  // services.controller.ts
+  @Get('semana-restante')
+  async getRemainingWeekServices() {
+    return this.servicesService.getRemainingWeekServices();
   }
 
   @Get('today')
