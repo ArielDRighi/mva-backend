@@ -199,41 +199,43 @@ export class ToiletMaintenanceService {
   }
 
   async findAll(paginationDto: PaginationDto): Promise<{
-  data: ToiletMaintenance[];
-  total: number;
-  page: number;
-  limit: number;
-}> {
-  const { page = 1, limit = 10 } = paginationDto;
+    data: ToiletMaintenance[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const { page = 1, limit = 10 } = paginationDto;
 
-  const [data, total] = await this.maintenanceRepository.findAndCount({
-    relations: ['toilet'],
-    skip: (page - 1) * limit,
-    take: limit,
-  });
+    const [data, total] = await this.maintenanceRepository.findAndCount({
+      relations: ['toilet'],
+      skip: (page - 1) * limit,
+      take: limit,
+    });
 
-  return {
-    data,
-    total,
-    page,
-    limit,
-  };
-}
-async getUpcomingMaintenances(): Promise<ToiletMaintenance[]> {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // El inicio del día de hoy
+    return {
+      data,
+      total,
+      page,
+      limit,
+    };
+  }
 
-  return this.maintenanceRepository.find({
-    where: {
-      fecha_mantenimiento: Between(today, new Date('9999-12-31')),
-      completado: false,
-    },
-    relations: ['toilet'],
-    order: {
-      fecha_mantenimiento: 'ASC',
-    },
-  });
-}
+  async getUpcomingMaintenances(): Promise<ToiletMaintenance[]> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // El inicio del día de hoy
+
+    return this.maintenanceRepository.find({
+      where: {
+        fecha_mantenimiento: Between(today, new Date('9999-12-31')),
+        completado: false,
+      },
+      relations: ['toilet'],
+
+      order: {
+        fecha_mantenimiento: 'ASC',
+      },
+    });
+  }
 
   async findById(mantenimiento_id: number): Promise<ToiletMaintenance> {
     const maintenance = await this.maintenanceRepository.findOne({
@@ -304,59 +306,61 @@ async getUpcomingMaintenances(): Promise<ToiletMaintenance[]> {
     await this.maintenanceRepository.delete(mantenimiento_id);
   }
 
-  async findAllWithFilters(
-  filterDto: FilterToiletMaintenanceDto,
-): Promise<{ data: ToiletMaintenance[]; total: number; page: number; limit: number }> {
-  const { page = 1, limit = 10 } = filterDto;
+  async findAllWithFilters(filterDto: FilterToiletMaintenanceDto): Promise<{
+    data: ToiletMaintenance[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const { page = 1, limit = 10 } = filterDto;
 
-  const query = this.maintenanceRepository
-    .createQueryBuilder('maintenance')
-    .leftJoinAndSelect('maintenance.toilet', 'toilet');
+    const query = this.maintenanceRepository
+      .createQueryBuilder('maintenance')
+      .leftJoinAndSelect('maintenance.toilet', 'toilet');
 
-  if (filterDto.baño_id) {
-    const toiletId = parseInt(String(filterDto.baño_id), 10);
-    if (!isNaN(toiletId)) {
-      query.andWhere('toilet.baño_id = :toiletId', { toiletId });
+    if (filterDto.baño_id) {
+      const toiletId = parseInt(String(filterDto.baño_id), 10);
+      if (!isNaN(toiletId)) {
+        query.andWhere('toilet.baño_id = :toiletId', { toiletId });
+      }
     }
+
+    if (filterDto.tipo_mantenimiento) {
+      query.andWhere('maintenance.tipo_mantenimiento LIKE :tipo', {
+        tipo: `%${filterDto.tipo_mantenimiento}%`,
+      });
+    }
+
+    if (filterDto.tecnico_responsable) {
+      query.andWhere('maintenance.tecnico_responsable LIKE :tecnico', {
+        tecnico: `%${filterDto.tecnico_responsable}%`,
+      });
+    }
+
+    if (filterDto.fechaDesde) {
+      query.andWhere('maintenance.fecha_mantenimiento >= :fechaDesde', {
+        fechaDesde: filterDto.fechaDesde,
+      });
+    }
+
+    if (filterDto.fechaHasta) {
+      query.andWhere('maintenance.fecha_mantenimiento <= :fechaHasta', {
+        fechaHasta: filterDto.fechaHasta,
+      });
+    }
+
+    const [data, total] = await query
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+    };
   }
-
-  if (filterDto.tipo_mantenimiento) {
-    query.andWhere('maintenance.tipo_mantenimiento LIKE :tipo', {
-      tipo: `%${filterDto.tipo_mantenimiento}%`,
-    });
-  }
-
-  if (filterDto.tecnico_responsable) {
-    query.andWhere('maintenance.tecnico_responsable LIKE :tecnico', {
-      tecnico: `%${filterDto.tecnico_responsable}%`,
-    });
-  }
-
-  if (filterDto.fechaDesde) {
-    query.andWhere('maintenance.fecha_mantenimiento >= :fechaDesde', {
-      fechaDesde: filterDto.fechaDesde,
-    });
-  }
-
-  if (filterDto.fechaHasta) {
-    query.andWhere('maintenance.fecha_mantenimiento <= :fechaHasta', {
-      fechaHasta: filterDto.fechaHasta,
-    });
-  }
-
-  const [data, total] = await query
-    .skip((page - 1) * limit)
-    .take(limit)
-    .getManyAndCount();
-
-  return {
-    data,
-    total,
-    page,
-    limit,
-  };
-}
-
 
   async getMantenimientosStats(baño_id: number): Promise<any> {
     const maintenances = await this.maintenanceRepository.find({

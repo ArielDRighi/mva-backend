@@ -191,6 +191,15 @@ export class EmployeesController {
     return this.employeesService.findAll(paginationDto);
   }
 
+  @Get('total_employees')
+  async getTotalEmployees(): Promise<{
+    total: number;
+    totalDisponibles: number;
+    totalInactivos: number;
+  }> {
+    return this.employeesService.getTotalEmployees();
+  }
+
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number): Promise<Empleado> {

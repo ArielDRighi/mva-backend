@@ -39,6 +39,13 @@ export class ServicesController {
 
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Get('proximos')
+  async getProximosServicios() {
+    return this.servicesService.getProximosServicios();
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Post()
   create(@Body() createServiceDto: CreateServiceDto): Promise<Service> {
     return this.servicesService.create(createServiceDto);
@@ -64,6 +71,21 @@ export class ServicesController {
     }
   }
 
+  @Get('stats')
+  async getServicesStats(): Promise<{
+    totalInstalacion: number;
+    totalLimpieza: number;
+    totalRetiro: number;
+    total: number;
+  }> {
+    return this.servicesService.getStats();
+  }
+
+  @Get('resumen')
+  async getResumenServicios() {
+    return this.servicesService.getResumenServicios();
+  }
+
   // Agrega estas rutas específicas antes de la ruta con parámetro :id
   @Get('date-range')
   findByDateRange(
@@ -72,8 +94,8 @@ export class ServicesController {
   ): Promise<Service[]> {
     return this.servicesService.findByDateRange(startDate, endDate);
   }
-// services.controller.ts
- @Get('semana-restante')
+  // services.controller.ts
+  @Get('semana-restante')
   async getRemainingWeekServices() {
     return this.servicesService.getRemainingWeekServices();
   }

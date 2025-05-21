@@ -1,5 +1,11 @@
 import { ChemicalToilet } from '../../chemical_toilets/entities/chemical_toilet.entity';
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 @Entity({ name: 'toilet_maintenance' })
 export class ToiletMaintenance {
@@ -18,6 +24,9 @@ export class ToiletMaintenance {
 
   @Column()
   descripcion: string;
+
+  @CreateDateColumn()
+  createdAt: Date;
 
   @Column()
   tecnico_responsable: string;

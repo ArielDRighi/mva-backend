@@ -552,4 +552,23 @@ export class EmployeesService {
     }
     return updatedExamen;
   }
+
+  async getTotalEmployees(): Promise<{
+    total: number;
+    totalDisponibles: number;
+    totalInactivos: number;
+  }> {
+    const total = await this.employeeRepository.count();
+    const totalDisponibles = await this.employeeRepository.count({
+      where: { estado: 'DISPONIBLE' },
+    });
+    const totalInactivos = await this.employeeRepository.count({
+      where: { estado: 'INACTIVO' },
+    });
+    return {
+      total,
+      totalDisponibles,
+      totalInactivos,
+    };
+  }
 }

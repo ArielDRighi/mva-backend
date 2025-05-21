@@ -6,6 +6,7 @@ import { ModifyFutureCleaningDto } from './dto/modifyFutureCleanings.dto';
 import { CreateFutureCleaningDto } from './dto/createFutureCleanings.dto';
 import { Cliente } from 'src/clients/entities/client.entity';
 import { Service } from 'src/services/entities/service.entity';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Injectable()
 export class FutureCleaningsService {
@@ -17,14 +18,34 @@ export class FutureCleaningsService {
     @InjectRepository(Service)
     private readonly serviceRepository: Repository<Service>,
   ) {}
-  async getAll() {
-    const futureCleanings = await this.futurasLimpiezasRepository.find({
-      relations: ['cliente', 'servicio'],
-    });
-    if (!futureCleanings) {
+
+  async getAll(paginationDto: PaginationDto) {
+    const { page = 1, limit = 5 } = paginationDto;
+
+    // Crear query para poder paginar y contar el total
+    const query = this.futurasLimpiezasRepository
+      .createQueryBuilder('futurasLimpiezas')
+      .leftJoinAndSelect('futurasLimpiezas.cliente', 'cliente')
+      .leftJoinAndSelect('futurasLimpiezas.servicio', 'servicio')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    // Obtener resultados y total de registros
+    const [items, total] = await query.getManyAndCount();
+
+    // Verificar si hay resultados
+    if (items.length === 0) {
       throw new BadRequestException('No future cleanings found');
     }
-    return futureCleanings;
+
+    // Retornar objeto de paginación
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async getById(id: number) {
