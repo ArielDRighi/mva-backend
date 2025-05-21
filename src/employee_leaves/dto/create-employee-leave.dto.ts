@@ -33,5 +33,5 @@ export class CreateEmployeeLeaveDto {
   notas?: string;
 
   @IsOptional()
-  aprobado?: boolean = false;
+  status?: string;
 }

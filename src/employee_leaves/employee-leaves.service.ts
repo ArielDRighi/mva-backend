@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThanOrEqual, MoreThanOrEqual, Not } from 'typeorm';
-import { EmployeeLeave } from './entities/employee-leave.entity';
+import { EmployeeLeave, LeaveStatus } from './entities/employee-leave.entity';
 import { CreateEmployeeLeaveDto } from './dto/create-employee-leave.dto';
 import { UpdateEmployeeLeaveDto } from './dto/update-employee-leave.dto';
 import { EmployeesService } from '../employees/employees.service';
@@ -196,7 +196,7 @@ export class EmployeeLeavesService {
         employeeId,
         fechaInicio: LessThanOrEqual(endOfDay),
         fechaFin: MoreThanOrEqual(startOfDay),
-        aprobado: true,
+        status: LeaveStatus.APROBADO,
       },
     });
 
@@ -215,7 +215,7 @@ export class EmployeeLeavesService {
       where: {
         fechaInicio: LessThanOrEqual(endOfDay),
         fechaFin: MoreThanOrEqual(startOfDay),
-        aprobado: true,
+        status: LeaveStatus.APROBADO,
       },
       relations: ['employee'],
     });
@@ -225,7 +225,7 @@ export class EmployeeLeavesService {
     this.logger.log(`Aprobando licencia con ID: ${id}`);
 
     const leave = await this.findOne(id);
-    if (leave.aprobado === true) {
+    if (leave.status === LeaveStatus.APROBADO) {
       throw new BadRequestException(
         `La licencia con ID ${id} ya está aprobada`,
       );
@@ -278,7 +278,22 @@ export class EmployeeLeavesService {
     });
 
     // Aprobar la licencia
-    leave.aprobado = true;
+    leave.status = LeaveStatus.APROBADO;
+
+    await this.leaveRepository.save(leave);
+
+    return await this.findOne(id);
+  }
+
+  async reject(id: number) {
+    const leave = await this.findOne(id);
+    if (leave.status === LeaveStatus.RECHAZADO) {
+      throw new BadRequestException(
+        `La licencia con ID ${id} ya está rechazada`,
+      );
+    }
+
+    leave.status = LeaveStatus.RECHAZADO;
 
     await this.leaveRepository.save(leave);
 

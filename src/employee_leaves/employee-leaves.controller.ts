@@ -57,6 +57,12 @@ export class EmployeeLeavesController {
     return this.leavesService.approve(id);
   }
 
+  @Patch(':id/reject')
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  reject(@Param('id') id: number) {
+    return this.leavesService.reject(id);
+  }
+
   @Delete(':id')
   @Roles(Role.ADMIN)
   remove(@Param('id') id: string) {
