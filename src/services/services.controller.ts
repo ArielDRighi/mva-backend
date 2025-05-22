@@ -98,7 +98,7 @@ createLimpieza(@Body() dto: CreateServiceDto): Promise<Service> {
 }
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
-  @Post()
+  @Post('generico')
   create(@Body() createServiceDto: CreateServiceDto): Promise<Service> {
     return this.servicesService.create(createServiceDto);
   }
