@@ -8,7 +8,6 @@ import { UpdateRopaTallesDto } from './dto/updateRopaTalles.dto';
 import { Workbook } from 'exceljs';
 import { Response } from 'express';
 
-
 @Injectable()
 export class ClothingService {
   constructor(
@@ -47,15 +46,40 @@ export class ClothingService {
     }
     return talles;
   }
+  async getAllClothingSpecs(
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{
+    data: RopaTalles[];
+    totalItems: number;
+    currentPage: number;
+    totalPages: number;
+  }> {
+    try {
+      const [talles, total] = await this.tallesRepository.findAndCount({
+        relations: ['empleado'],
+        skip: (page - 1) * limit,
+        take: limit,
+      });
 
-  async getAllClothingSpecs(): Promise<RopaTalles[]> {
-    const talles = await this.tallesRepository.find({
-      relations: ['empleado'],
-    });
-    if (!talles) {
-      throw new BadRequestException('Talles no encontrados');
+      if (talles.length === 0) {
+        throw new BadRequestException('Talles no encontrados');
+      }
+
+      return {
+        data: talles,
+        totalItems: total,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        'Error al obtener talles: ' + error.message,
+      );
     }
-    return talles;
   }
 
   async updateClothingSpecs(
@@ -122,8 +146,16 @@ export class ClothingService {
       { header: 'Campera BigNort', key: 'campera_bigNort_talle', width: 18 },
       { header: 'Piel BigNort', key: 'pielBigNort_talle', width: 15 },
       { header: 'Medias', key: 'medias_talle', width: 10 },
-      { header: 'Pantalón térmico BigNort', key: 'pantalon_termico_bigNort_talle', width: 25 },
-      { header: 'Campera polar BigNort', key: 'campera_polar_bigNort_talle', width: 25 },
+      {
+        header: 'Pantalón térmico BigNort',
+        key: 'pantalon_termico_bigNort_talle',
+        width: 25,
+      },
+      {
+        header: 'Campera polar BigNort',
+        key: 'campera_polar_bigNort_talle',
+        width: 25,
+      },
       { header: 'Mameluco', key: 'mameluco_talle', width: 15 },
     ];
 

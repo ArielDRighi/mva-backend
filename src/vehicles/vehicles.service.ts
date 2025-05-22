@@ -215,4 +215,86 @@ export class VehiclesService {
       totalAsignado,
     };
   }
+  async getExpiringDocuments(
+    days: number = 30,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{
+    segurosProximosAVencer: {
+      data: Vehicle[];
+      totalItems: number;
+      currentPage: number;
+      totalPages: number;
+    };
+    vtvProximosAVencer: {
+      data: Vehicle[];
+      totalItems: number;
+      currentPage: number;
+      totalPages: number;
+    };
+  }> {
+    this.logger.log(
+      `Buscando vehículos con seguros y VTV próximos a vencer en ${days} días (página ${page}, límite ${limit})`,
+    );
+
+    const today = new Date();
+    const futureDate = new Date(today);
+    futureDate.setDate(today.getDate() + days);
+
+    // Base query para seguros próximos a vencer
+    const segurosQueryBuilder = this.vehicleRepository
+      .createQueryBuilder('vehicle')
+      .where('vehicle.fechaVencimientoSeguro IS NOT NULL')
+      .andWhere(
+        'vehicle.fechaVencimientoSeguro BETWEEN :today AND :futureDate',
+        {
+          today: today.toISOString().split('T')[0],
+          futureDate: futureDate.toISOString().split('T')[0],
+        },
+      )
+      .orderBy('vehicle.fechaVencimientoSeguro', 'ASC');
+
+    // Obtener total de seguros próximos a vencer
+    const totalSeguros = await segurosQueryBuilder.getCount();
+
+    // Obtener seguros paginados
+    const segurosProximosAVencer = await segurosQueryBuilder
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getMany();
+
+    // Base query para VTV próximos a vencer
+    const vtvQueryBuilder = this.vehicleRepository
+      .createQueryBuilder('vehicle')
+      .where('vehicle.fechaVencimientoVTV IS NOT NULL')
+      .andWhere('vehicle.fechaVencimientoVTV BETWEEN :today AND :futureDate', {
+        today: today.toISOString().split('T')[0],
+        futureDate: futureDate.toISOString().split('T')[0],
+      })
+      .orderBy('vehicle.fechaVencimientoVTV', 'ASC');
+
+    // Obtener total de VTV próximos a vencer
+    const totalVtv = await vtvQueryBuilder.getCount();
+
+    // Obtener VTV paginados
+    const vtvProximosAVencer = await vtvQueryBuilder
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getMany();
+
+    return {
+      segurosProximosAVencer: {
+        data: segurosProximosAVencer,
+        totalItems: totalSeguros,
+        currentPage: page,
+        totalPages: Math.ceil(totalSeguros / limit),
+      },
+      vtvProximosAVencer: {
+        data: vtvProximosAVencer,
+        totalItems: totalVtv,
+        currentPage: page,
+        totalPages: Math.ceil(totalVtv / limit),
+      },
+    };
+  }
 }
