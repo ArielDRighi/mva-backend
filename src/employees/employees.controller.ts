@@ -169,6 +169,14 @@ export class EmployeesController {
   ): Promise<Empleado> {
     return await this.employeesService.findLicenciasByEmpleadoId(empleadoId);
   }
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @Get(':id/proximos-servicios')
+  async obtenerProximosServicios(
+  @Param('id', ParseIntPipe) id: number,
+  ) {
+  return await this.employeesService.findProximosServiciosPorEmpleadoId(id);
+  }
 
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)

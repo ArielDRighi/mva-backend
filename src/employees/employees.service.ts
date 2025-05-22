@@ -20,6 +20,8 @@ import { UpdateContactEmergencyDto } from './dto/update_contact_emergency.dto';
 import { ExamenPreocupacional } from './entities/examenPreocupacional.entity';
 import { CreateExamenPreocupacionalDto } from './dto/create_examen.dto';
 import { UpdateExamenPreocupacionalDto } from './dto/modify_examen.dto';
+import { DataSource, MoreThan } from 'typeorm';
+import { Service } from 'src/services/entities/service.entity';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from 'src/users/users.service';
 import { Role } from 'src/roles/enums/role.enum';
@@ -31,6 +33,7 @@ export class EmployeesService {
   constructor(
     @InjectRepository(Empleado)
     private employeeRepository: Repository<Empleado>,
+    private readonly dataSource: DataSource,
     @InjectRepository(Licencias)
     private readonly licenciaRepository: Repository<Licencias>,
     @InjectRepository(ContactosEmergencia)
@@ -505,6 +508,19 @@ export class EmployeesService {
     }
     return employee.examenesPreocupacionales;
   }
+  async findProximosServiciosPorEmpleadoId(empleadoId: number) {
+  const ahora = new Date();
+
+  return this.dataSource.getRepository(Service).find({
+    where: [
+      { empleadoAId: empleadoId, fechaProgramada: MoreThan(ahora) },
+      { empleadoBId: empleadoId, fechaProgramada: MoreThan(ahora) },
+    ],
+    order: { fechaProgramada: 'ASC' },
+    relations: ['cliente'], // incluye más relaciones si es necesario
+  });
+}
+
 
   async createExamenPreocupacional(
     createExamenPreocupacionalDto: CreateExamenPreocupacionalDto,

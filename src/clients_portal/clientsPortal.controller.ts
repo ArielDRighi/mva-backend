@@ -177,7 +177,8 @@ export class ClientsPortalController {
     }
   }
 
-  @UseGuards(RolesGuard, JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Get('stats')
   @HttpCode(HttpStatus.OK)
   async getStats() {
