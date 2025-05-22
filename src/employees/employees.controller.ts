@@ -75,7 +75,7 @@ export class EmployeesController {
   }
 
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
   @Post('emergency/:empleadoId')
   async createEmergencyContact(
     @Body() createEmergencyContactDto: CreateContactEmergencyDto,
@@ -88,16 +88,17 @@ export class EmployeesController {
   }
 
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
   @Delete('emergency/delete/:contactoId')
   async removeEmergencyContact(
     @Param('contactoId', ParseIntPipe) contactoId: number,
   ): Promise<{ message: string }> {
     return await this.employeesService.removeEmergencyContact(contactoId);
   }
+
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
-  @Put('emergency/:contactoId')
+  @Put('emergency/modify/:contactoId')
   async updateEmergencyContact(
     @Body() updateEmergencyContactDto: UpdateContactEmergencyDto,
     @Param('contactoId', ParseIntPipe) contactoId: number,
@@ -113,10 +114,14 @@ export class EmployeesController {
   @Get('emergency/:empleadoId')
   async findEmergencyContactsByEmpleadoId(
     @Param('empleadoId', ParseIntPipe) empleadoId: number,
-  ): Promise<Empleado> {
-    return await this.employeesService.findEmergencyContactsByEmpleadoId(
-      empleadoId,
-    );
+  ) {
+    try {
+      return await this.employeesService.findEmergencyContactsByEmpleadoId(
+        empleadoId,
+      );
+    } catch (error) {
+      console.error('Error finding emergency contacts:', error);
+    }
   }
 
   @UseGuards(RolesGuard)

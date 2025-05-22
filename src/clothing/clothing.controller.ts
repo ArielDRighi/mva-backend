@@ -42,7 +42,7 @@ export class ClothingController {
   }
 
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
   @HttpCode(HttpStatus.CREATED)
   @Post('create/:empleadoId')
   async create(
@@ -53,7 +53,7 @@ export class ClothingController {
   }
 
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
   @HttpCode(HttpStatus.OK)
   @Put('modify/:empleadoId')
   async update(
@@ -66,10 +66,9 @@ export class ClothingController {
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   @HttpCode(HttpStatus.OK)
   @Get('export')
-async exportExcel(@Res() res: Response) {
-  return this.clothingService.exportToExcel(res);
-}
-
+  async exportExcel(@Res() res: Response) {
+    return this.clothingService.exportToExcel(res);
+  }
 
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
