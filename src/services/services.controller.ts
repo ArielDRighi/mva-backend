@@ -15,6 +15,7 @@ import {
   HttpStatus,
   UseInterceptors,
   ClassSerializerInterceptor,
+  Req,
 } from '@nestjs/common';
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto/create-service.dto';
@@ -37,6 +38,37 @@ import { FilterServicesDto } from './dto/filter-service.dto';
 export class ServicesController {
   constructor(private readonly servicesService: ServicesService) {}
 
+  @Get('employee/:employeeId/last')
+  @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
+  async getLastServicesByEmployee(
+    @Param('employeeId', ParseIntPipe) employeeId: number,
+  ) {
+    return this.servicesService.getLastServices(employeeId);
+  }
+
+  @Get('employee/:employeeId/completed')
+  @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
+  async getCompletedServicesByEmployee(
+    @Param('employeeId', ParseIntPipe) employeeId: number,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+    @Query('search') search?: string,
+  ) {
+    try {
+      const paginationDto = { page, limit, search };
+      return this.servicesService.getCompletedServices(
+        employeeId,
+        paginationDto,
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
+      throw new HttpException(
+        `Error al obtener los servicios completados: ${errorMessage}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Get('proximos')
@@ -66,10 +98,27 @@ createLimpieza(@Body() dto: CreateServiceDto): Promise<Service> {
 }
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
-  @Post('generico')
-  createGenerico(@Body() dto: CreateServiceDto): Promise<Service> {
-    return this.servicesService.create(dto);
+  @Post()
+  create(@Body() createServiceDto: CreateServiceDto): Promise<Service> {
+    return this.servicesService.create(createServiceDto);
   }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.OPERARIO, Role.SUPERVISOR)
+  @Get('/assigned/pendings/:employeeId')
+  async getAssignedPendings(@Param('employeeId') employeeId: number) {
+    console.log('employeeId', employeeId);
+    return this.servicesService.getAssignedPendings(employeeId);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.OPERARIO, Role.SUPERVISOR)
+  @Get('/assigned/inProgress/:employeeId')
+  async getAssignedInProgress(@Param('employeeId') employeeId: number) {
+    console.log('employeeId', employeeId);
+    return this.servicesService.getAssignedInProgress(employeeId);
+  }
+
   @Get()
   async findAll(
     @Query() filterDto: FilterServicesDto, // Recibe los filtros como parámetros de consulta

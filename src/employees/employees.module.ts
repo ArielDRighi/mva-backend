@@ -9,6 +9,7 @@ import { ContactosEmergencia } from './entities/emergencyContacts.entity';
 import { LicenseAlertService } from './LicenseAlert.service';
 import { MailerModule } from 'src/mailer/mailer.module';
 import { ExamenPreocupacional } from './entities/examenPreocupacional.entity';
+import { UsersModule } from 'src/users/users.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ExamenPreocupacional } from './entities/examenPreocupacional.entity';
     ]),
     RolesModule,
     MailerModule,
+    UsersModule,
   ],
   controllers: [EmployeesController],
   providers: [EmployeesService, LicenseAlertService],
