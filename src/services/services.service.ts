@@ -43,6 +43,7 @@ import {
 import { Service } from './entities/service.entity';
 import { ResourceAssignment } from './entities/resource-assignment.entity';
 import { UpdateServiceDto } from './dto/update-service.dto';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Injectable()
 export class ServicesService {
@@ -2098,5 +2099,62 @@ export class ServicesService {
         `Error al obtener los últimos servicios: ${errorMessage}`,
       );
     }
+  }
+
+  async getAssignedInProgress(employeeId: number) {
+    const services = await this.serviceRepository.find({
+      where: {
+        estado: ServiceState.EN_PROGRESO,
+        asignaciones: {
+          empleadoId: employeeId,
+        },
+      },
+      relations: [
+        'cliente',
+        'asignaciones',
+        'asignaciones.empleado',
+        'asignaciones.vehiculo',
+        'asignaciones.bano',
+      ],
+    });
+    return services;
+  }
+
+  async getCompletedServices(
+    employeeId: number,
+    paginationDto: PaginationDto,
+  ): Promise<any> {
+    const { page = 1, limit = 10, search } = paginationDto;
+
+    const query = this.serviceRepository
+      .createQueryBuilder('service')
+      .leftJoinAndSelect('service.asignaciones', 'asignacion')
+      .leftJoinAndSelect('asignacion.empleado', 'empleado')
+      .leftJoinAndSelect('service.cliente', 'cliente')
+      .where('empleado.id = :employeeId', { employeeId })
+      .andWhere('service.estado = :estado', {
+        estado: ServiceState.COMPLETADO,
+      });
+
+    // Add search functionality if needed
+    if (search) {
+      query.andWhere(
+        '(LOWER(cliente.nombre) LIKE :search OR LOWER(service.ubicacion) LIKE :search)',
+        { search: `%${search.toLowerCase()}%` },
+      );
+    }
+
+    // Add pagination
+    const [servicios, total] = await query
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      data: servicios,
+      totalItems: total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 }
