@@ -132,7 +132,7 @@ export class EmployeesController {
   }
 
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
   @Put('licencia/update/:empleadoId')
   async updateLicencia(
     @Body() updateLicenseDto: UpdateLicenseDto,
@@ -160,6 +160,8 @@ export class EmployeesController {
     @Body() createEmployeeDto: CreateLicenseDto,
     @Param('empleadoId', ParseIntPipe) empleadoId: number,
   ): Promise<Licencias> {
+    console.log('Empleado ID:', empleadoId);
+    console.log('Create License DTO:', createEmployeeDto);
     return await this.employeesService.createLicencia(
       createEmployeeDto,
       empleadoId,
@@ -171,7 +173,7 @@ export class EmployeesController {
   @Get('licencia/:empleadoId')
   async findLicenciasByEmpleadoId(
     @Param('empleadoId', ParseIntPipe) empleadoId: number,
-  ): Promise<Empleado> {
+  ): Promise<Licencias> {
     return await this.employeesService.findLicenciasByEmpleadoId(empleadoId);
   }
 

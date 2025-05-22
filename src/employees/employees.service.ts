@@ -300,7 +300,7 @@ export class EmployeesService {
     );
   }
 
-  async findLicenciasByEmpleadoId(empleadoId: number): Promise<Empleado> {
+  async findLicenciasByEmpleadoId(empleadoId: number): Promise<Licencias> {
     const employee = await this.employeeRepository.findOne({
       where: { id: empleadoId },
       relations: ['licencia'],
@@ -310,7 +310,7 @@ export class EmployeesService {
         `Empleado con id ${empleadoId} no encontrado`,
       );
     }
-    return employee;
+    return employee.licencia;
   }
 
   async createEmergencyContact(
