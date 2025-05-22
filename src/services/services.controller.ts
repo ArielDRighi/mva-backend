@@ -58,6 +58,13 @@ export class ServicesController {
     return this.servicesService.create(dto);
   }
   @UseGuards(RolesGuard)
+@Roles(Role.ADMIN, Role.SUPERVISOR)
+@Post('limpieza')
+createLimpieza(@Body() dto: CreateServiceDto): Promise<Service> {
+  dto.tipoServicio = ServiceType.LIMPIEZA;
+  return this.servicesService.create(dto);
+}
+  @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Post('generico')
   createGenerico(@Body() dto: CreateServiceDto): Promise<Service> {

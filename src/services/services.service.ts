@@ -81,6 +81,8 @@ async create(dto: CreateServiceDto): Promise<Service> {
         return this.createInstalacion(dto);
       case ServiceType.CAPACITACION:
         return this.createCapacitacion(dto);
+        case ServiceType.LIMPIEZA:
+      return this.createLimpieza(dto);
       default:
         return this.createGenerico(dto);
     }
@@ -137,6 +139,65 @@ async create(dto: CreateServiceDto): Promise<Service> {
 
   return this.findOne(service.id);
 }
+private async createLimpieza(dto: CreateServiceDto): Promise<Service> {
+  const service = await this.createBaseService(dto);
+
+  // Si no se pasaron baños instalados explícitamente, buscar el último servicio de instalación
+  if ((!dto.banosInstalados || dto.banosInstalados.length === 0) && dto.clienteId) {
+    const ultimoServicioInstalacion = await this.serviceRepository.findOne({
+      where: {
+        cliente: { clienteId: dto.clienteId },
+        tipoServicio: ServiceType.INSTALACION,
+      },
+      order: { fechaProgramada: 'DESC' },
+    });
+
+    if (ultimoServicioInstalacion?.banosInstalados?.length) {
+      service.banosInstalados = ultimoServicioInstalacion.banosInstalados;
+    } else {
+      this.logger.warn(`No se encontraron baños instalados para cliente ${dto.clienteId}`);
+      service.banosInstalados = [];
+    }
+  }
+
+  // Verificar periodicidad de limpieza si está relacionada a una condición contractual
+  if (service.condicionContractualId && service.fechaInicio && service.fechaFin) {
+    const contrato = await this.condicionesContractualesRepository.findOne({
+      where: { condicionContractualId: service.condicionContractualId },
+      relations: ['cliente'],
+    });
+
+    if (contrato?.periodicidad) {
+      const fechas = this.toiletMaintenanceService.calculateMaintenanceDays(
+        service.fechaInicio,
+        service.fechaFin,
+        contrato.periodicidad,
+      );
+
+      for (let i = 0; i < fechas.length; i++) {
+        try {
+          const limpieza = {
+            cliente: { clienteId: contrato.cliente.clienteId },
+            fecha_de_limpieza: fechas[i],
+            numero_de_limpieza: i + 1,
+            isActive: true,
+            servicio: { id: service.id },
+            banos: service.banosInstalados,
+          };
+
+          await this.dataSource.manager.save('future_cleanings', limpieza);
+          this.logger.log(`Limpieza futura #${i + 1} programada: ${fechas[i].toISOString()}`);
+        } catch (error) {
+          this.logger.error(`Error al crear limpieza futura #${i + 1}: ${error.message}`);
+        }
+      }
+    }
+  }
+
+  return this.findOne(service.id);
+}
+
+
 
   private async createGenerico(dto: CreateServiceDto): Promise<Service> {
     return this.createBaseService(dto);
