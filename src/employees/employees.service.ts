@@ -9,7 +9,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThanOrEqual, LessThan, Between } from 'typeorm';
 import { Empleado } from './entities/employee.entity';
-import { CreateEmployeeDto } from './dto/create_employee.dto';
+import { CreateEmployeeDto, CreateFullEmployeeDto } from './dto/create_employee.dto';
 import { UpdateEmployeeDto } from './dto/update_employee.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { Licencias } from './entities/license.entity';
@@ -40,7 +40,7 @@ export class EmployeesService {
     private usersService: UsersService, // Inyecta el servicio de usuarios
   ) {}
 
-  async create(createEmployeeDto: CreateEmployeeDto): Promise<Empleado> {
+  async create(createEmployeeDto: CreateFullEmployeeDto): Promise<Empleado> {
     this.logger.log(
       `Creando empleado: ${createEmployeeDto.nombre} ${createEmployeeDto.apellido}`,
     );

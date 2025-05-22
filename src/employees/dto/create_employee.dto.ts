@@ -1,4 +1,4 @@
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsEmail,
   IsNotEmpty,
@@ -6,7 +6,11 @@ import {
   IsOptional,
   IsString,
   Length,
+  ValidateNested,
 } from 'class-validator';
+import { CreateContactEmergencyDto } from './create_contact_emergency.dto';
+import { CreateLicenseDto } from './create_license.dto';
+import { CreateExamenPreocupacionalDto } from './create_examen.dto';
 
 export class CreateEmployeeDto {
   @IsString()
@@ -78,4 +82,22 @@ export class CreateEmployeeDto {
   @IsString()
   @Length(11, 20, { message: 'El CBU debe tener entre 11 y 20 caracteres' })
   cbu: string;
+}
+
+
+export class CreateFullEmployeeDto extends CreateEmployeeDto {
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => CreateContactEmergencyDto)
+  emergencyContacts?: CreateContactEmergencyDto[];
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CreateLicenseDto)
+  licencia?: CreateLicenseDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CreateExamenPreocupacionalDto)
+  examenPreocupacional?: CreateExamenPreocupacionalDto;
 }

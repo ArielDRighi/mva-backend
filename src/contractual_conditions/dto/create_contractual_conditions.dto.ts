@@ -22,6 +22,7 @@ export class CreateContractualConditionDto {
   clientId: number;
 
   @IsNotEmpty()
+  @Transform(({ value }) => normalizeEnumValue(value))
   @IsEnum(TipoContrato)
   tipo_de_contrato: TipoContrato;
 
@@ -36,6 +37,7 @@ export class CreateContractualConditionDto {
   fecha_fin: Date;
 
   @IsOptional()
+  @Transform(({ value }) => normalizeEnumValue(value))
   @MaxLength(500)
   condiciones_especificas?: string;
 
@@ -62,7 +64,6 @@ export class CreateContractualConditionDto {
   @Transform(({ value }) => Number(value))
   @Min(0)
   tarifa_limpieza?: number;
-
   @IsOptional()
   @IsEnum(ServiceType)
   tipo_servicio?: ServiceType;
@@ -72,12 +73,21 @@ export class CreateContractualConditionDto {
   @Transform(({ value }) => Number(value))
   @Min(0)
   cantidad_banos?: number;
-
-  @IsNotEmpty()
+ @IsOptional()
+  @Transform(({ value }) => normalizeEnumValue(value))
   @IsEnum(Periodicidad)
   periodicidad: Periodicidad;
 
   @IsOptional()
   @IsEnum(EstadoContrato)
   estado?: EstadoContrato;
+}
+export function normalizeEnumValue(value: string): string {
+  if (typeof value !== 'string') return value;
+
+  return value
+    .normalize('NFD') // separa tildes
+    .replace(/[\u0300-\u036f]/g, '') // elimina tildes
+    .toLowerCase()
+    .replace(/^\w/, c => c.toUpperCase()); // primera letra en mayúscula
 }
