@@ -1,4 +1,3 @@
-import { Role } from 'src/roles/enums/role.enum';
 import {
   Controller,
   Get,
@@ -13,6 +12,7 @@ import {
   Query,
   DefaultValuePipe,
 } from '@nestjs/common';
+import { Role } from 'src/roles/enums/role.enum';
 import { EmployeesService } from './employees.service';
 import {
   CreateEmployeeDto,
@@ -124,7 +124,7 @@ export class EmployeesController {
   }
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
-  @Get('licences/to/expire')
+  @Get('licencias/por-vencer')
   async findLicensesToExpire(
     @Query('dias', new DefaultValuePipe(30), ParseIntPipe) dias: number,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
