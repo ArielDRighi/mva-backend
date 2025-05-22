@@ -1,3 +1,4 @@
+import { UpdateLicenseDto } from './__mocks__/dto/update_license.dto';
 import {
   Injectable,
   NotFoundException,
@@ -8,7 +9,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThanOrEqual, LessThan, Between } from 'typeorm';
 import { Empleado } from './entities/employee.entity';
-import { CreateEmployeeDto } from './dto/create_employee.dto';
+import { CreateEmployeeDto, CreateFullEmployeeDto } from './dto/create_employee.dto';
 import { UpdateEmployeeDto } from './dto/update_employee.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { Licencias } from './entities/license.entity';
@@ -16,12 +17,14 @@ import { CreateLicenseDto } from './dto/create_license.dto';
 import { CreateContactEmergencyDto } from './dto/create_contact_emergency.dto';
 import { ContactosEmergencia } from './entities/emergencyContacts.entity';
 import { UpdateContactEmergencyDto } from './dto/update_contact_emergency.dto';
-import { UpdateLicenseDto } from './dto/update_license.dto';
 import { ExamenPreocupacional } from './entities/examenPreocupacional.entity';
 import { CreateExamenPreocupacionalDto } from './dto/create_examen.dto';
 import { UpdateExamenPreocupacionalDto } from './dto/modify_examen.dto';
 import { DataSource, MoreThan } from 'typeorm';
 import { Service } from 'src/services/entities/service.entity';
+import * as bcrypt from 'bcrypt';
+import { UsersService } from 'src/users/users.service';
+import { Role } from 'src/roles/enums/role.enum';
 
 @Injectable()
 export class EmployeesService {
@@ -37,9 +40,10 @@ export class EmployeesService {
     private readonly emergencyContactRepository: Repository<ContactosEmergencia>,
     @InjectRepository(ExamenPreocupacional)
     private readonly examenPreocupacionalRepository: Repository<ExamenPreocupacional>,
+    private usersService: UsersService, // Inyecta el servicio de usuarios
   ) {}
 
-  async create(createEmployeeDto: CreateEmployeeDto): Promise<Empleado> {
+  async create(createEmployeeDto: CreateFullEmployeeDto): Promise<Empleado> {
     this.logger.log(
       `Creando empleado: ${createEmployeeDto.nombre} ${createEmployeeDto.apellido}`,
     );
@@ -66,8 +70,29 @@ export class EmployeesService {
       );
     }
 
-    const employee = this.employeeRepository.create(createEmployeeDto);
-    return this.employeeRepository.save(employee);
+    // Crear el empleado
+    const newEmployee = this.employeeRepository.create(createEmployeeDto);
+    const savedEmployee = await this.employeeRepository.save(newEmployee);
+
+    // Crear automáticamente un usuario para el empleado
+    try {
+      await this.usersService.create({
+        nombre: `${createEmployeeDto.nombre} ${createEmployeeDto.apellido}`,
+        email: createEmployeeDto.email,
+        password: createEmployeeDto.documento,
+        roles: [Role.OPERARIO], // Rol por defecto para empleados
+        empleadoId: savedEmployee.id,
+      });
+
+      // Opcionalmente, enviar un correo con las credenciales iniciales
+    } catch (error) {
+      this.logger.error(
+        `Error al crear usuario para empleado: ${error.message}`,
+      );
+      // Decide si quieres manejar este error o simplemente registrarlo
+    }
+
+    return savedEmployee;
   }
 
   async findAll(paginationDto: PaginationDto): Promise<any> {
@@ -186,6 +211,10 @@ export class EmployeesService {
           `Ya existe un empleado con el email ${updateEmployeeDto.email}`,
         );
       }
+    }
+    if (updateEmployeeDto.password) {
+      const hashedPassword = await bcrypt.hash(updateEmployeeDto.password, 10);
+      updateEmployeeDto.password = hashedPassword;
     }
 
     Object.assign(employee, updateEmployeeDto);
@@ -586,5 +615,18 @@ export class EmployeesService {
       totalDisponibles,
       totalInactivos,
     };
+  }
+
+  // Añadir método para buscar empleado por email
+  async findByEmail(email: string): Promise<Empleado> {
+    const employee = await this.employeeRepository.findOne({
+      where: { email },
+    });
+
+    if (!employee) {
+      throw new NotFoundException(`Empleado con email ${email} no encontrado`);
+    }
+
+    return employee;
   }
 }
