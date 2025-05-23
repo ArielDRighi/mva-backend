@@ -276,8 +276,19 @@ export class ServicesService {
         }
       }
 
-      if (!cliente) throw new Error('No se pudo determinar el cliente');
-      newService.cliente = cliente;
+      if (!cliente) {
+        // Solo lanzar error si NO es un servicio de capacitación
+        if (dto.tipoServicio !== ServiceType.CAPACITACION) {
+          throw new Error('No se pudo determinar el cliente');
+        }
+        // Si es capacitación y no hay cliente, se considera interno
+        this.logger.log(
+          'Creando servicio de capacitación interno (sin cliente)',
+        );
+      } else {
+        // Solo asignamos el cliente si no es null
+        newService.cliente = cliente;
+      }
 
       if (
         dto.tipoServicio &&
