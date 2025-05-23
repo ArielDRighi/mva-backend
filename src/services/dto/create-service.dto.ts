@@ -39,7 +39,6 @@ export class CreateServiceDto {
   @IsDateString()
   fechaFin?: string;
 
-
   @IsOptional()
   @IsEnum(ServiceType)
   @ValidateIf((o: CreateServiceDto) => !o.condicionContractualId)
@@ -116,8 +115,6 @@ export class CreateServiceDto {
 }
 
 export class ResourceAssignmentDto {
-
-
   @IsOptional()
   @IsEnum(['A', 'B'])
   rol?: 'A' | 'B';

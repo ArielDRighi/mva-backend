@@ -37,5 +37,5 @@ export class UpdateEmployeeLeaveDto {
   aprobado?: boolean;
   @IsString()
   @IsOptional()
-  comentarioRechazo?: string; 
+  comentarioRechazo?: string;
 }

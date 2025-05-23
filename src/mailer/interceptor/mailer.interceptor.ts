@@ -125,16 +125,15 @@ export class MailerInterceptor implements NestInterceptor {
 
     // Obtener todos los empleados asignados al servicio
     const listaEmpleados =
-  asignaciones
-    .filter(a => a?.empleado)
-    .map(a => {
-      const emp = a.empleado;
-      return {
-        name: `${emp.nombre} ${emp.apellido}`,
-        rol: a.rolEmpleado ?? null, // si querés incluir el rol (A o B)
-      };
-    }) ?? [];
-
+      asignaciones
+        .filter((a) => a?.empleado)
+        .map((a) => {
+          const emp = a.empleado;
+          return {
+            name: `${emp.nombre} ${emp.apellido}`,
+            rol: a.rolEmpleado ?? null, // si querés incluir el rol (A o B)
+          };
+        }) ?? [];
 
     // ID del servicio
     const servicioId = servicio.id;
@@ -201,7 +200,9 @@ export class MailerInterceptor implements NestInterceptor {
       const empleado = asignacion?.empleado;
 
       if (!empleado?.email) continue;
-console.log(`[Interceptor] Enviando correo automático para servicio ID: ${servicio.id}`);
+      console.log(
+        `[Interceptor] Enviando correo automático para servicio ID: ${servicio.id}`,
+      );
 
       await this.mailerService.sendRoute(
         empleado.email,

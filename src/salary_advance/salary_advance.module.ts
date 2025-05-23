@@ -7,8 +7,7 @@ import { SalaryAdvance } from './entities/salary_advance.entity';
 import { MailerModule } from 'src/mailer/mailer.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([SalaryAdvance, Empleado]),
-MailerModule],
+  imports: [TypeOrmModule.forFeature([SalaryAdvance, Empleado]), MailerModule],
   controllers: [SalaryAdvanceController],
   providers: [SalaryAdvanceService],
 })

@@ -7,8 +7,10 @@ import { Claim } from './entities/claim.entity';
 import { MailerModule } from 'src/mailer/mailer.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([SatisfactionSurvey, Claim]),
-MailerModule],
+  imports: [
+    TypeOrmModule.forFeature([SatisfactionSurvey, Claim]),
+    MailerModule,
+  ],
   controllers: [ClientsPortalController],
   providers: [ClientsPortalService],
   exports: [ClientsPortalService],

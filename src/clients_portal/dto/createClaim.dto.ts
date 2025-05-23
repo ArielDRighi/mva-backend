@@ -57,4 +57,3 @@ export class CreateClaimDto {
   @IsOptional()
   empleadoAsignado?: string; // esto también debe existir en la entidad si querés guardarlo
 }
-

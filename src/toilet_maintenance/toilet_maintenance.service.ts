@@ -104,7 +104,7 @@ export class ToiletMaintenanceService {
     }
 
     // Verificar que el baño está disponible
-    if ((toilet.estado as ResourceState) !== ResourceState.DISPONIBLE) {
+    if (toilet.estado !== ResourceState.DISPONIBLE) {
       throw new BadRequestException(
         `El baño químico no está disponible para mantenimiento. Estado actual: ${toilet.estado}`,
       );

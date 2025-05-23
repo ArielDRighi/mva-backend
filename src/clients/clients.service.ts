@@ -143,20 +143,20 @@ export class ClientService {
     }
 
     try {
-    await this.clientRepository.delete(clienteId);
-  } catch (error) {
-    // Si el error viene de una violación de clave foránea
-    if (
-      error instanceof QueryFailedError &&
-      (error as any).code === '23503'
-    ) {
-      throw new ConflictException(
-        `No se puede eliminar el cliente con ID ${clienteId} porque tiene servicios asociados.`,
-      );
-    }
+      await this.clientRepository.delete(clienteId);
+    } catch (error) {
+      // Si el error viene de una violación de clave foránea
+      if (
+        error instanceof QueryFailedError &&
+        (error as any).code === '23503'
+      ) {
+        throw new ConflictException(
+          `No se puede eliminar el cliente con ID ${clienteId} porque tiene servicios asociados.`,
+        );
+      }
 
-    throw new InternalServerErrorException('Error interno del servidor');
-  }
+      throw new InternalServerErrorException('Error interno del servidor');
+    }
   }
 
   async getActiveContract(clientId: number) {

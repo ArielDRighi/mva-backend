@@ -16,7 +16,11 @@ export class ChemicalToilet {
   @Column()
   fecha_adquisicion: Date;
 
-  @Column({type: 'enum', enum: ResourceState, default: ResourceState.DISPONIBLE})
+  @Column({
+    type: 'enum',
+    enum: ResourceState,
+    default: ResourceState.DISPONIBLE,
+  })
   estado: ResourceState;
 
   @OneToMany(() => ToiletMaintenance, (maintenance) => maintenance.toilet, {
