@@ -597,16 +597,16 @@ export class EmployeesService {
   async findProximosServiciosPorEmpleadoId(empleadoId: number) {
   const ahora = new Date();
 
-  return this.dataSource.getRepository(Service).find({
-    where: [
-      { empleadoAId: empleadoId, fechaProgramada: MoreThan(ahora) },
-      { empleadoBId: empleadoId, fechaProgramada: MoreThan(ahora) },
-    ],
-    order: { fechaProgramada: 'ASC' },
-    relations: ['cliente'], // incluye más relaciones si es necesario
-  });
+  return this.dataSource
+    .getRepository(Service)
+    .createQueryBuilder('service')
+    .innerJoin('service.asignaciones', 'asignacion')
+    .leftJoinAndSelect('service.cliente', 'cliente')
+    .where('asignacion.empleadoId = :empleadoId', { empleadoId })
+    .andWhere('service.fechaProgramada > :ahora', { ahora })
+    .orderBy('service.fechaProgramada', 'ASC')
+    .getMany();
 }
-
 
   async createExamenPreocupacional(
     createExamenPreocupacionalDto: CreateExamenPreocupacionalDto,

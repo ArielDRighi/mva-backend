@@ -184,10 +184,11 @@ createLimpieza(@Body() dto: CreateServiceDto): Promise<Service> {
   }
 
   // Esta ruta debe ir después de las rutas específicas
-  @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number): Promise<Service> {
-    return this.servicesService.findOne(id);
-  }
+ @Get(':id')
+findOne(@Param('id', ParseIntPipe) id: number): Promise<Service> {
+  return this.servicesService.findOne(id);
+}
+
 
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)

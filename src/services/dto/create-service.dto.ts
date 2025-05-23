@@ -117,13 +117,10 @@ export class CreateServiceDto {
 
 export class ResourceAssignmentDto {
 
-   @IsOptional()
-  @IsNumber()
-  empleadoAId?: number;
 
   @IsOptional()
-  @IsNumber()
-  empleadoBId?: number;
+  @IsEnum(['A', 'B'])
+  rol?: 'A' | 'B';
 
   @IsOptional()
   @IsNumber()
