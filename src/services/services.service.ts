@@ -591,10 +591,12 @@ private async scheduleEmployeeStatusForCapacitacion(service: Service) {
   let empleadosAsignados: number[] = [];
 
   if  (updateServiceDto.asignacionesManual?.length) {
-    await this.assignResourcesManually(
-      savedService.id,
-      updateServiceDto.asignacionesManual,
-    );
+await this.assignResourcesManually(
+  savedService.id,
+  updateServiceDto.asignacionesManual,
+  this.dataSource.manager,
+);
+
     empleadosAsignados = updateServiceDto.asignacionesManual
   .map((a) => a.empleadoId)
   .filter((id): id is number => id !== undefined);
@@ -871,141 +873,83 @@ private mapServiceTypeToEmpleadoState(tipoServicio: ServiceType): string {
   }
 
 
-  private async assignResourcesManually(
+async assignResourcesManually(
   serviceId: number,
-  assignmentDtos: ResourceAssignmentDto[],
-  entityManager?: EntityManager,
-): Promise<void> {
-  try {
-    let service: Service;
+  dtos: ResourceAssignmentDto[],
+  manager: EntityManager,
+): Promise<ResourceAssignment[]> {
+  const assignments: ResourceAssignment[] = [];
 
-    if (entityManager) {
-      const foundService = await entityManager.findOne(Service, {
-        where: { id: serviceId },
-        relations: ['cliente'],
-      });
+  const empleadosProcesados = new Set<number>();
+  const vehiculosProcesados = new Set<number>();
+  const banosProcesados = new Set<number>();
 
-      if (!foundService) {
-        throw new NotFoundException(`Servicio con id ${serviceId} no encontrado durante la transacción`);
+  console.log('--- Inicio assignResourcesManually ---');
+  console.log('serviceId:', serviceId);
+  console.log('Cantidad de dtos:', dtos.length);
+
+  for (const [index, dto] of dtos.entries()) {
+    console.log(`Procesando dto índice ${index}:`, dto);
+
+    // Empleados
+    if (dto.empleadoId && !empleadosProcesados.has(dto.empleadoId)) {
+      const empleado = await this.empleadosRepository.findOne({ where: { id: dto.empleadoId } });
+      console.log('Empleado encontrado:', empleado);
+      if (empleado) {
+        const assignment = new ResourceAssignment();
+        assignment.servicioId = serviceId;
+        assignment.empleado = empleado;
+        assignment.empleadoId = empleado.id;
+        assignment.rolEmpleado = dto.rol ?? null;
+
+        assignments.push(assignment);
+        empleadosProcesados.add(empleado.id);
+        console.log('Asignación creada para empleado:', assignment);
       }
-
-      service = foundService;
-    } else {
-      service = await this.findOne(serviceId);
     }
 
-    // ✅ Validación: evitar asignación duplicada del mismo empleado
-    const empleadosIds = assignmentDtos
-      .map(a => a.empleadoId)
-      .filter((id): id is number => typeof id === 'number');
+    // Vehículos
+    if (dto.vehiculoId && !vehiculosProcesados.has(dto.vehiculoId)) {
+      const vehiculo = await this.vehiclesRepository.findOne({ where: { id: dto.vehiculoId } });
+      console.log('Vehículo encontrado:', vehiculo);
+      if (vehiculo) {
+        const assignment = new ResourceAssignment();
+        assignment.servicioId = serviceId;
+        assignment.vehiculo = vehiculo;
+        assignment.vehiculoId = vehiculo.id;
 
-    const empleadosSet = new Set(empleadosIds);
-    if (empleadosIds.length !== empleadosSet.size) {
-      throw new BadRequestException('Un mismo empleado no puede asignarse más de una vez al servicio.');
+        assignments.push(assignment);
+        vehiculosProcesados.add(vehiculo.id);
+        console.log('Asignación creada para vehículo:', assignment);
+      }
     }
 
-    const assignments: ResourceAssignment[] = [];
-
-    for (const assignmentDto of assignmentDtos) {
-      const { empleadoId, vehiculoId, banosIds, rol } = assignmentDto;
-
-      let employee: Empleado | null = null;
-      if (empleadoId) {
-        employee = entityManager
-          ? await entityManager.findOne(Empleado, { where: { id: empleadoId } })
-          : await this.employeesService.findOne(empleadoId);
-
-        if (!employee) {
-          throw new NotFoundException(`Empleado con id ${empleadoId} no encontrado`);
-        }
-
-        if (![ResourceState.DISPONIBLE, ResourceState.ASIGNADO].includes(employee.estado as ResourceState)) {
-          throw new BadRequestException(`El empleado con ID ${employee.id} no está disponible ni asignado`);
-        }
-
-        const isAvailable = await this.employeeLeavesService.isEmployeeAvailable(
-          employee.id,
-          new Date(service.fechaProgramada),
-        );
-
-        if (!isAvailable) {
-          throw new BadRequestException(`El empleado con ID ${employee.id} tiene licencia o vacaciones en la fecha`);
-        }
-      }
-
-      let vehicle: Vehicle | null = null;
-      if (vehiculoId) {
-        vehicle = entityManager
-          ? await entityManager.findOne(Vehicle, { where: { id: vehiculoId } })
-          : await this.vehiclesService.findOne(vehiculoId);
-
-        if (!vehicle) {
-          throw new NotFoundException(`Vehículo con id ${vehiculoId} no encontrado`);
-        }
-
-        if (![ResourceState.DISPONIBLE, ResourceState.ASIGNADO].includes(vehicle.estado as ResourceState)) {
-          throw new BadRequestException(`El vehículo con ID ${vehicle.id} no está disponible ni asignado`);
-        }
-      }
-
-      if (banosIds && banosIds.length > 0) {
-        for (const banoId of banosIds) {
-          const toilet = entityManager
-            ? await entityManager.findOne(ChemicalToilet, { where: { baño_id: banoId } })
-            : await this.toiletsService.findById(banoId);
-
-          if (!toilet) {
-            throw new NotFoundException(`Baño con id ${banoId} no encontrado`);
-          }
-
-          if (toilet.estado !== ResourceState.DISPONIBLE.toString()) {
-            throw new BadRequestException(`El baño con ID ${toilet.baño_id} no está disponible`);
-          }
-
+    // Baños
+    if (dto.banosIds?.length) {
+      console.log('Se encontraron baños:', dto.banosIds);
+      for (const banoId of dto.banosIds) {
+        if (!banosProcesados.has(banoId)) {
           const assignment = new ResourceAssignment();
-          assignment.servicio = service;
-          assignment.empleado = employee;
-          assignment.vehiculo = vehicle;
-          assignment.bano = toilet;
-          assignment.rolEmpleado = rol ?? null;
+          assignment.servicioId = serviceId;
+          assignment.banoId = banoId;
 
           assignments.push(assignment);
-        }
-      } else {
-        if (employee || vehicle) {
-          const assignment = new ResourceAssignment();
-          assignment.servicio = service;
-          assignment.empleado = employee;
-          assignment.vehiculo = vehicle;
-          assignment.rolEmpleado = rol ?? null;
-
-          assignments.push(assignment);
+          banosProcesados.add(banoId);
+          console.log('Asignación creada para baño:', assignment);
         }
       }
     }
-
-    // Validación: cantidad de baños asignados
-    const assignedToilets = assignments.filter(a => a.bano).length;
-    if (assignedToilets < service.cantidadBanos) {
-      throw new BadRequestException(
-        `Se requieren ${service.cantidadBanos} baños, pero solo se asignaron ${assignedToilets}`,
-      );
-    }
-
-    // Guardado final
-    if (assignments.length > 0) {
-      if (entityManager) {
-        await entityManager.save(assignments);
-      } else {
-        await this.assignmentRepository.save(assignments);
-      }
-    }
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-    this.logger.error(`Error al asignar recursos manualmente: ${errorMessage}`);
-    throw error;
   }
+
+  console.log('Total de asignaciones a guardar:', assignments.length);
+  const saved = await manager.save(assignments);
+  console.log('Asignaciones guardadas:', saved.length);
+  console.log('--- Fin assignResourcesManually ---');
+
+  return saved;
 }
+
+
 
 
 
