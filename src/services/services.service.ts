@@ -77,62 +77,58 @@ export class ServicesService {
 
   // services.service.ts
 async create(dto: CreateServiceDto): Promise<Service> {
-    switch (dto.tipoServicio) {
-      case ServiceType.INSTALACION:
-        return this.createInstalacion(dto);
-      case ServiceType.CAPACITACION:
-        return this.createCapacitacion(dto);
-        case ServiceType.LIMPIEZA:
+  switch (dto.tipoServicio) {
+    case ServiceType.INSTALACION:
+      return this.createInstalacion(dto);
+    case ServiceType.CAPACITACION:
+      return this.createCapacitacion(dto);
+    case ServiceType.LIMPIEZA:
       return this.createLimpieza(dto);
-      default:
-        return this.createGenerico(dto);
-    }
+    default:
+      return this.createGenerico(dto);
   }
+}
 
-  private async createInstalacion(dto: CreateServiceDto): Promise<Service> {
-    const service = await this.createBaseService(dto);
+private async createInstalacion(dto: CreateServiceDto): Promise<Service> {
+  const service = await this.createBaseService(dto);
 
-    // Lógica específica: calcular limpiezas futuras
-    if (
-      service.condicionContractualId &&
-      service.fechaInicio &&
-      service.fechaFin
-    ) {
-      const condicion = await this.condicionesContractualesRepository.findOne({
-        where: { condicionContractualId: service.condicionContractualId },
-        relations: ['cliente'],
-      });
+  // Lógica específica: calcular limpiezas futuras
+  if (service.condicionContractualId && service.fechaInicio && service.fechaFin) {
+    const condicion = await this.condicionesContractualesRepository.findOne({
+      where: { condicionContractualId: service.condicionContractualId },
+      relations: ['cliente'],
+    });
 
-      if (condicion?.periodicidad) {
-        const dias = this.toiletMaintenanceService.calculateMaintenanceDays(
-          service.fechaInicio,
-          service.fechaFin,
-          condicion.periodicidad,
-        );
+    if (condicion?.periodicidad) {
+      const dias = this.toiletMaintenanceService.calculateMaintenanceDays(
+        service.fechaInicio,
+        service.fechaFin,
+        condicion.periodicidad,
+      );
 
-        for (let i = 0; i < dias.length; i++) {
-          try {
-            const newCleaning = {
-              cliente: { clienteId: condicion.cliente.clienteId },
-              fecha_de_limpieza: dias[i],
-              numero_de_limpieza: i + 1,
-              isActive: true,
-              servicio: { id: service.id },
-            };
+      for (let i = 0; i < dias.length; i++) {
+        try {
+          const newCleaning = {
+            cliente: { clienteId: condicion.cliente.clienteId },
+            fecha_de_limpieza: dias[i],
+            numero_de_limpieza: i + 1,
+            isActive: true,
+            servicio: { id: service.id },
+          };
 
-            await this.dataSource.manager.save('future_cleanings', newCleaning);
-            this.logger.log(`Limpieza futura #${i + 1} creada: ${dias[i].toISOString()}`);
-          } catch (error) {
-            this.logger.error(`Error al crear limpieza #${i + 1}: ${error.message}`);
-          }
+          await this.dataSource.manager.save('future_cleanings', newCleaning);
+          this.logger.log(`Limpieza futura #${i + 1} creada: ${dias[i].toISOString()}`);
+        } catch (error) {
+          this.logger.error(`Error al crear limpieza #${i + 1}: ${error.message}`);
         }
       }
     }
-
-    return this.findOne(service.id);
   }
 
- private async createCapacitacion(dto: CreateServiceDto): Promise<Service> {
+  return this.findOne(service.id);
+}
+
+private async createCapacitacion(dto: CreateServiceDto): Promise<Service> {
   dto.cantidadVehiculos = 0;
   const service = await this.createBaseService(dto);
 
@@ -140,10 +136,10 @@ async create(dto: CreateServiceDto): Promise<Service> {
 
   return this.findOne(service.id);
 }
+
 private async createLimpieza(dto: CreateServiceDto): Promise<Service> {
   const service = await this.createBaseService(dto);
 
-  // Si no se pasaron baños instalados explícitamente, buscar el último servicio de instalación
   if ((!dto.banosInstalados || dto.banosInstalados.length === 0) && dto.clienteId) {
     const ultimoServicioInstalacion = await this.serviceRepository.findOne({
       where: {
@@ -161,7 +157,6 @@ private async createLimpieza(dto: CreateServiceDto): Promise<Service> {
     }
   }
 
-  // Verificar periodicidad de limpieza si está relacionada a una condición contractual
   if (service.condicionContractualId && service.fechaInicio && service.fechaFin) {
     const contrato = await this.condicionesContractualesRepository.findOne({
       where: { condicionContractualId: service.condicionContractualId },
@@ -198,103 +193,105 @@ private async createLimpieza(dto: CreateServiceDto): Promise<Service> {
   return this.findOne(service.id);
 }
 
-
-
-  private async createGenerico(dto: CreateServiceDto): Promise<Service> {
-    return this.createBaseService(dto);
-  }
-
-  private async createBaseService(dto: CreateServiceDto): Promise<Service> {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
-    try {
-      const newService = new Service();
-
-      if (dto.clienteId) {
-        const cliente = await this.clientesRepository.findOne({
-          where: { clienteId: dto.clienteId },
-        });
-        if (!cliente) throw new Error(`Cliente ID ${dto.clienteId} no encontrado`);
-        newService.cliente = cliente;
-      }
-      switch (dto.tipoServicio) {
-  case ServiceType.CAPACITACION:
-  case ServiceType.LIMPIEZA:
-    dto.cantidadBanos = 0;
-    break;
+private async createGenerico(dto: CreateServiceDto): Promise<Service> {
+  return this.createBaseService(dto);
 }
-      Object.assign(newService, {
-        fechaProgramada: dto.fechaProgramada,
-        tipoServicio: dto.tipoServicio,
-        estado: dto.estado || ServiceState.PROGRAMADO,
-        cantidadBanos: dto.cantidadBanos,
-        cantidadEmpleados: this.getDefaultCantidadEmpleados(dto.tipoServicio),
-        empleadoAId: dto.empleadoAId,
-        empleadoBId: dto.empleadoBId,
-        cantidadVehiculos: dto.cantidadVehiculos,
-        ubicacion: dto.ubicacion,
-        notas: dto.notas,
-        banosInstalados: dto.banosInstalados || [],
-        asignacionAutomatica: false,
+
+private async createBaseService(dto: CreateServiceDto): Promise<Service> {
+  const queryRunner = this.dataSource.createQueryRunner();
+  await queryRunner.connect();
+  await queryRunner.startTransaction();
+
+  try {
+    const newService = new Service();
+
+    let cliente: Cliente | null = null;
+
+    if (dto.clienteId) {
+      cliente = await this.clientesRepository.findOne({
+        where: { clienteId: dto.clienteId },
+      });
+      if (!cliente) throw new Error(`Cliente ID ${dto.clienteId} no encontrado`);
+    }
+
+    if (dto.condicionContractualId) {
+      const contrato = await this.condicionesContractualesRepository.findOne({
+        where: { condicionContractualId: dto.condicionContractualId },
+        relations: ['cliente'],
       });
 
-      // Lógica contractual (resumida aquí; se puede extraer a una función aparte)
-      if (dto.condicionContractualId) {
-        const contrato = await this.condicionesContractualesRepository.findOne({
-          where: { condicionContractualId: dto.condicionContractualId },
-          relations: ['cliente'],
-        });
+      if (contrato) {
+        newService.condicionContractualId = contrato.condicionContractualId;
 
-        if (contrato) {
-          newService.condicionContractualId = contrato.condicionContractualId;
+        if (!cliente) {
+          cliente = contrato.cliente;
+        }
 
-          // Ajuste de fechas
-          if (contrato.fecha_inicio && contrato.fecha_fin) {
-            const fechaInicio = new Date(contrato.fecha_inicio);
-            const fechaFin = new Date(contrato.fecha_fin);
-            fechaInicio.setDate(fechaInicio.getDate() + 1);
-            fechaFin.setDate(fechaFin.getDate() + 1);
-            newService.fechaInicio = fechaInicio;
-            newService.fechaFin = fechaFin;
-            newService.fechaFinAsignacion = fechaFin;
-          }
+        if (contrato.fecha_inicio && contrato.fecha_fin) {
+          const fechaInicio = new Date(contrato.fecha_inicio);
+          const fechaFin = new Date(contrato.fecha_fin);
+          fechaInicio.setDate(fechaInicio.getDate() + 1);
+          fechaFin.setDate(fechaFin.getDate() + 1);
+          newService.fechaInicio = fechaInicio;
+          newService.fechaFin = fechaFin;
+          newService.fechaFinAsignacion = fechaFin;
+        }
 
-          // Tipo servicio/cantidad baños si no se especificaron
-          if (!dto.tipoServicio && contrato.tipo_servicio) {
-            newService.tipoServicio = contrato.tipo_servicio;
-          }
-          if (!dto.cantidadBanos && contrato.cantidad_banos) {
-            newService.cantidadBanos = contrato.cantidad_banos;
-          }
+        if (!dto.tipoServicio && contrato.tipo_servicio) {
+          newService.tipoServicio = contrato.tipo_servicio;
+        }
+        if (!dto.cantidadBanos && contrato.cantidad_banos) {
+          newService.cantidadBanos = contrato.cantidad_banos;
         }
       }
-
-      // Validaciones según tipo de servicio
-      this.validateServiceTypeSpecificRequirements(dto);
-
-      // Verificación de recursos
-      (newService as any).forzar = dto.forzar ?? false;
-      await this.verifyResourcesAvailability(newService);
-
-      // Guardar servicio
-      const saved = await queryRunner.manager.save(newService);
-
-      // Si hay asignaciones manuales
-      if (dto.asignacionesManual?.length) {
-        await this.assignResourcesManually(saved.id, dto.asignacionesManual, queryRunner.manager);
-      }
-
-      await queryRunner.commitTransaction();
-      return saved;
-    } catch (err) {
-      await queryRunner.rollbackTransaction();
-      throw err;
-    } finally {
-      await queryRunner.release();
     }
+
+    if (!cliente) throw new Error('No se pudo determinar el cliente');
+    newService.cliente = cliente;
+
+   if (
+  dto.tipoServicio &&
+  [ServiceType.CAPACITACION, ServiceType.LIMPIEZA].includes(dto.tipoServicio)
+) {
+  dto.cantidadBanos = 0;
+}
+
+    Object.assign(newService, {
+      fechaProgramada: dto.fechaProgramada,
+      tipoServicio: dto.tipoServicio,
+      estado: dto.estado || ServiceState.PROGRAMADO,
+      cantidadBanos: dto.cantidadBanos,
+      cantidadEmpleados: this.getDefaultCantidadEmpleados(dto.tipoServicio),
+      empleadoAId: dto.empleadoAId,
+      empleadoBId: dto.empleadoBId,
+      cantidadVehiculos: dto.cantidadVehiculos,
+      ubicacion: dto.ubicacion,
+      notas: dto.notas,
+      banosInstalados: dto.banosInstalados || [],
+      asignacionAutomatica: false,
+    });
+
+    this.validateServiceTypeSpecificRequirements(dto);
+
+    (newService as any).forzar = dto.forzar ?? false;
+    await this.verifyResourcesAvailability(newService);
+
+    const saved = await queryRunner.manager.save(newService);
+
+    if (dto.asignacionesManual?.length) {
+      await this.assignResourcesManually(saved.id, dto.asignacionesManual, queryRunner.manager);
+    }
+
+    await queryRunner.commitTransaction();
+    return saved;
+  } catch (err) {
+    await queryRunner.rollbackTransaction();
+    throw err;
+  } finally {
+    await queryRunner.release();
   }
+}
+
   private getDefaultCantidadEmpleados(tipoServicio?: ServiceType): number {
   switch (tipoServicio) {
     case ServiceType.CAPACITACION:
