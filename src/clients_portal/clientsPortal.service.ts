@@ -113,7 +113,6 @@ export class ClientsPortalService {
       data: formData, // necesario para que el interceptor lo intercepte y dispare el correo
     };
   }
-  
 
   async getStats() {
     const totalSurveys = await this.satisfactionSurveyRepository.count();

@@ -73,7 +73,7 @@ export class CreateContractualConditionDto {
   @Transform(({ value }) => Number(value))
   @Min(0)
   cantidad_banos?: number;
- @IsOptional()
+  @IsOptional()
   @Transform(({ value }) => normalizeEnumValue(value))
   @IsEnum(Periodicidad)
   periodicidad: Periodicidad;
@@ -89,5 +89,5 @@ export function normalizeEnumValue(value: string): string {
     .normalize('NFD') // separa tildes
     .replace(/[\u0300-\u036f]/g, '') // elimina tildes
     .toLowerCase()
-    .replace(/^\w/, c => c.toUpperCase()); // primera letra en mayúscula
+    .replace(/^\w/, (c) => c.toUpperCase()); // primera letra en mayúscula
 }

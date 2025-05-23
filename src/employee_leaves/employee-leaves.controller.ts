@@ -58,14 +58,13 @@ export class EmployeeLeavesController {
     return this.leavesService.approve(id);
   }
   @Patch(':id/reject')
-@Roles(Role.ADMIN, Role.SUPERVISOR)
-async rejectLeave(
-  @Param('id', ParseIntPipe) id: number,
-  @Body('comentario') comentario: string,
-) {
-  return this.leavesService.reject(id, comentario);
-}
-
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  async rejectLeave(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('comentario') comentario: string,
+  ) {
+    return this.leavesService.reject(id, comentario);
+  }
 
   @Delete(':id')
   @Roles(Role.ADMIN)

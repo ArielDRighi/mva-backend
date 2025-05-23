@@ -92,13 +92,13 @@ export class ChemicalToiletsService {
     const query = this.chemicalToiletRepository.createQueryBuilder('toilet');
 
     if (estado) {
-  query.andWhere(
-    'LOWER(UNACCENT(CAST(toilet.estado AS TEXT))) LIKE LOWER(UNACCENT(:estado))',
-    {
-      estado: `%${estado}%`,
-    },
-  );
-}
+      query.andWhere(
+        'LOWER(UNACCENT(CAST(toilet.estado AS TEXT))) LIKE LOWER(UNACCENT(:estado))',
+        {
+          estado: `%${estado}%`,
+        },
+      );
+    }
 
     if (modelo) {
       query.andWhere(

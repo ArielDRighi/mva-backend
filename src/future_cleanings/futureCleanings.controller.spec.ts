@@ -6,38 +6,62 @@ import { ModifyFutureCleaningDto } from './__mocks__/dto/modifyFutureCleanings.d
 import { BadRequestException } from '@nestjs/common';
 
 // Mocks for external entities
-jest.mock('src/clients/entities/client.entity', () => ({
-  Cliente: class Cliente {},
-}), { virtual: true });
+jest.mock(
+  'src/clients/entities/client.entity',
+  () => ({
+    Cliente: class Cliente {},
+  }),
+  { virtual: true },
+);
 
-jest.mock('src/services/entities/service.entity', () => ({
-  Service: class Service {},
-}), { virtual: true });
+jest.mock(
+  'src/services/entities/service.entity',
+  () => ({
+    Service: class Service {},
+  }),
+  { virtual: true },
+);
 
 // Mocks for roles
-jest.mock('src/roles/enums/role.enum', () => ({
-  Role: {
-    ADMIN: 'admin',
-    SUPERVISOR: 'supervisor',
-    OPERARIO: 'operario',
-  },
-}), { virtual: true });
+jest.mock(
+  'src/roles/enums/role.enum',
+  () => ({
+    Role: {
+      ADMIN: 'admin',
+      SUPERVISOR: 'supervisor',
+      OPERARIO: 'operario',
+    },
+  }),
+  { virtual: true },
+);
 
-jest.mock('src/roles/decorators/roles.decorator', () => ({
-  Roles: () => jest.fn(),
-}), { virtual: true });
+jest.mock(
+  'src/roles/decorators/roles.decorator',
+  () => ({
+    Roles: () => jest.fn(),
+  }),
+  { virtual: true },
+);
 
-jest.mock('src/roles/guards/roles.guard', () => ({
-  RolesGuard: jest.fn().mockImplementation(() => ({
-    canActivate: jest.fn().mockReturnValue(true),
-  })),
-}), { virtual: true });
+jest.mock(
+  'src/roles/guards/roles.guard',
+  () => ({
+    RolesGuard: jest.fn().mockImplementation(() => ({
+      canActivate: jest.fn().mockReturnValue(true),
+    })),
+  }),
+  { virtual: true },
+);
 
-jest.mock('src/auth/guards/jwt-auth.guard', () => ({
-  JwtAuthGuard: jest.fn().mockImplementation(() => ({
-    canActivate: jest.fn().mockReturnValue(true),
-  })),
-}), { virtual: true });
+jest.mock(
+  'src/auth/guards/jwt-auth.guard',
+  () => ({
+    JwtAuthGuard: jest.fn().mockImplementation(() => ({
+      canActivate: jest.fn().mockReturnValue(true),
+    })),
+  }),
+  { virtual: true },
+);
 
 // Mock the future cleanings entity
 jest.mock('./entities/futureCleanings.entity', () => ({
@@ -74,7 +98,9 @@ describe('FutureCleaningsController', () => {
       ],
     }).compile();
 
-    controller = module.get<FutureCleaningsController>(FutureCleaningsController);
+    controller = module.get<FutureCleaningsController>(
+      FutureCleaningsController,
+    );
     service = module.get<FutureCleaningsService>(FutureCleaningsService);
   });
 
@@ -117,9 +143,13 @@ describe('FutureCleaningsController', () => {
 
     it('should throw BadRequestException if service throws an error', async () => {
       const errorMessage = 'No future cleanings found';
-      mockFutureCleaningsService.getAll.mockRejectedValue(new Error(errorMessage));
+      mockFutureCleaningsService.getAll.mockRejectedValue(
+        new Error(errorMessage),
+      );
 
-      await expect(controller.getAllFutureClenaings()).rejects.toThrow(BadRequestException);
+      await expect(controller.getAllFutureClenaings()).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -144,9 +174,13 @@ describe('FutureCleaningsController', () => {
 
     it('should throw BadRequestException if service throws an error', async () => {
       const errorMessage = 'Future cleaning not found';
-      mockFutureCleaningsService.getById.mockRejectedValue(new Error(errorMessage));
+      mockFutureCleaningsService.getById.mockRejectedValue(
+        new Error(errorMessage),
+      );
 
-      await expect(controller.getFutureCleaningById(999)).rejects.toThrow(BadRequestException);
+      await expect(controller.getFutureCleaningById(999)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -156,19 +190,27 @@ describe('FutureCleaningsController', () => {
     };
 
     it('should delete a future cleaning successfully', async () => {
-      mockFutureCleaningsService.deleteFutureCleaning.mockResolvedValue(mockResponse);
+      mockFutureCleaningsService.deleteFutureCleaning.mockResolvedValue(
+        mockResponse,
+      );
 
       const result = await controller.deleteFutureCleaning(1);
 
       expect(result).toEqual(mockResponse);
-      expect(mockFutureCleaningsService.deleteFutureCleaning).toHaveBeenCalledWith(1);
+      expect(
+        mockFutureCleaningsService.deleteFutureCleaning,
+      ).toHaveBeenCalledWith(1);
     });
 
     it('should throw BadRequestException if service throws an error', async () => {
       const errorMessage = 'Future cleaning not found';
-      mockFutureCleaningsService.deleteFutureCleaning.mockRejectedValue(new Error(errorMessage));
+      mockFutureCleaningsService.deleteFutureCleaning.mockRejectedValue(
+        new Error(errorMessage),
+      );
 
-      await expect(controller.deleteFutureCleaning(999)).rejects.toThrow(BadRequestException);
+      await expect(controller.deleteFutureCleaning(999)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -190,19 +232,29 @@ describe('FutureCleaningsController', () => {
     };
 
     it('should create a future cleaning successfully', async () => {
-      mockFutureCleaningsService.createFutureCleaning.mockResolvedValue(mockCreatedFutureCleaning);
+      mockFutureCleaningsService.createFutureCleaning.mockResolvedValue(
+        mockCreatedFutureCleaning,
+      );
 
-      const result = await controller.createFutureCleaning(createFutureCleaningDto);
+      const result = await controller.createFutureCleaning(
+        createFutureCleaningDto,
+      );
 
       expect(result).toEqual(mockCreatedFutureCleaning);
-      expect(mockFutureCleaningsService.createFutureCleaning).toHaveBeenCalledWith(createFutureCleaningDto);
+      expect(
+        mockFutureCleaningsService.createFutureCleaning,
+      ).toHaveBeenCalledWith(createFutureCleaningDto);
     });
 
     it('should throw BadRequestException if service throws an error', async () => {
       const errorMessage = 'Client not found';
-      mockFutureCleaningsService.createFutureCleaning.mockRejectedValue(new Error(errorMessage));
+      mockFutureCleaningsService.createFutureCleaning.mockRejectedValue(
+        new Error(errorMessage),
+      );
 
-      await expect(controller.createFutureCleaning(createFutureCleaningDto)).rejects.toThrow(BadRequestException);
+      await expect(
+        controller.createFutureCleaning(createFutureCleaningDto),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -216,19 +268,30 @@ describe('FutureCleaningsController', () => {
     };
 
     it('should update a future cleaning successfully', async () => {
-      mockFutureCleaningsService.updateFutureCleaning.mockResolvedValue(mockResponse);
+      mockFutureCleaningsService.updateFutureCleaning.mockResolvedValue(
+        mockResponse,
+      );
 
-      const result = await controller.updateFutureCleaning(1, modifyFutureCleaningDto);
+      const result = await controller.updateFutureCleaning(
+        1,
+        modifyFutureCleaningDto,
+      );
 
       expect(result).toEqual(mockResponse);
-      expect(mockFutureCleaningsService.updateFutureCleaning).toHaveBeenCalledWith(1, modifyFutureCleaningDto);
+      expect(
+        mockFutureCleaningsService.updateFutureCleaning,
+      ).toHaveBeenCalledWith(1, modifyFutureCleaningDto);
     });
 
     it('should throw BadRequestException if service throws an error', async () => {
       const errorMessage = 'Future cleaning not found';
-      mockFutureCleaningsService.updateFutureCleaning.mockRejectedValue(new Error(errorMessage));
+      mockFutureCleaningsService.updateFutureCleaning.mockRejectedValue(
+        new Error(errorMessage),
+      );
 
-      await expect(controller.updateFutureCleaning(999, modifyFutureCleaningDto)).rejects.toThrow(BadRequestException);
+      await expect(
+        controller.updateFutureCleaning(999, modifyFutureCleaningDto),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });

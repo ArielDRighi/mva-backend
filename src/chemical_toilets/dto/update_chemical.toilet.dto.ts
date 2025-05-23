@@ -16,8 +16,8 @@ export class UpdateChemicalToiletDto {
   fecha_adquisicion?: Date;
 
   @IsOptional()
-    @IsEnum(ResourceState, { each: true })
-    @Transform(({ value }) => {
+  @IsEnum(ResourceState, { each: true })
+  @Transform(({ value }) => {
     if (typeof value === 'string') {
       return value.replace(/\s+/g, '_').toUpperCase();
     }

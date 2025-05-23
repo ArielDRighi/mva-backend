@@ -38,9 +38,7 @@ export class ToiletMaintenanceController {
   }
 
   @Get()
-  async findAll(
-    @Query() paginationDto: PaginationDto,
-  ): Promise<{
+  async findAll(@Query() paginationDto: PaginationDto): Promise<{
     data: ToiletMaintenance[];
     total: number;
     page: number;
@@ -51,9 +49,7 @@ export class ToiletMaintenanceController {
 
   // Rutas con prefijos específicos deben ir ANTES que rutas con parámetros
   @Get('search')
-  async search(
-    @Query() filterDto: FilterToiletMaintenanceDto,
-  ): Promise<{
+  async search(@Query() filterDto: FilterToiletMaintenanceDto): Promise<{
     data: ToiletMaintenance[];
     total: number;
     page: number;
