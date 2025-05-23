@@ -595,18 +595,18 @@ export class EmployeesService {
     return employee.examenesPreocupacionales;
   }
   async findProximosServiciosPorEmpleadoId(empleadoId: number) {
-  const ahora = new Date();
+    const ahora = new Date();
 
-  return this.dataSource
-    .getRepository(Service)
-    .createQueryBuilder('service')
-    .innerJoin('service.asignaciones', 'asignacion')
-    .leftJoinAndSelect('service.cliente', 'cliente')
-    .where('asignacion.empleadoId = :empleadoId', { empleadoId })
-    .andWhere('service.fechaProgramada > :ahora', { ahora })
-    .orderBy('service.fechaProgramada', 'ASC')
-    .getMany();
-}
+    return this.dataSource
+      .getRepository(Service)
+      .createQueryBuilder('service')
+      .innerJoin('service.asignaciones', 'asignacion')
+      .leftJoinAndSelect('service.cliente', 'cliente')
+      .where('asignacion.empleadoId = :empleadoId', { empleadoId })
+      .andWhere('service.fechaProgramada > :ahora', { ahora })
+      .orderBy('service.fechaProgramada', 'ASC')
+      .getMany();
+  }
 
   async createExamenPreocupacional(
     createExamenPreocupacionalDto: CreateExamenPreocupacionalDto,

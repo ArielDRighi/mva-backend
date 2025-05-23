@@ -190,10 +190,8 @@ export class EmployeesController {
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
   @Get(':id/proximos-servicios')
-  async obtenerProximosServicios(
-  @Param('id', ParseIntPipe) id: number,
-  ) {
-  return await this.employeesService.findProximosServiciosPorEmpleadoId(id);
+  async obtenerProximosServicios(@Param('id', ParseIntPipe) id: number) {
+    return await this.employeesService.findProximosServiciosPorEmpleadoId(id);
   }
 
   @UseGuards(RolesGuard)

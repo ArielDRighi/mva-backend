@@ -92,14 +92,6 @@ export class ClothingController {
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   @HttpCode(HttpStatus.OK)
-  @Get('export')
-  async exportExcel(@Res() res: Response) {
-    return this.clothingService.exportToExcel(res);
-  }
-
-  @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPERVISOR)
-  @HttpCode(HttpStatus.OK)
   @Delete('delete/:empleadoId')
   async delete(@Param('empleadoId') empleadoId: number) {
     return this.clothingService.deleteClothingSpecs(empleadoId);

@@ -5,7 +5,6 @@ import { RopaTalles } from './entities/clothing.entity';
 import { Repository } from 'typeorm';
 import { Empleado } from 'src/employees/entities/employee.entity';
 import { UpdateRopaTallesDto } from './dto/updateRopaTalles.dto';
-import { Workbook } from 'exceljs';
 import { Response } from 'express';
 import * as ExcelJS from 'exceljs';
 

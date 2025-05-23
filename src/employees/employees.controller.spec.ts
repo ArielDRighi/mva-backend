@@ -185,12 +185,9 @@ import { CreateContactEmergencyDto } from './__mocks__/dto/create_contact_emerge
 import { UpdateContactEmergencyDto } from './dto/update_contact_emergency.dto';
 import { CreateExamenPreocupacionalDto } from './__mocks__/dto/create_examen.dto';
 import { UpdateExamenPreocupacionalDto } from './dto/modify_examen.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../roles/guards/roles.guard';
 
 describe('EmployeesController', () => {
   let controller: EmployeesController;
-  let service: EmployeesService;
 
   const mockEmployeesService = {
     create: jest.fn(),
