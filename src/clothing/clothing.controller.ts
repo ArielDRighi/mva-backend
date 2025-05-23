@@ -38,14 +38,14 @@ export class ClothingController {
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   @HttpCode(HttpStatus.OK)
   @Get('export')
-async exportExcel(@Res() res: Response) {
-  return this.clothingService.exportToExcel(res);
-}
+  async exportExcel(@Res() res: Response) {
+    return this.clothingService.exportToExcel(res);
+  }
 
-    @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
+  @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
   @HttpCode(HttpStatus.OK)
   @Get(':empleadoId')
-    async getClothingSpecs(
+  async getClothingSpecs(
     @Param('empleadoId', ParseIntPipe) empleadoId: number,
   ) {
     try {
@@ -57,7 +57,7 @@ async exportExcel(@Res() res: Response) {
   }
 
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
   @HttpCode(HttpStatus.CREATED)
   @Post('create/:empleadoId')
   async create(
@@ -68,7 +68,7 @@ async exportExcel(@Res() res: Response) {
   }
 
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
   @HttpCode(HttpStatus.OK)
   @Put('modify/:empleadoId')
   async update(
@@ -77,7 +77,13 @@ async exportExcel(@Res() res: Response) {
   ) {
     return this.clothingService.updateClothingSpecs(talles, empleadoId);
   }
-
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @HttpCode(HttpStatus.OK)
+  @Get('export')
+  async exportExcel(@Res() res: Response) {
+    return this.clothingService.exportToExcel(res);
+  }
 
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
