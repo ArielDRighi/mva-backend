@@ -159,6 +159,7 @@ export class MailerService {
     // Enviar el correo
     try {
       await this.sendMail(mailOptions);
+      console.log(`Correo enviado exitosamente a ${email}}`);
     } catch (error) {
       console.error(`Error al enviar el correo a ${email}`, error);
     }

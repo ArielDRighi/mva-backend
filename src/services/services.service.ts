@@ -46,6 +46,7 @@ import { ResourceAssignment } from './entities/resource-assignment.entity';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { Cliente } from 'src/clients/entities/client.entity';
+import { MailerService } from 'src/mailer/mailer.service';
 
 @Injectable()
 export class ServicesService {
@@ -58,6 +59,8 @@ export class ServicesService {
     private assignmentRepository: Repository<ResourceAssignment>,
     @InjectRepository(Vehicle)
     private vehiclesRepository: Repository<Vehicle>,
+    @InjectRepository(Empleado)
+    private empleadosRepository: Repository<Empleado>,
     @InjectRepository(ChemicalToilet)
     private toiletsRepository: Repository<ChemicalToilet>,
     private clientsService: ClientService,
@@ -73,6 +76,7 @@ export class ServicesService {
     private readonly futureCleaningsService: FutureCleaningsService,
     @InjectRepository(Cliente)
     private clientesRepository: Repository<Cliente>,
+    private readonly mailerService: MailerService,
   ) {}
 
   // services.service.ts
@@ -203,11 +207,13 @@ private async createBaseService(dto: CreateServiceDto): Promise<Service> {
   await queryRunner.startTransaction();
 
   try {
+    this.logger.log(`[Service] Creando servicio con DTO: ${JSON.stringify(dto)}`);
     const newService = new Service();
 
     let cliente: Cliente | null = null;
 
     if (dto.clienteId) {
+      this.logger.log(`[Service] Buscando cliente con ID: ${dto.clienteId}`);
       cliente = await this.clientesRepository.findOne({
         where: { clienteId: dto.clienteId },
       });
@@ -215,6 +221,7 @@ private async createBaseService(dto: CreateServiceDto): Promise<Service> {
     }
 
     if (dto.condicionContractualId) {
+      this.logger.log(`[Service] Buscando contrato con ID: ${dto.condicionContractualId}`);
       const contrato = await this.condicionesContractualesRepository.findOne({
         where: { condicionContractualId: dto.condicionContractualId },
         relations: ['cliente'],
@@ -240,6 +247,7 @@ private async createBaseService(dto: CreateServiceDto): Promise<Service> {
         if (!dto.tipoServicio && contrato.tipo_servicio) {
           newService.tipoServicio = contrato.tipo_servicio;
         }
+
         if (!dto.cantidadBanos && contrato.cantidad_banos) {
           newService.cantidadBanos = contrato.cantidad_banos;
         }
@@ -249,12 +257,19 @@ private async createBaseService(dto: CreateServiceDto): Promise<Service> {
     if (!cliente) throw new Error('No se pudo determinar el cliente');
     newService.cliente = cliente;
 
-   if (
-  dto.tipoServicio &&
-  [ServiceType.CAPACITACION, ServiceType.LIMPIEZA].includes(dto.tipoServicio)
-) {
-  dto.cantidadBanos = 0;
-}
+    if (
+      dto.tipoServicio &&
+      [ServiceType.CAPACITACION, ServiceType.LIMPIEZA].includes(dto.tipoServicio)
+    ) {
+      dto.cantidadBanos = 0;
+    }
+
+    // Extraer banosInstalados si no vienen directo y sí hay asignaciones manuales
+    const banosInstaladosFromManual = dto.banosInstalados || (
+      dto.asignacionesManual?.length
+        ? dto.asignacionesManual.flatMap(a => a.banosIds)
+        : []
+    );
 
     Object.assign(newService, {
       fechaProgramada: dto.fechaProgramada,
@@ -267,30 +282,126 @@ private async createBaseService(dto: CreateServiceDto): Promise<Service> {
       cantidadVehiculos: dto.cantidadVehiculos,
       ubicacion: dto.ubicacion,
       notas: dto.notas,
-      banosInstalados: dto.banosInstalados || [],
+      banosInstalados: banosInstaladosFromManual,
       asignacionAutomatica: false,
     });
 
     this.validateServiceTypeSpecificRequirements(dto);
 
     (newService as any).forzar = dto.forzar ?? false;
+      // Validación de existencia de empleados antes de guardar
+    if (dto.empleadoAId) {
+      const empleadoAExiste = await this.empleadosRepository.findOne({
+        where: { id: dto.empleadoAId },
+      });
+      if (!empleadoAExiste) {
+        throw new NotFoundException(`Empleado A con ID ${dto.empleadoAId} no existe`);
+      }
+    }
+
+    if (dto.empleadoBId) {
+      const empleadoBExiste = await this.empleadosRepository.findOne({
+        where: { id: dto.empleadoBId },
+      });
+      if (!empleadoBExiste) {
+        throw new NotFoundException(`Empleado B con ID ${dto.empleadoBId} no existe`);
+      }
+    }
+
     await this.verifyResourcesAvailability(newService);
 
     const saved = await queryRunner.manager.save(newService);
+
 
     if (dto.asignacionesManual?.length) {
       await this.assignResourcesManually(saved.id, dto.asignacionesManual, queryRunner.manager);
     }
 
     await queryRunner.commitTransaction();
+
+    // Enviar correo a los empleados asignados (si existen y tienen correo)
+    const empleados: string[] = [];
+    const correos: { nombre: string; email: string }[] = [];
+
+    const empleadoA = saved.empleadoAId
+      ? await this.empleadosRepository.findOne({ where: { id: saved.empleadoAId } })
+      : null;
+
+    if (empleadoA) {
+      this.logger.log(`[Mailer] Empleado A encontrado: ${empleadoA.nombre}, email: ${empleadoA.email}`);
+    } else if (saved.empleadoAId) {
+      this.logger.warn(`[Mailer] Empleado A con ID ${saved.empleadoAId} no encontrado`);
+    }
+
+    const empleadoB = saved.empleadoBId
+      ? await this.empleadosRepository.findOne({ where: { id: saved.empleadoBId } })
+      : null;
+
+    if (empleadoB) {
+      this.logger.log(`[Mailer] Empleado B encontrado: ${empleadoB.nombre}, email: ${empleadoB.email}`);
+    } else if (saved.empleadoBId) {
+      this.logger.warn(`[Mailer] Empleado B con ID ${saved.empleadoBId} no encontrado`);
+    }
+
+    if (empleadoA?.email) {
+      empleados.push(empleadoA.nombre);
+      correos.push({ nombre: empleadoA.nombre, email: empleadoA.email });
+    }
+
+    if (empleadoB?.email) {
+      empleados.push(empleadoB.nombre);
+      correos.push({ nombre: empleadoB.nombre, email: empleadoB.email });
+    }
+
+    if (!correos.length) {
+      this.logger.warn(`[Mailer] No hay empleados con correo para enviar notificación`);
+    }
+
+    const clienteInfo = await this.clientesRepository.findOne({
+      where: { clienteId: saved.cliente.clienteId },
+    });
+
+    const toiletEntities = await this.toiletsRepository.findBy({
+      baño_id: In(saved.banosInstalados),
+    });
+
+    const toilets = toiletEntities.map(
+      (b) => b.codigo_interno || `Baño #${b.baño_id}`,
+    );
+
+    const clientes = clienteInfo?.nombre ? [clienteInfo.nombre] : ['Cliente desconocido'];
+    const direccion = clienteInfo?.direccion || 'Dirección no especificada';
+    const fechaInicio = saved.fechaInicio?.toISOString().split('T')[0];
+    const fechaProgramada = saved.fechaProgramada?.toISOString().split('T')[0];
+
+    for (const { nombre, email } of correos) {
+      await this.mailerService.sendRoute(
+        email,
+        nombre,
+        'Vehículo asignado',
+        toilets,
+        clientes,
+        saved.tipoServicio,
+        fechaProgramada,
+        saved.id,
+        empleados,
+        direccion,
+        fechaInicio,
+      );
+    }
+
     return saved;
   } catch (err) {
+    this.logger.error(`[Service] Error al crear servicio: ${err.message}`);
     await queryRunner.rollbackTransaction();
     throw err;
   } finally {
     await queryRunner.release();
   }
 }
+
+
+
 
   private getDefaultCantidadEmpleados(tipoServicio?: ServiceType): number {
   switch (tipoServicio) {
