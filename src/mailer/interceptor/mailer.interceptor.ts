@@ -201,6 +201,7 @@ export class MailerInterceptor implements NestInterceptor {
       const empleado = asignacion?.empleado;
 
       if (!empleado?.email) continue;
+console.log(`[Interceptor] Enviando correo automático para servicio ID: ${servicio.id}`);
 
       await this.mailerService.sendRoute(
         empleado.email,

@@ -286,81 +286,20 @@ private async createBaseService(dto: CreateServiceDto): Promise<Service> {
 
     const saved = await queryRunner.manager.save(newService);
 
-   if (dto.asignacionesManual?.length) {
-  const empleadosAsignados = dto.asignacionesManual.map(a => a.empleadoId);
-  const empleadosUnicos = new Set(empleadosAsignados);
+    if (dto.asignacionesManual?.length) {
+      const empleadosAsignados = dto.asignacionesManual.map(a => a.empleadoId);
+      const empleadosUnicos = new Set(empleadosAsignados);
 
-  if (empleadosAsignados.length !== empleadosUnicos.size) {
-    throw new Error('No se puede asignar el mismo empleado más de una vez al mismo servicio.');
-  }
+      if (empleadosAsignados.length !== empleadosUnicos.size) {
+        throw new Error('No se puede asignar el mismo empleado más de una vez al mismo servicio.');
+      }
 
-  await this.assignResourcesManually(saved.id, dto.asignacionesManual, queryRunner.manager);
-}
+      await this.assignResourcesManually(saved.id, dto.asignacionesManual, queryRunner.manager);
+    }
 
     await queryRunner.commitTransaction();
 
-    // ----- MAILING -----
-
-    const empleadoIds = dto.asignacionesManual?.map(a => a.empleadoId) || [];
-    const fechaProgramada = saved.fechaProgramada;
-    const fechaInicio = saved.fechaInicio;
-    const direccion = saved.ubicacion;
-    const toilets = saved.banosInstalados || [];
-    const clientes = [cliente]; // Podrías ajustar si hay múltiples
-
-    if (empleadoIds.length > 0) {
-      const empleadosAsignados = await this.empleadosRepository.findBy({
-        id: In(empleadoIds),
-      });
-
-      // Agrupar empleados únicos por email
-      const correosUnicos = new Map<string, string>(); // email => nombre
-      for (const emp of empleadosAsignados) {
-        if (emp.email && !correosUnicos.has(emp.email)) {
-          correosUnicos.set(emp.email, emp.nombre);
-        }
-      }
-
-      // Obtener asignaciones del servicio guardado
-      const servicio = await this.serviceRepository.findOne({
-        where: { id: saved.id },
-        relations: ['asignaciones', 'asignaciones.empleado'],
-      });
-
-      // Agrupar empleados asignados con sus roles
-      const assignedEmployeesMap = new Map<number, { name: string; rol?: string | null }>();
-      for (const asig of servicio?.asignaciones || []) {
-        const emp = asig.empleado;
-        if (!emp) continue;
-
-        if (!assignedEmployeesMap.has(emp.id)) {
-          assignedEmployeesMap.set(emp.id, {
-            name: `${emp.nombre} ${emp.apellido}`,
-            rol: asig.rolEmpleado ?? null,
-          });
-        }
-      }
-
-      const assignedEmployees = Array.from(assignedEmployeesMap.values());
-
-      for (const [email, nombre] of correosUnicos.entries()) {
-        this.logger.log(`Enviando correo a ${email}`);
-        await this.mailerService.sendRoute(
-          email,
-          nombre,
-          'Vehículo asignado',
-          toilets.map(id => id.toString()),
-          clientes.map(c => c.nombre), 
-          saved.tipoServicio,
-         fechaProgramada.toLocaleDateString('es-AR'), // o el formato que uses
-          saved.id,
-          assignedEmployees,
-          direccion,
-          fechaInicio ? fechaInicio.toISOString() : undefined
-        );
-        this.logger.log(`Correo enviado exitosamente a ${email}`);
-      }
-    }
+    // **MAIL ENVIADO POR EL INTERCEPTOR, NO ACÁ**
 
     return saved;
   } catch (err) {
@@ -894,47 +833,59 @@ async assignResourcesManually(
     // Empleados
     if (dto.empleadoId && !empleadosProcesados.has(dto.empleadoId)) {
       const empleado = await this.empleadosRepository.findOne({ where: { id: dto.empleadoId } });
-      console.log('Empleado encontrado:', empleado);
-      if (empleado) {
-        const assignment = new ResourceAssignment();
-        assignment.servicioId = serviceId;
-        assignment.empleado = empleado;
-        assignment.empleadoId = empleado.id;
-        assignment.rolEmpleado = dto.rol ?? null;
-
-        assignments.push(assignment);
-        empleadosProcesados.add(empleado.id);
-        console.log('Asignación creada para empleado:', assignment);
+      if (!empleado) {
+        throw new NotFoundException(`Empleado con ID ${dto.empleadoId} no encontrado`);
       }
+
+      const assignment = new ResourceAssignment();
+      assignment.servicioId = serviceId;
+      assignment.empleado = empleado;
+      assignment.empleadoId = empleado.id;
+      assignment.rolEmpleado = dto.rol ?? null;
+
+      assignments.push(assignment);
+      empleadosProcesados.add(empleado.id);
+      console.log('Asignación creada para empleado:', assignment);
     }
 
     // Vehículos
     if (dto.vehiculoId && !vehiculosProcesados.has(dto.vehiculoId)) {
       const vehiculo = await this.vehiclesRepository.findOne({ where: { id: dto.vehiculoId } });
-      console.log('Vehículo encontrado:', vehiculo);
-      if (vehiculo) {
-        const assignment = new ResourceAssignment();
-        assignment.servicioId = serviceId;
-        assignment.vehiculo = vehiculo;
-        assignment.vehiculoId = vehiculo.id;
-
-        assignments.push(assignment);
-        vehiculosProcesados.add(vehiculo.id);
-        console.log('Asignación creada para vehículo:', assignment);
+      if (!vehiculo) {
+        throw new NotFoundException(`Vehículo con ID ${dto.vehiculoId} no encontrado`);
       }
+
+      const assignment = new ResourceAssignment();
+      assignment.servicioId = serviceId;
+      assignment.vehiculo = vehiculo;
+      assignment.vehiculoId = vehiculo.id;
+
+      assignments.push(assignment);
+      vehiculosProcesados.add(vehiculo.id);
+      console.log('Asignación creada para vehículo:', assignment);
     }
 
     // Baños
     if (dto.banosIds?.length) {
-      console.log('Se encontraron baños:', dto.banosIds);
-      for (const banoId of dto.banosIds) {
-        if (!banosProcesados.has(banoId)) {
+      const banos = await this.toiletsRepository.find({
+        where: { baño_id: In(dto.banosIds) },
+      });
+
+      const encontrados = banos.map(b => b.baño_id);
+      const noEncontrados = dto.banosIds.filter(id => !encontrados.includes(id));
+
+      if (noEncontrados.length > 0) {
+        throw new NotFoundException(`Baños no encontrados con IDs: ${noEncontrados.join(', ')}`);
+      }
+
+      for (const bano of banos) {
+        if (!banosProcesados.has(bano.baño_id)) {
           const assignment = new ResourceAssignment();
           assignment.servicioId = serviceId;
-          assignment.banoId = banoId;
+          assignment.banoId = bano.baño_id;
 
           assignments.push(assignment);
-          banosProcesados.add(banoId);
+          banosProcesados.add(bano.baño_id);
           console.log('Asignación creada para baño:', assignment);
         }
       }
@@ -948,10 +899,6 @@ async assignResourcesManually(
 
   return saved;
 }
-
-
-
-
 
   private async releaseAssignedResources(service: Service): Promise<void> {
     // Cargar las asignaciones si no se han cargado ya
