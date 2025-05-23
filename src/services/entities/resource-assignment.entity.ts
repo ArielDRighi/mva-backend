@@ -32,6 +32,9 @@ export class ResourceAssignment {
   @JoinColumn({ name: 'empleado_id' })
   @Transform(({ value }): Empleado | undefined => value || undefined)
   empleado: Empleado | null;
+  
+  @Column({ name: 'rol_empleado', type: 'enum', enum: ['A', 'B'], nullable: true })
+  rolEmpleado: 'A' | 'B' | null;
 
   @Column({ name: 'vehiculo_id', nullable: true })
   @Transform(({ value }): number | undefined => value || undefined)

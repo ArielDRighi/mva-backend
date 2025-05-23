@@ -124,17 +124,17 @@ export class MailerInterceptor implements NestInterceptor {
     }
 
     // Obtener todos los empleados asignados al servicio
-    const empleadosAsignados = asignaciones
-      .filter((a) => a?.empleado)
-      .map((a) => a.empleado)
-      .filter(Boolean)
-      .map((e) => `${e.nombre} ${e.apellido} (${e.cargo})`);
-
-    // Texto con la lista de empleados para el correo
     const listaEmpleados =
-      empleadosAsignados.length > 0
-        ? empleadosAsignados
-        : ['No hay empleados asignados'];
+  asignaciones
+    .filter(a => a?.empleado)
+    .map(a => {
+      const emp = a.empleado;
+      return {
+        name: `${emp.nombre} ${emp.apellido}`,
+        rol: a.rolEmpleado ?? null, // si querés incluir el rol (A o B)
+      };
+    }) ?? [];
+
 
     // ID del servicio
     const servicioId = servicio.id;

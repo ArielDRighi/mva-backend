@@ -209,7 +209,6 @@ private async createBaseService(dto: CreateServiceDto): Promise<Service> {
   try {
     this.logger.log(`[Service] Creando servicio con DTO: ${JSON.stringify(dto)}`);
     const newService = new Service();
-
     let cliente: Cliente | null = null;
 
     if (dto.clienteId) {
@@ -229,10 +228,7 @@ private async createBaseService(dto: CreateServiceDto): Promise<Service> {
 
       if (contrato) {
         newService.condicionContractualId = contrato.condicionContractualId;
-
-        if (!cliente) {
-          cliente = contrato.cliente;
-        }
+        if (!cliente) cliente = contrato.cliente;
 
         if (contrato.fecha_inicio && contrato.fecha_fin) {
           const fechaInicio = new Date(contrato.fecha_inicio);
@@ -264,10 +260,9 @@ private async createBaseService(dto: CreateServiceDto): Promise<Service> {
       dto.cantidadBanos = 0;
     }
 
-    // Extraer banosInstalados si no vienen directo y sí hay asignaciones manuales
     const banosInstaladosFromManual = dto.banosInstalados || (
       dto.asignacionesManual?.length
-        ? dto.asignacionesManual.flatMap(a => a.banosIds)
+        ? dto.asignacionesManual.flatMap(a => a.banosIds || [])
         : []
     );
 
@@ -277,8 +272,6 @@ private async createBaseService(dto: CreateServiceDto): Promise<Service> {
       estado: dto.estado || ServiceState.PROGRAMADO,
       cantidadBanos: dto.cantidadBanos,
       cantidadEmpleados: this.getDefaultCantidadEmpleados(dto.tipoServicio),
-      empleadoAId: dto.empleadoAId,
-      empleadoBId: dto.empleadoBId,
       cantidadVehiculos: dto.cantidadVehiculos,
       ubicacion: dto.ubicacion,
       notas: dto.notas,
@@ -287,107 +280,86 @@ private async createBaseService(dto: CreateServiceDto): Promise<Service> {
     });
 
     this.validateServiceTypeSpecificRequirements(dto);
-
     (newService as any).forzar = dto.forzar ?? false;
-      // Validación de existencia de empleados antes de guardar
-    if (dto.empleadoAId) {
-      const empleadoAExiste = await this.empleadosRepository.findOne({
-        where: { id: dto.empleadoAId },
-      });
-      if (!empleadoAExiste) {
-        throw new NotFoundException(`Empleado A con ID ${dto.empleadoAId} no existe`);
-      }
-    }
-
-    if (dto.empleadoBId) {
-      const empleadoBExiste = await this.empleadosRepository.findOne({
-        where: { id: dto.empleadoBId },
-      });
-      if (!empleadoBExiste) {
-        throw new NotFoundException(`Empleado B con ID ${dto.empleadoBId} no existe`);
-      }
-    }
 
     await this.verifyResourcesAvailability(newService);
 
     const saved = await queryRunner.manager.save(newService);
 
+   if (dto.asignacionesManual?.length) {
+  const empleadosAsignados = dto.asignacionesManual.map(a => a.empleadoId);
+  const empleadosUnicos = new Set(empleadosAsignados);
 
-    if (dto.asignacionesManual?.length) {
-      await this.assignResourcesManually(saved.id, dto.asignacionesManual, queryRunner.manager);
-    }
+  if (empleadosAsignados.length !== empleadosUnicos.size) {
+    throw new Error('No se puede asignar el mismo empleado más de una vez al mismo servicio.');
+  }
+
+  await this.assignResourcesManually(saved.id, dto.asignacionesManual, queryRunner.manager);
+}
 
     await queryRunner.commitTransaction();
 
-    // Enviar correo a los empleados asignados (si existen y tienen correo)
-    const empleados: string[] = [];
-    const correos: { nombre: string; email: string }[] = [];
+    // ----- MAILING -----
 
-    const empleadoA = saved.empleadoAId
-      ? await this.empleadosRepository.findOne({ where: { id: saved.empleadoAId } })
-      : null;
+    const empleadoIds = dto.asignacionesManual?.map(a => a.empleadoId) || [];
+    const fechaProgramada = saved.fechaProgramada;
+    const fechaInicio = saved.fechaInicio;
+    const direccion = saved.ubicacion;
+    const toilets = saved.banosInstalados || [];
+    const clientes = [cliente]; // Podrías ajustar si hay múltiples
 
-    if (empleadoA) {
-      this.logger.log(`[Mailer] Empleado A encontrado: ${empleadoA.nombre}, email: ${empleadoA.email}`);
-    } else if (saved.empleadoAId) {
-      this.logger.warn(`[Mailer] Empleado A con ID ${saved.empleadoAId} no encontrado`);
-    }
+    if (empleadoIds.length > 0) {
+      const empleadosAsignados = await this.empleadosRepository.findBy({
+        id: In(empleadoIds),
+      });
 
-    const empleadoB = saved.empleadoBId
-      ? await this.empleadosRepository.findOne({ where: { id: saved.empleadoBId } })
-      : null;
+      // Agrupar empleados únicos por email
+      const correosUnicos = new Map<string, string>(); // email => nombre
+      for (const emp of empleadosAsignados) {
+        if (emp.email && !correosUnicos.has(emp.email)) {
+          correosUnicos.set(emp.email, emp.nombre);
+        }
+      }
 
-    if (empleadoB) {
-      this.logger.log(`[Mailer] Empleado B encontrado: ${empleadoB.nombre}, email: ${empleadoB.email}`);
-    } else if (saved.empleadoBId) {
-      this.logger.warn(`[Mailer] Empleado B con ID ${saved.empleadoBId} no encontrado`);
-    }
+      // Obtener asignaciones del servicio guardado
+      const servicio = await this.serviceRepository.findOne({
+        where: { id: saved.id },
+        relations: ['asignaciones', 'asignaciones.empleado'],
+      });
 
-    if (empleadoA?.email) {
-      empleados.push(empleadoA.nombre);
-      correos.push({ nombre: empleadoA.nombre, email: empleadoA.email });
-    }
+      // Agrupar empleados asignados con sus roles
+      const assignedEmployeesMap = new Map<number, { name: string; rol?: string | null }>();
+      for (const asig of servicio?.asignaciones || []) {
+        const emp = asig.empleado;
+        if (!emp) continue;
 
-    if (empleadoB?.email) {
-      empleados.push(empleadoB.nombre);
-      correos.push({ nombre: empleadoB.nombre, email: empleadoB.email });
-    }
+        if (!assignedEmployeesMap.has(emp.id)) {
+          assignedEmployeesMap.set(emp.id, {
+            name: `${emp.nombre} ${emp.apellido}`,
+            rol: asig.rolEmpleado ?? null,
+          });
+        }
+      }
 
-    if (!correos.length) {
-      this.logger.warn(`[Mailer] No hay empleados con correo para enviar notificación`);
-    }
+      const assignedEmployees = Array.from(assignedEmployeesMap.values());
 
-    const clienteInfo = await this.clientesRepository.findOne({
-      where: { clienteId: saved.cliente.clienteId },
-    });
-
-    const toiletEntities = await this.toiletsRepository.findBy({
-      baño_id: In(saved.banosInstalados),
-    });
-
-    const toilets = toiletEntities.map(
-      (b) => b.codigo_interno || `Baño #${b.baño_id}`,
-    );
-
-    const clientes = clienteInfo?.nombre ? [clienteInfo.nombre] : ['Cliente desconocido'];
-    const direccion = clienteInfo?.direccion || 'Dirección no especificada';
-    const fechaInicio = saved.fechaInicio?.toISOString().split('T')[0];
-    const fechaProgramada = saved.fechaProgramada?.toISOString().split('T')[0];
-
-    for (const { nombre, email } of correos) {
-      await this.mailerService.sendRoute(
-        email,
-        nombre,
-        'Vehículo asignado',
-        toilets,
-        clientes,
-        saved.tipoServicio,
-        fechaProgramada,
-        saved.id,
-        empleados,
-        direccion,
-        fechaInicio,
-      );
+      for (const [email, nombre] of correosUnicos.entries()) {
+        this.logger.log(`Enviando correo a ${email}`);
+        await this.mailerService.sendRoute(
+          email,
+          nombre,
+          'Vehículo asignado',
+          toilets.map(id => id.toString()),
+          clientes.map(c => c.nombre), 
+          saved.tipoServicio,
+         fechaProgramada.toLocaleDateString('es-AR'), // o el formato que uses
+          saved.id,
+          assignedEmployees,
+          direccion,
+          fechaInicio ? fechaInicio.toISOString() : undefined
+        );
+        this.logger.log(`Correo enviado exitosamente a ${email}`);
+      }
     }
 
     return saved;
@@ -399,7 +371,6 @@ private async createBaseService(dto: CreateServiceDto): Promise<Service> {
     await queryRunner.release();
   }
 }
-
 
 
 
@@ -533,8 +504,9 @@ private async scheduleEmployeeStatusForCapacitacion(service: Service) {
   updateServiceDto: UpdateServiceDto,
 ): Promise<Service> {
   this.logger.log(`Actualizando servicio con id: ${id}`);
-
+  
   const service = await this.findOne(id);
+  this.logger.log(`Asignando recursos manualmente al servicio ${service.id}: ${JSON.stringify(service.asignaciones)}`);
 
   const esCapacitacionActual =
     service.tipoServicio === ServiceType.CAPACITACION;
@@ -641,7 +613,63 @@ private async scheduleEmployeeStatusForCapacitacion(service: Service) {
       );
     }
   }
+  if (empleadosAsignados.length > 0) {
+  this.logger.log(`Empleados asignados manualmente: ${empleadosAsignados.join(', ')}`);
 
+  const empleados = await this.empleadosRepository.findBy({
+    id: In(empleadosAsignados),
+  });
+
+  this.logger.log(`Empleados encontrados: ${empleados.map((e) => `${e.id}-${e.nombre}`).join(', ')}`);
+
+  const cliente = await this.clientesRepository.findOne({
+    where: { clienteId: savedService.cliente?.clienteId },
+  });
+
+  if (!cliente) {
+    this.logger.warn(`Cliente no encontrado para clienteId: ${savedService.cliente?.clienteId}`);
+  }
+
+  const toiletEntities = await this.toiletsRepository.findBy({
+    baño_id: In(savedService.banosInstalados ?? []),
+  });
+
+  this.logger.log(`Baños encontrados: ${toiletEntities.map((b) => b.codigo_interno || `Baño #${b.baño_id}`).join(', ')}`);
+
+  const toilets = toiletEntities.map(
+    (b) => b.codigo_interno || `Baño #${b.baño_id}`,
+  );
+
+  const clientes = cliente?.nombre ? [cliente.nombre] : ['Cliente desconocido'];
+  const direccion = cliente?.direccion || 'Dirección no especificada';
+  const fechaInicio = savedService.fechaInicio?.toISOString().split('T')[0];
+  const fechaProgramada = savedService.fechaProgramada?.toISOString().split('T')[0];
+
+  for (const empleado of empleados) {
+    if (!empleado.email) {
+      this.logger.warn(`Empleado ${empleado.nombre} (ID ${empleado.id}) no tiene email, no se envía notificación.`);
+      continue;
+    }
+
+    try {
+      this.logger.log(`Enviando correo a ${empleado.email} (${empleado.nombre})`);
+      await this.mailerService.sendRouteModified(
+        empleado.email,
+        empleado.nombre,
+        'Vehículo asignado', // Acá podrías reemplazar por la placa o nombre real
+        toilets,
+        clientes,
+        savedService.tipoServicio,
+        fechaProgramada,
+        direccion,
+        fechaInicio,
+      );
+      this.logger.log(`Correo enviado exitosamente a ${empleado.email}`);
+    } catch (error) {
+      this.logger.error(`Error al enviar correo a ${empleado.email}:`, error);
+    }
+  }
+}
   return this.findOne(savedService.id);
 }
 
@@ -858,9 +886,7 @@ private mapServiceTypeToEmpleadoState(tipoServicio: ServiceType): string {
       });
 
       if (!foundService) {
-        throw new NotFoundException(
-          `Servicio con id ${serviceId} no encontrado durante la transacción`,
-        );
+        throw new NotFoundException(`Servicio con id ${serviceId} no encontrado durante la transacción`);
       }
 
       service = foundService;
@@ -868,134 +894,105 @@ private mapServiceTypeToEmpleadoState(tipoServicio: ServiceType): string {
       service = await this.findOne(serviceId);
     }
 
+    // ✅ Validación: evitar asignación duplicada del mismo empleado
+    const empleadosIds = assignmentDtos
+      .map(a => a.empleadoId)
+      .filter((id): id is number => typeof id === 'number');
+
+    const empleadosSet = new Set(empleadosIds);
+    if (empleadosIds.length !== empleadosSet.size) {
+      throw new BadRequestException('Un mismo empleado no puede asignarse más de una vez al servicio.');
+    }
+
     const assignments: ResourceAssignment[] = [];
 
     for (const assignmentDto of assignmentDtos) {
+      const { empleadoId, vehiculoId, banosIds, rol } = assignmentDto;
+
       let employee: Empleado | null = null;
-      if (assignmentDto.empleadoId) {
-        if (entityManager) {
-          employee = await entityManager.findOne(Empleado, {
-            where: { id: assignmentDto.empleadoId },
-          });
-        } else {
-          employee = await this.employeesService.findOne(
-            assignmentDto.empleadoId,
-          );
-        }
+      if (empleadoId) {
+        employee = entityManager
+          ? await entityManager.findOne(Empleado, { where: { id: empleadoId } })
+          : await this.employeesService.findOne(empleadoId);
 
         if (!employee) {
-          throw new NotFoundException(
-            `Empleado con id ${assignmentDto.empleadoId} no encontrado`,
-          );
+          throw new NotFoundException(`Empleado con id ${empleadoId} no encontrado`);
         }
 
-        if (
-          employee.estado !== ResourceState.DISPONIBLE.toString() &&
-          employee.estado !== ResourceState.ASIGNADO.toString()
-        ) {
-          throw new BadRequestException(
-            `El empleado con ID ${employee.id} no está disponible ni asignado`,
-          );
+        if (![ResourceState.DISPONIBLE, ResourceState.ASIGNADO].includes(employee.estado as ResourceState)) {
+          throw new BadRequestException(`El empleado con ID ${employee.id} no está disponible ni asignado`);
         }
 
-        const isAvailable =
-          await this.employeeLeavesService.isEmployeeAvailable(
-            employee.id,
-            new Date(service.fechaProgramada),
-          );
+        const isAvailable = await this.employeeLeavesService.isEmployeeAvailable(
+          employee.id,
+          new Date(service.fechaProgramada),
+        );
 
         if (!isAvailable) {
-          throw new BadRequestException(
-            `El empleado con ID ${employee.id} tiene licencia o vacaciones programadas para la fecha del servicio`,
-          );
+          throw new BadRequestException(`El empleado con ID ${employee.id} tiene licencia o vacaciones en la fecha`);
         }
-
-        // No se cambia el estado del empleado aquí
       }
 
       let vehicle: Vehicle | null = null;
-      if (assignmentDto.vehiculoId) {
-        if (entityManager) {
-          vehicle = await entityManager.findOne(Vehicle, {
-            where: { id: assignmentDto.vehiculoId },
-          });
-        } else {
-          vehicle = await this.vehiclesService.findOne(
-            assignmentDto.vehiculoId,
-          );
-        }
+      if (vehiculoId) {
+        vehicle = entityManager
+          ? await entityManager.findOne(Vehicle, { where: { id: vehiculoId } })
+          : await this.vehiclesService.findOne(vehiculoId);
 
         if (!vehicle) {
-          throw new NotFoundException(
-            `Vehículo con id ${assignmentDto.vehiculoId} no encontrado`,
-          );
+          throw new NotFoundException(`Vehículo con id ${vehiculoId} no encontrado`);
         }
 
-        if (
-          vehicle.estado !== ResourceState.DISPONIBLE.toString() &&
-          vehicle.estado !== ResourceState.ASIGNADO.toString()
-        ) {
-          throw new BadRequestException(
-            `El vehículo con ID ${vehicle.id} no está disponible ni asignado`,
-          );
+        if (![ResourceState.DISPONIBLE, ResourceState.ASIGNADO].includes(vehicle.estado as ResourceState)) {
+          throw new BadRequestException(`El vehículo con ID ${vehicle.id} no está disponible ni asignado`);
         }
-
-        // No se cambia el estado del vehículo aquí
       }
 
-      if (assignmentDto.banosIds && assignmentDto.banosIds.length > 0) {
-        for (const toiletId of assignmentDto.banosIds) {
-          let toilet: ChemicalToilet| null;
-
-          if (entityManager) {
-            toilet = await entityManager.findOne(ChemicalToilet, {
-              where: { baño_id: toiletId },
-            });
-          } else {
-            toilet = await this.toiletsService.findById(toiletId);
-          }
+      if (banosIds && banosIds.length > 0) {
+        for (const banoId of banosIds) {
+          const toilet = entityManager
+            ? await entityManager.findOne(ChemicalToilet, { where: { baño_id: banoId } })
+            : await this.toiletsService.findById(banoId);
 
           if (!toilet) {
-            throw new NotFoundException(
-              `Baño con id ${toiletId} no encontrado`,
-            );
+            throw new NotFoundException(`Baño con id ${banoId} no encontrado`);
           }
 
           if (toilet.estado !== ResourceState.DISPONIBLE.toString()) {
-            throw new BadRequestException(
-              `El baño con ID ${toilet.baño_id} no está disponible`,
-            );
+            throw new BadRequestException(`El baño con ID ${toilet.baño_id} no está disponible`);
           }
 
-          const toiletAssignment = new ResourceAssignment();
-          toiletAssignment.servicio = service;
-          toiletAssignment.empleado = employee;
-          toiletAssignment.vehiculo = vehicle;
-          toiletAssignment.bano = toilet;
+          const assignment = new ResourceAssignment();
+          assignment.servicio = service;
+          assignment.empleado = employee;
+          assignment.vehiculo = vehicle;
+          assignment.bano = toilet;
+          assignment.rolEmpleado = rol ?? null;
 
-          assignments.push(toiletAssignment);
-
-          // No se cambia el estado del baño aquí
+          assignments.push(assignment);
         }
       } else {
         if (employee || vehicle) {
-          const emptyAssignment = new ResourceAssignment();
-          emptyAssignment.servicio = service;
-          emptyAssignment.empleado = employee;
-          emptyAssignment.vehiculo = vehicle;
+          const assignment = new ResourceAssignment();
+          assignment.servicio = service;
+          assignment.empleado = employee;
+          assignment.vehiculo = vehicle;
+          assignment.rolEmpleado = rol ?? null;
 
-          assignments.push(emptyAssignment);
+          assignments.push(assignment);
         }
       }
     }
 
-    const assignedToilets = assignments.filter((a) => a.bano).length;
+    // Validación: cantidad de baños asignados
+    const assignedToilets = assignments.filter(a => a.bano).length;
     if (assignedToilets < service.cantidadBanos) {
       throw new BadRequestException(
         `Se requieren ${service.cantidadBanos} baños, pero solo se asignaron ${assignedToilets}`,
       );
     }
 
+    // Guardado final
     if (assignments.length > 0) {
       if (entityManager) {
         await entityManager.save(assignments);
@@ -1004,14 +1001,12 @@ private mapServiceTypeToEmpleadoState(tipoServicio: ServiceType): string {
       }
     }
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : 'Error desconocido';
-    this.logger.error(
-      `Error al asignar recursos manualmente: ${errorMessage}`,
-    );
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+    this.logger.error(`Error al asignar recursos manualmente: ${errorMessage}`);
     throw error;
   }
 }
+
 
 
   private async releaseAssignedResources(service: Service): Promise<void> {
@@ -1325,21 +1320,13 @@ private mapServiceTypeToEmpleadoState(tipoServicio: ServiceType): string {
     }
 
     // 🔴 ⛔️ BLOQUE NUEVO — Lanzar excepción si hay conflictos detectados y no se está forzando
-    if (alertas.length > 0 && !service['forzar']) {
-      this.logger.warn('Conflictos detectados al verificar recursos:');
-      alertas.forEach(msg => this.logger.warn(msg));
-
-      throw new ConflictException({
-        message: 'Conflictos detectados con recursos asignados',
-        conflictos: alertas,
-      });
-    }
-
-    // Loguear si hay alertas pero se está forzando
-    if (alertas.length > 0 && service['forzar']) {
-      this.logger.warn('Creando servicio a pesar de conflictos:');
-      alertas.forEach(msg => this.logger.warn(msg));
-    }
+   if (alertas.length > 0) {
+  this.logger.warn('Conflictos detectados con recursos asignados (no se bloqueará la creación):');
+  alertas.forEach(msg => this.logger.warn(msg));
+  
+  // Opcional: podrías guardar estas alertas dentro del objeto servicio si querés
+  (service as any).__conflictosAsignacion = alertas;
+}
 
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Error desconocido';

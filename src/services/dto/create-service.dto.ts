@@ -126,6 +126,10 @@ export class ResourceAssignmentDto {
   empleadoBId?: number;
 
   @IsOptional()
+  @IsEnum(['A', 'B'])
+  rol?: 'A' | 'B';
+
+  @IsOptional()
   @IsNumber()
   empleadoId?: number;
 
