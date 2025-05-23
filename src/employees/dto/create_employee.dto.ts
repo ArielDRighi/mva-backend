@@ -84,7 +84,6 @@ export class CreateEmployeeDto {
   cbu: string;
 }
 
-
 export class CreateFullEmployeeDto extends CreateEmployeeDto {
   @IsOptional()
   @ValidateNested({ each: true })

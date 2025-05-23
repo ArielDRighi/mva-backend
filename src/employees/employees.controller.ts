@@ -1,4 +1,3 @@
-import { Role } from 'src/roles/enums/role.enum';
 import {
   Controller,
   Get,
@@ -11,9 +10,14 @@ import {
   UseGuards,
   Patch,
   Query,
+  DefaultValuePipe,
 } from '@nestjs/common';
+import { Role } from 'src/roles/enums/role.enum';
 import { EmployeesService } from './employees.service';
-import { CreateEmployeeDto, CreateFullEmployeeDto } from './dto/create_employee.dto';
+import {
+  CreateEmployeeDto,
+  CreateFullEmployeeDto,
+} from './dto/create_employee.dto';
 import { UpdateEmployeeDto } from './dto/update_employee.dto';
 import { Empleado } from './entities/employee.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -123,12 +127,20 @@ export class EmployeesController {
       console.error('Error finding emergency contacts:', error);
     }
   }
-
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
-  @Get('licences/to/expire')
-  async findLicensesToExpire(): Promise<Licencias[]> {
-    return await this.employeesService.findLicensesToExpire();
+  @Get('licencias/por-vencer')
+  async findLicensesToExpire(
+    @Query('dias', new DefaultValuePipe(30), ParseIntPipe) dias: number,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ): Promise<{
+    data: Licencias[];
+    totalItems: number;
+    currentPage: number;
+    totalPages: number;
+  }> {
+    return await this.employeesService.findLicensesToExpire(dias, page, limit);
   }
 
   @UseGuards(RolesGuard)
@@ -167,7 +179,6 @@ export class EmployeesController {
       empleadoId,
     );
   }
-
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
   @Get('licencia/:empleadoId')
@@ -188,8 +199,17 @@ export class EmployeesController {
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
   @Get('licencias')
-  async findLicencias(): Promise<Licencias[]> {
-    return await this.employeesService.findLicencias();
+  async findLicencias(
+    @Query('dias', new DefaultValuePipe(0), ParseIntPipe) dias: number,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ): Promise<{
+    data: Licencias[];
+    totalItems: number;
+    currentPage: number;
+    totalPages: number;
+  }> {
+    return await this.employeesService.findLicencias(dias, page, limit);
   }
 
   @UseGuards(RolesGuard)

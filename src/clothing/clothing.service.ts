@@ -36,7 +36,6 @@ export class ClothingService {
 
     return this.tallesRepository.save(ropaTalles);
   }
-
   async getClothingSpecs(empleadoId: number): Promise<RopaTalles> {
     const talles = await this.tallesRepository.findOne({
       where: { empleado: { id: empleadoId } },
@@ -48,14 +47,34 @@ export class ClothingService {
     return talles;
   }
 
-  async getAllClothingSpecs(): Promise<RopaTalles[]> {
-    const talles = await this.tallesRepository.find({
-      relations: ['empleado'],
-    });
-    if (!talles) {
-      throw new BadRequestException('Talles no encontrados');
+  async getAllClothingSpecs(
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{
+    data: RopaTalles[];
+    totalItems: number;
+    currentPage: number;
+    totalPages: number;
+  }> {
+    try {
+      const [talles, total] = await this.tallesRepository.findAndCount({
+        relations: ['empleado'],
+        skip: (page - 1) * limit,
+        take: limit,
+      });
+
+      // Devolver respuesta exitosa incluso con array vacío
+      return {
+        data: talles,
+        totalItems: total,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
+      throw new BadRequestException('Error al obtener talles: ' + errorMessage);
     }
-    return talles;
   }
 
   async updateClothingSpecs(
@@ -95,12 +114,11 @@ export class ClothingService {
     const ropaTalles = await this.tallesRepository.findOne({
       where: { empleado: { id: empleadoId } },
     });
-
     if (!ropaTalles) {
       throw new BadRequestException('Talles no encontrados');
     }
 
-    this.tallesRepository.remove(ropaTalles);
+    await this.tallesRepository.remove(ropaTalles);
 
     return { message: 'Talles eliminados correctamente' };
   }
