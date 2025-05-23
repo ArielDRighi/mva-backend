@@ -1,19 +1,19 @@
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreateContactEmergencyDto {
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   nombre: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   apellido: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   parentesco: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   telefono: string;
 }

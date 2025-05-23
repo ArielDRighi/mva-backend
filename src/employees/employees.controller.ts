@@ -13,7 +13,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { EmployeesService } from './employees.service';
-import { CreateEmployeeDto } from './dto/create_employee.dto';
+import { CreateEmployeeDto, CreateFullEmployeeDto } from './dto/create_employee.dto';
 import { UpdateEmployeeDto } from './dto/update_employee.dto';
 import { Empleado } from './entities/employee.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -176,6 +176,14 @@ export class EmployeesController {
   ): Promise<Licencias> {
     return await this.employeesService.findLicenciasByEmpleadoId(empleadoId);
   }
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @Get(':id/proximos-servicios')
+  async obtenerProximosServicios(
+  @Param('id', ParseIntPipe) id: number,
+  ) {
+  return await this.employeesService.findProximosServiciosPorEmpleadoId(id);
+  }
 
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
@@ -188,7 +196,7 @@ export class EmployeesController {
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Post()
   async create(
-    @Body() createEmployeeDto: CreateEmployeeDto,
+    @Body() createEmployeeDto: CreateFullEmployeeDto,
   ): Promise<Empleado> {
     return this.employeesService.create(createEmployeeDto);
   }

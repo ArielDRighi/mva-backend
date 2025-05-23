@@ -25,7 +25,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../roles/guards/roles.guard';
 import { Roles } from '../roles/decorators/roles.decorator';
 import { Role } from '../roles/enums/role.enum';
-import { ServiceState } from '../common/enums/resource-states.enum';
+import { ServiceState, ServiceType } from '../common/enums/resource-states.enum';
 import { ChangeServiceStatusDto } from './dto/change-service-status.dto';
 
 import { MailerInterceptor } from 'src/mailer/interceptor/mailer.interceptor';
@@ -75,10 +75,30 @@ export class ServicesController {
   async getProximosServicios() {
     return this.servicesService.getProximosServicios();
   }
-
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
-  @Post()
+  @Post('instalacion')
+  createInstalacion(@Body() dto: CreateServiceDto): Promise<Service> {
+    dto.tipoServicio = ServiceType.INSTALACION;
+    return this.servicesService.create(dto);
+  }
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Post('capacitacion')
+  createCapacitacion(@Body() dto: CreateServiceDto): Promise<Service> {
+    dto.tipoServicio = ServiceType.CAPACITACION;
+    return this.servicesService.create(dto);
+  }
+  @UseGuards(RolesGuard)
+@Roles(Role.ADMIN, Role.SUPERVISOR)
+@Post('limpieza')
+createLimpieza(@Body() dto: CreateServiceDto): Promise<Service> {
+  dto.tipoServicio = ServiceType.LIMPIEZA;
+  return this.servicesService.create(dto);
+}
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Post('generico')
   create(@Body() createServiceDto: CreateServiceDto): Promise<Service> {
     return this.servicesService.create(createServiceDto);
   }

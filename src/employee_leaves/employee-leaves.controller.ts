@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  ParseIntPipe,
 } from '@nestjs/common';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -56,6 +57,15 @@ export class EmployeeLeavesController {
   approve(@Param('id') id: number) {
     return this.leavesService.approve(id);
   }
+  @Patch(':id/reject')
+@Roles(Role.ADMIN, Role.SUPERVISOR)
+async rejectLeave(
+  @Param('id', ParseIntPipe) id: number,
+  @Body('comentario') comentario: string,
+) {
+  return this.leavesService.reject(id, comentario);
+}
+
 
   @Delete(':id')
   @Roles(Role.ADMIN)
