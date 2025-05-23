@@ -25,7 +25,10 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../roles/guards/roles.guard';
 import { Roles } from '../roles/decorators/roles.decorator';
 import { Role } from '../roles/enums/role.enum';
-import { ServiceState, ServiceType } from '../common/enums/resource-states.enum';
+import {
+  ServiceState,
+  ServiceType,
+} from '../common/enums/resource-states.enum';
 import { ChangeServiceStatusDto } from './dto/change-service-status.dto';
 
 import { MailerInterceptor } from 'src/mailer/interceptor/mailer.interceptor';
@@ -37,6 +40,24 @@ import { FilterServicesDto } from './dto/filter-service.dto';
 @UseGuards(JwtAuthGuard)
 export class ServicesController {
   constructor(private readonly servicesService: ServicesService) {}
+
+  @Get('capacitacion')
+  async getCapacitacionServices(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    return this.servicesService.getCapacitacionServices(page, limit);
+  }
+
+  @Get('instalacion')
+  async getInstalacionServices(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    const ret = this.servicesService.getInstalacionServices(page, limit);
+    console.log('ret', ret);
+    return ret;
+  }
 
   @Get('employee/:employeeId/last')
   @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
@@ -90,12 +111,12 @@ export class ServicesController {
     return this.servicesService.create(dto);
   }
   @UseGuards(RolesGuard)
-@Roles(Role.ADMIN, Role.SUPERVISOR)
-@Post('limpieza')
-createLimpieza(@Body() dto: CreateServiceDto): Promise<Service> {
-  dto.tipoServicio = ServiceType.LIMPIEZA;
-  return this.servicesService.create(dto);
-}
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Post('limpieza')
+  createLimpieza(@Body() dto: CreateServiceDto): Promise<Service> {
+    dto.tipoServicio = ServiceType.LIMPIEZA;
+    return this.servicesService.create(dto);
+  }
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Post('generico')
@@ -184,11 +205,10 @@ createLimpieza(@Body() dto: CreateServiceDto): Promise<Service> {
   }
 
   // Esta ruta debe ir después de las rutas específicas
- @Get(':id')
-findOne(@Param('id', ParseIntPipe) id: number): Promise<Service> {
-  return this.servicesService.findOne(id);
-}
-
+  @Get(':id')
+  findOne(@Param('id', ParseIntPipe) id: number): Promise<Service> {
+    return this.servicesService.findOne(id);
+  }
 
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
