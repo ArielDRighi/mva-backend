@@ -9,8 +9,6 @@ import { Workbook } from 'exceljs';
 import { Response } from 'express';
 import * as ExcelJS from 'exceljs';
 
-
-
 @Injectable()
 export class ClothingService {
   constructor(
@@ -38,7 +36,6 @@ export class ClothingService {
 
     return this.tallesRepository.save(ropaTalles);
   }
-
   async getClothingSpecs(empleadoId: number): Promise<RopaTalles> {
     const talles = await this.tallesRepository.findOne({
       where: { empleado: { id: empleadoId } },
@@ -50,14 +47,34 @@ export class ClothingService {
     return talles;
   }
 
-  async getAllClothingSpecs(): Promise<RopaTalles[]> {
-    const talles = await this.tallesRepository.find({
-      relations: ['empleado'],
-    });
-    if (!talles) {
-      throw new BadRequestException('Talles no encontrados');
+  async getAllClothingSpecs(
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{
+    data: RopaTalles[];
+    totalItems: number;
+    currentPage: number;
+    totalPages: number;
+  }> {
+    try {
+      const [talles, total] = await this.tallesRepository.findAndCount({
+        relations: ['empleado'],
+        skip: (page - 1) * limit,
+        take: limit,
+      });
+
+      // Devolver respuesta exitosa incluso con array vacío
+      return {
+        data: talles,
+        totalItems: total,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
+      throw new BadRequestException('Error al obtener talles: ' + errorMessage);
     }
-    return talles;
   }
 
   async updateClothingSpecs(
@@ -97,12 +114,11 @@ export class ClothingService {
     const ropaTalles = await this.tallesRepository.findOne({
       where: { empleado: { id: empleadoId } },
     });
-
     if (!ropaTalles) {
       throw new BadRequestException('Talles no encontrados');
     }
 
-    this.tallesRepository.remove(ropaTalles);
+    await this.tallesRepository.remove(ropaTalles);
 
     return { message: 'Talles eliminados correctamente' };
   }
@@ -126,18 +142,28 @@ export class ClothingService {
       { header: 'Campera BigNort', key: 'campera_bigNort_talle', width: 15 },
       { header: 'Piel BigNort', key: 'pielBigNort_talle', width: 15 },
       { header: 'Medias', key: 'medias_talle', width: 10 },
-      { header: 'Pantalón Térmico BigNort', key: 'pantalon_termico_bigNort_talle', width: 20 },
-      { header: 'Campera Polar BigNort', key: 'campera_polar_bigNort_talle', width: 20 },
+      {
+        header: 'Pantalón Térmico BigNort',
+        key: 'pantalon_termico_bigNort_talle',
+        width: 20,
+      },
+      {
+        header: 'Campera Polar BigNort',
+        key: 'campera_polar_bigNort_talle',
+        width: 20,
+      },
       { header: 'Mameluco', key: 'mameluco_talle', width: 10 },
       { header: 'Fecha Creación', key: 'createdAt', width: 20 },
       { header: 'Fecha Actualización', key: 'updatedAt', width: 20 },
     ];
 
     // 4. Agregar filas
-    specs.forEach(spec => {
+    specs.forEach((spec) => {
       worksheet.addRow({
         id: spec.id,
-        empleado: spec.empleado ? `${spec.empleado.nombre} ${spec.empleado.apellido}` : 'Sin empleado',
+        empleado: spec.empleado
+          ? `${spec.empleado.nombre} ${spec.empleado.apellido}`
+          : 'Sin empleado',
         calzado_talle: spec.calzado_talle,
         pantalon_talle: spec.pantalon_talle,
         camisa_talle: spec.camisa_talle,
@@ -147,8 +173,12 @@ export class ClothingService {
         pantalon_termico_bigNort_talle: spec.pantalon_termico_bigNort_talle,
         campera_polar_bigNort_talle: spec.campera_polar_bigNort_talle,
         mameluco_talle: spec.mameluco_talle,
-        createdAt: spec.createdAt ? spec.createdAt.toISOString().slice(0, 19).replace('T', ' ') : '',
-        updatedAt: spec.updatedAt ? spec.updatedAt.toISOString().slice(0, 19).replace('T', ' ') : '',
+        createdAt: spec.createdAt
+          ? spec.createdAt.toISOString().slice(0, 19).replace('T', ' ')
+          : '',
+        updatedAt: spec.updatedAt
+          ? spec.updatedAt.toISOString().slice(0, 19).replace('T', ' ')
+          : '',
       });
     });
 
@@ -169,4 +199,3 @@ export class ClothingService {
     res.end();
   }
 }
-

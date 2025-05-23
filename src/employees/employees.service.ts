@@ -1,4 +1,3 @@
-import { UpdateLicenseDto } from './__mocks__/dto/update_license.dto';
 import {
   Injectable,
   NotFoundException,
@@ -7,10 +6,14 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThanOrEqual, LessThan, Between } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Empleado } from './entities/employee.entity';
-import { CreateEmployeeDto, CreateFullEmployeeDto } from './dto/create_employee.dto';
+import {
+  CreateEmployeeDto,
+  CreateFullEmployeeDto,
+} from './dto/create_employee.dto';
 import { UpdateEmployeeDto } from './dto/update_employee.dto';
+import { UpdateLicenseDto } from './dto/update_license.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { Licencias } from './entities/license.entity';
 import { CreateLicenseDto } from './dto/create_license.dto';
@@ -303,7 +306,7 @@ export class EmployeesService {
     );
   }
 
-  async findLicenciasByEmpleadoId(empleadoId: number): Promise<Empleado> {
+  async findLicenciasByEmpleadoId(empleadoId: number): Promise<Licencias> {
     const employee = await this.employeeRepository.findOne({
       where: { id: empleadoId },
       relations: ['licencia'],
@@ -313,7 +316,7 @@ export class EmployeesService {
         `Empleado con id ${empleadoId} no encontrado`,
       );
     }
-    return employee;
+    return employee.licencia;
   }
 
   async createEmergencyContact(
@@ -350,20 +353,74 @@ export class EmployeesService {
     }
     return contact;
   }
+  async findLicencias(
+    days: number = 0,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{
+    data: Licencias[];
+    totalItems: number;
+    currentPage: number;
+    totalPages: number;
+  }> {
+    this.logger.log(
+      `Buscando licencias (página ${page}, límite ${limit}, días: ${days})`,
+    );
 
-  async findLicencias(): Promise<Licencias[]> {
-    const licencias = await this.licenciaRepository.find({
-      relations: ['empleado'],
-    });
-    if (!licencias) {
-      throw new NotFoundException(`No se encontraron licencias`);
+    try {
+      const queryBuilder = this.licenciaRepository
+        .createQueryBuilder('licencia')
+        .leftJoinAndSelect('licencia.empleado', 'empleado')
+        .orderBy('licencia.fecha_vencimiento', 'ASC');
+
+      // Si se especifica el número de días, filtrar por fecha de vencimiento
+      if (days > 0) {
+        const today = new Date();
+        const futureDateLimit = new Date(
+          today.getTime() + days * 24 * 60 * 60 * 1000,
+        );
+
+        queryBuilder.where(
+          'licencia.fecha_vencimiento BETWEEN :today AND :futureDateLimit',
+          {
+            today: today.toISOString().split('T')[0],
+            futureDateLimit: futureDateLimit.toISOString().split('T')[0],
+          },
+        );
+      }
+
+      // Obtener el total de licencias
+      const totalItems = await queryBuilder.getCount();
+
+      // Obtener licencias paginadas
+      const licencias = await queryBuilder
+        .skip((page - 1) * limit)
+        .take(limit)
+        .getMany();
+
+      if (licencias.length === 0) {
+        this.logger.warn(
+          'No se encontraron licencias con los criterios especificados',
+        );
+      }
+
+      return {
+        data: licencias,
+        totalItems,
+        currentPage: page,
+        totalPages: Math.ceil(totalItems / limit),
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error al buscar licencias: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+      );
+      throw new NotFoundException('No se pudieron encontrar licencias');
     }
-    return licencias;
   }
 
   async findEmergencyContactsByEmpleadoId(
     empleadoId: number,
-  ): Promise<Empleado> {
+  ): Promise<ContactosEmergencia[]> {
     const employee = await this.employeeRepository.findOne({
       where: { id: empleadoId },
       relations: ['emergencyContacts'],
@@ -373,7 +430,7 @@ export class EmployeesService {
         `Empleado con id ${empleadoId} no encontrado`,
       );
     }
-    return employee;
+    return employee.emergencyContacts;
   }
 
   async updateEmergencyContact(
@@ -461,27 +518,56 @@ export class EmployeesService {
     await this.licenciaRepository.remove(licencia);
     return { message: `Licencia eliminada correctamente` };
   }
-
-  async findLicensesToExpire(): Promise<Licencias[]> {
+  async findLicensesToExpire(
+    days: number = 30,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{
+    data: Licencias[];
+    totalItems: number;
+    currentPage: number;
+    totalPages: number;
+  }> {
     const today = new Date();
-    const thirtyDaysLater = new Date(
-      today.getTime() + 30 * 24 * 60 * 60 * 1000,
+    const futureDateLimit = new Date(
+      today.getTime() + days * 24 * 60 * 60 * 1000,
     );
 
-    this.logger.log('Buscando licencias que vencen en los próximos 30 días');
+    this.logger.log(
+      `Buscando licencias que vencen en los próximos ${days} días (página ${page}, límite ${limit})`,
+    );
 
     try {
-      const licensesToExpire = await this.licenciaRepository.find({
-        where: {
-          fecha_vencimiento: Between(today, thirtyDaysLater),
-        },
-        relations: ['empleado'],
-      });
+      const queryBuilder = this.licenciaRepository
+        .createQueryBuilder('licencia')
+        .leftJoinAndSelect('licencia.empleado', 'empleado')
+        .where(
+          'licencia.fecha_vencimiento BETWEEN :today AND :futureDateLimit',
+          {
+            today: today.toISOString().split('T')[0],
+            futureDateLimit: futureDateLimit.toISOString().split('T')[0],
+          },
+        )
+        .orderBy('licencia.fecha_vencimiento', 'ASC');
 
-      return licensesToExpire;
+      // Obtener el total de licencias por vencer
+      const totalItems = await queryBuilder.getCount();
+
+      // Obtener licencias paginadas
+      const licensesToExpire = await queryBuilder
+        .skip((page - 1) * limit)
+        .take(limit)
+        .getMany();
+
+      return {
+        data: licensesToExpire,
+        totalItems,
+        currentPage: page,
+        totalPages: Math.ceil(totalItems / limit),
+      };
     } catch (error) {
       this.logger.error(
-        `Error al buscar licencias por vencer: ${error.message}`,
+        `Error al buscar licencias por vencer: ${error instanceof Error ? error.message : 'Error desconocido'}`,
       );
       throw new NotFoundException(
         'No se pudieron encontrar licencias por vencer',

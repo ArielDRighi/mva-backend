@@ -16,5 +16,4 @@ export class CreateContactEmergencyDto {
   @IsString()
   @IsOptional()
   telefono: string;
-
 }
