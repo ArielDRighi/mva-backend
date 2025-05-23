@@ -63,4 +63,3 @@ export class Cliente {
   @OneToMany(() => FuturasLimpiezas, (futuraLimpieza) => futuraLimpieza.cliente)
   futurasLimpiezas: FuturasLimpiezas[];
 }
-

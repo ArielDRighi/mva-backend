@@ -45,7 +45,7 @@ export class EmployeeLeave {
   notas: string;
   @Column({ type: 'text', nullable: true })
   comentarioRechazo?: string;
-  
+
   @Column({ default: false })
   aprobado: boolean;
 }

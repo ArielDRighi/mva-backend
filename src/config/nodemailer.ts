@@ -110,7 +110,7 @@ export const sendRouteModified = async (
   const subject = '🔔 ¡Tu ruta asignada sufrió modificaciones!';
 
   // Cuerpo del correo con la información de la nueva ruta
-  let body = `
+  const body = `
     <p style="font-size: 16px;">¡Hola ${name}!</p>
     <p style="font-size: 16px;">Queremos informarte que tu ruta asignada ha sido actualizada para el día <strong>${taskDate}</strong>.</p>
     <p style="font-size: 16px;">Aquí están los detalles de la nueva ruta asignada:</p>

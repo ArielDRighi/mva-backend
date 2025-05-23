@@ -129,15 +129,17 @@ export class MailerService {
         </ul>`;
 
     // Agregar la sección de empleados asignados si está disponible
-   if (assignedEmployees && assignedEmployees.length > 0) {
-  body += `
+    if (assignedEmployees && assignedEmployees.length > 0) {
+      body += `
     <li><strong>Equipo asignado al servicio:</strong></li>
     <ul>
-      ${assignedEmployees.map((emp) => 
-  `<li>${emp.name}${emp.rol ? ` (Rol ${emp.rol})` : ''}</li>`
-).join('')}
+      ${assignedEmployees
+        .map(
+          (emp) => `<li>${emp.name}${emp.rol ? ` (Rol ${emp.rol})` : ''}</li>`,
+        )
+        .join('')}
     </ul>`;
-}
+    }
 
     body += `
       </ul>

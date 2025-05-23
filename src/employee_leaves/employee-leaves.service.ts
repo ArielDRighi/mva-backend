@@ -178,26 +178,26 @@ export class EmployeeLeavesService {
     return this.leaveRepository.save(leave);
   }
   async reject(id: number, comentario?: string): Promise<EmployeeLeave> {
-  this.logger.log(`Rechazando licencia con ID: ${id}`);
+    this.logger.log(`Rechazando licencia con ID: ${id}`);
 
-  const leave = await this.findOne(id);
+    const leave = await this.findOne(id);
 
-  if (leave.aprobado === true) {
-    throw new BadRequestException(
-      `No se puede rechazar una licencia que ya fue aprobada`,
-    );
+    if (leave.aprobado === true) {
+      throw new BadRequestException(
+        `No se puede rechazar una licencia que ya fue aprobada`,
+      );
+    }
+
+    // Guardamos el comentario de rechazo
+    leave.comentarioRechazo =
+      comentario ?? 'Solicitud rechazada sin comentarios';
+
+    // Podrías eliminarla o marcarla como rechazada explícitamente
+    // En este ejemplo simplemente se conserva con comentario
+    await this.leaveRepository.save(leave);
+
+    return leave;
   }
-
-  // Guardamos el comentario de rechazo
-  leave.comentarioRechazo = comentario ?? 'Solicitud rechazada sin comentarios';
-
-  // Podrías eliminarla o marcarla como rechazada explícitamente
-  // En este ejemplo simplemente se conserva con comentario
-  await this.leaveRepository.save(leave);
-
-  return leave;
-}
-
 
   async remove(id: number): Promise<{ message: string }> {
     const leave = await this.findOne(id);
@@ -244,61 +244,62 @@ export class EmployeeLeavesService {
   }
 
   async approve(id: number): Promise<EmployeeLeave> {
-  this.logger.log(`Aprobando licencia con ID: ${id}`);
+    this.logger.log(`Aprobando licencia con ID: ${id}`);
 
-  const leave = await this.findOne(id);
-  if (leave.aprobado === true) {
-    throw new BadRequestException(
-      `La licencia con ID ${id} ya está aprobada`,
+    const leave = await this.findOne(id);
+    if (leave.aprobado === true) {
+      throw new BadRequestException(
+        `La licencia con ID ${id} ya está aprobada`,
+      );
+    }
+
+    const fechaInicio =
+      leave.fechaInicio instanceof Date
+        ? leave.fechaInicio
+        : new Date(leave.fechaInicio);
+
+    const fechaFin =
+      leave.fechaFin instanceof Date
+        ? leave.fechaFin
+        : new Date(leave.fechaFin);
+
+    const employee = await this.employeesService.findOne(leave.employeeId);
+    if (!employee) {
+      throw new NotFoundException(
+        `Empleado con ID ${leave.employeeId} no encontrado`,
+      );
+    }
+
+    // Calcular días usados (incluyendo fechaInicio y fechaFin)
+    const diasUsadosEnLicencia =
+      differenceInCalendarDays(fechaFin, fechaInicio) + 1;
+    const diasDisponibles = employee.diasVacacionesRestantes;
+
+    this.logger.log(`Días usados en licencia: ${diasUsadosEnLicencia}`);
+    this.logger.log(`Días disponibles: ${diasDisponibles}`);
+
+    if (diasUsadosEnLicencia > diasDisponibles) {
+      throw new BadRequestException(
+        `El empleado no tiene suficientes días de licencia disponibles`,
+      );
+    }
+
+    const diasRestantes = diasDisponibles - diasUsadosEnLicencia;
+
+    this.logger.log(
+      `Actualizando empleado ID ${employee.id}, días restantes: ${diasRestantes}`,
     );
+
+    await this.employeesService.update(employee.id, {
+      diasVacacionesRestantes: diasRestantes,
+      diasVacacionesUsados:
+        employee.diasVacacionesUsados + diasUsadosEnLicencia,
+    });
+
+    leave.aprobado = true;
+
+    await this.leaveRepository.save(leave);
+
+    return await this.findOne(id);
   }
-
-  const fechaInicio =
-    leave.fechaInicio instanceof Date
-      ? leave.fechaInicio
-      : new Date(leave.fechaInicio);
-
-  const fechaFin =
-    leave.fechaFin instanceof Date
-      ? leave.fechaFin
-      : new Date(leave.fechaFin);
-
-  const employee = await this.employeesService.findOne(leave.employeeId);
-  if (!employee) {
-    throw new NotFoundException(
-      `Empleado con ID ${leave.employeeId} no encontrado`,
-    );
-  }
-
-  // Calcular días usados (incluyendo fechaInicio y fechaFin)
-  const diasUsadosEnLicencia = differenceInCalendarDays(fechaFin, fechaInicio) + 1;
-  const diasDisponibles = employee.diasVacacionesRestantes;
-
-  this.logger.log(`Días usados en licencia: ${diasUsadosEnLicencia}`);
-  this.logger.log(`Días disponibles: ${diasDisponibles}`);
-
-  if (diasUsadosEnLicencia > diasDisponibles) {
-    throw new BadRequestException(
-      `El empleado no tiene suficientes días de licencia disponibles`,
-    );
-  }
-
-  const diasRestantes = diasDisponibles - diasUsadosEnLicencia;
-
-  this.logger.log(
-    `Actualizando empleado ID ${employee.id}, días restantes: ${diasRestantes}`,
-  );
-
-  await this.employeesService.update(employee.id, {
-    diasVacacionesRestantes: diasRestantes,
-    diasVacacionesUsados:
-      employee.diasVacacionesUsados + diasUsadosEnLicencia,
-  });
-
-  leave.aprobado = true;
-
-  await this.leaveRepository.save(leave);
-
-  return await this.findOne(id);
-}
 }

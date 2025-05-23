@@ -7,12 +7,12 @@ export class FilterChemicalToiletDto extends PaginationDto {
   @IsOptional()
   @IsEnum(ResourceState, { each: true })
   @Transform(({ value }) => {
-  if (typeof value === 'string') {
-    return value.replace(/\s+/g, '_').toUpperCase();
-  }
-  return value;
-})
-estado?: ResourceState;
+    if (typeof value === 'string') {
+      return value.replace(/\s+/g, '_').toUpperCase();
+    }
+    return value;
+  })
+  estado?: ResourceState;
 
   @IsOptional()
   @IsString()

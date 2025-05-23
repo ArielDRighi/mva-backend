@@ -5,7 +5,6 @@ export enum RolEmpleado {
   B = 'B',
 }
 export class CreateResourceAssignmentDto {
- 
   @IsOptional()
   @IsNumber()
   empleadoId?: number;
@@ -13,7 +12,7 @@ export class CreateResourceAssignmentDto {
   @IsOptional()
   @IsNumber()
   vehiculoId?: number;
-  
+
   @IsOptional()
   @IsEnum(['A', 'B'])
   rol?: 'A' | 'B';

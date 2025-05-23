@@ -53,4 +53,3 @@ export class UpdateClientDto {
   @IsOptional()
   estado?: string;
 }
-

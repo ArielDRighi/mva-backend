@@ -1,5 +1,14 @@
-import { IsOptional, IsString, IsEnum, IsDateString, IsNumber } from 'class-validator';
-import { ServiceState, ServiceType } from '../../common/enums/resource-states.enum';
+import {
+  IsOptional,
+  IsString,
+  IsEnum,
+  IsDateString,
+  IsNumber,
+} from 'class-validator';
+import {
+  ServiceState,
+  ServiceType,
+} from '../../common/enums/resource-states.enum';
 
 export class FilterServicesDto {
   @IsOptional()
