@@ -1743,4 +1743,38 @@ export class ServicesService {
       totalPages: Math.ceil(services.length / limit),
     };
   }
+
+  async getLimpiezaServices(page: number, limit: number) {
+    const services = await this.serviceRepository.find({
+      where: {
+        tipoServicio:
+          ServiceType.LIMPIEZA ||
+          ServiceType.MANTENIMIENTO ||
+          ServiceType.MANTENIMIENTO_IN_SITU ||
+          ServiceType.REPARACION ||
+          ServiceType.REEMPLAZO ||
+          ServiceType.RETIRO ||
+          ServiceType.TRASLADO ||
+          ServiceType.REUBICACION,
+      },
+      relations: [
+        'cliente',
+        'asignaciones',
+        'asignaciones.empleado',
+        'asignaciones.vehiculo',
+        'asignaciones.bano',
+      ],
+      order: {
+        fechaProgramada: 'ASC',
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+    return {
+      data: services,
+      totalItems: services.length,
+      currentPage: page,
+      totalPages: Math.ceil(services.length / limit),
+    };
+  }
 }
