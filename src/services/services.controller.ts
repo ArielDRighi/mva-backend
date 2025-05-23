@@ -59,6 +59,14 @@ export class ServicesController {
     return ret;
   }
 
+  @Get('generico')
+  async getLimpiezaServices(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    return this.servicesService.getLimpiezaServices(page, limit);
+  }
+
   @Get('employee/:employeeId/last')
   @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
   async getLastServicesByEmployee(
