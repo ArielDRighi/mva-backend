@@ -16,8 +16,4 @@ export class CreateContactEmergencyDto {
   @IsString()
   @IsOptional()
   telefono: string;
-
-  @IsNumber()
-  @IsOptional()
-  empleado_id: number;
 }

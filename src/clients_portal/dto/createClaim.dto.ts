@@ -35,7 +35,7 @@ export class CreateClaimDto {
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
-  adjuntoUrls?: string[];
+  adjuntosUrls?: string[]; // corregido
 
   @IsBoolean()
   @IsOptional()
@@ -51,5 +51,10 @@ export class CreateClaimDto {
 
   @IsString()
   @IsOptional()
-  notasinternas?: string;
+  notasInternas?: string; // corregido
+
+  @IsString()
+  @IsOptional()
+  empleadoAsignado?: string; // esto también debe existir en la entidad si querés guardarlo
 }
+

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   DefaultValuePipe,
@@ -44,17 +45,30 @@ export class ClothingController {
   }> {
     return this.clothingService.getAllClothingSpecs(page, limit);
   }
-
   @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @HttpCode(HttpStatus.OK)
+  @Get('export')
+  async exportExcel(@Res() res: Response) {
+    return this.clothingService.exportToExcel(res);
+  }
+
   @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
   @HttpCode(HttpStatus.OK)
   @Get(':empleadoId')
-  async getClothingSpecs(@Param('empleadoId') empleadoId: number) {
-    return this.clothingService.getClothingSpecs(empleadoId);
+  async getClothingSpecs(
+    @Param('empleadoId', ParseIntPipe) empleadoId: number,
+  ) {
+    try {
+      return await this.clothingService.getClothingSpecs(empleadoId);
+    } catch (error) {
+      // Aquí podés agregar más lógica para manejar errores específicos si querés
+      throw new BadRequestException(error.message);
+    }
   }
 
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
   @HttpCode(HttpStatus.CREATED)
   @Post('create/:empleadoId')
   async create(
@@ -65,7 +79,7 @@ export class ClothingController {
   }
 
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
   @HttpCode(HttpStatus.OK)
   @Put('modify/:empleadoId')
   async update(

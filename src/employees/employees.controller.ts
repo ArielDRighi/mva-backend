@@ -79,7 +79,7 @@ export class EmployeesController {
   }
 
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
   @Post('emergency/:empleadoId')
   async createEmergencyContact(
     @Body() createEmergencyContactDto: CreateContactEmergencyDto,
@@ -92,16 +92,17 @@ export class EmployeesController {
   }
 
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
   @Delete('emergency/delete/:contactoId')
   async removeEmergencyContact(
     @Param('contactoId', ParseIntPipe) contactoId: number,
   ): Promise<{ message: string }> {
     return await this.employeesService.removeEmergencyContact(contactoId);
   }
+
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
-  @Put('emergency/:contactoId')
+  @Put('emergency/modify/:contactoId')
   async updateEmergencyContact(
     @Body() updateEmergencyContactDto: UpdateContactEmergencyDto,
     @Param('contactoId', ParseIntPipe) contactoId: number,
@@ -117,10 +118,14 @@ export class EmployeesController {
   @Get('emergency/:empleadoId')
   async findEmergencyContactsByEmpleadoId(
     @Param('empleadoId', ParseIntPipe) empleadoId: number,
-  ): Promise<Empleado> {
-    return await this.employeesService.findEmergencyContactsByEmpleadoId(
-      empleadoId,
-    );
+  ) {
+    try {
+      return await this.employeesService.findEmergencyContactsByEmpleadoId(
+        empleadoId,
+      );
+    } catch (error) {
+      console.error('Error finding emergency contacts:', error);
+    }
   }
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
@@ -139,7 +144,7 @@ export class EmployeesController {
   }
 
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
   @Put('licencia/update/:empleadoId')
   async updateLicencia(
     @Body() updateLicenseDto: UpdateLicenseDto,
@@ -167,6 +172,8 @@ export class EmployeesController {
     @Body() createEmployeeDto: CreateLicenseDto,
     @Param('empleadoId', ParseIntPipe) empleadoId: number,
   ): Promise<Licencias> {
+    console.log('Empleado ID:', empleadoId);
+    console.log('Create License DTO:', createEmployeeDto);
     return await this.employeesService.createLicencia(
       createEmployeeDto,
       empleadoId,
@@ -177,8 +184,16 @@ export class EmployeesController {
   @Get('licencia/:empleadoId')
   async findLicenciasByEmpleadoId(
     @Param('empleadoId', ParseIntPipe) empleadoId: number,
-  ): Promise<Empleado> {
+  ): Promise<Licencias> {
     return await this.employeesService.findLicenciasByEmpleadoId(empleadoId);
+  }
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @Get(':id/proximos-servicios')
+  async obtenerProximosServicios(
+  @Param('id', ParseIntPipe) id: number,
+  ) {
+  return await this.employeesService.findProximosServiciosPorEmpleadoId(id);
   }
 
   @UseGuards(RolesGuard)
