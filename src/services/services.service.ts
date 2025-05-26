@@ -1752,17 +1752,20 @@ export class ServicesService {
   }
 
   async getLimpiezaServices(page: number, limit: number) {
+    const serviceTypes = [
+      ServiceType.LIMPIEZA,
+      ServiceType.MANTENIMIENTO,
+      ServiceType.MANTENIMIENTO_IN_SITU,
+      ServiceType.REPARACION,
+      ServiceType.REEMPLAZO,
+      ServiceType.RETIRO,
+      ServiceType.TRASLADO,
+      ServiceType.REUBICACION,
+    ];
+
     const services = await this.serviceRepository.find({
       where: {
-        tipoServicio:
-          ServiceType.LIMPIEZA ||
-          ServiceType.MANTENIMIENTO ||
-          ServiceType.MANTENIMIENTO_IN_SITU ||
-          ServiceType.REPARACION ||
-          ServiceType.REEMPLAZO ||
-          ServiceType.RETIRO ||
-          ServiceType.TRASLADO ||
-          ServiceType.REUBICACION,
+        tipoServicio: In(serviceTypes),
       },
       relations: [
         'cliente',
@@ -1777,6 +1780,7 @@ export class ServicesService {
       skip: (page - 1) * limit,
       take: limit,
     });
+
     return {
       data: services,
       totalItems: services.length,
