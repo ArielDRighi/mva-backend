@@ -63,7 +63,9 @@ export class ClothingController {
       return await this.clothingService.getClothingSpecs(empleadoId);
     } catch (error) {
       // Aquí podés agregar más lógica para manejar errores específicos si querés
-      throw new BadRequestException(error.message);
+      throw new BadRequestException(
+        error instanceof Error ? error.message : 'An error occurred',
+      );
     }
   }
 

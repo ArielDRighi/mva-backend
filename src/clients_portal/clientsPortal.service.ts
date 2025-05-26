@@ -16,39 +16,35 @@ export class ClientsPortalService {
     @InjectRepository(Claim)
     private readonly claimRepository: Repository<Claim>,
   ) {}
-
   async getSatisfactionSurveys() {
     const surveys = await this.satisfactionSurveyRepository.find();
     if (!surveys) {
-      throw new BadRequestException('No surveys found');
+      throw new BadRequestException('No se encontraron encuestas');
     }
     return surveys;
   }
-
   async getSatisfactionSurveyById(id: number) {
     const survey = await this.satisfactionSurveyRepository.findOne({
       where: { encuesta_id: id },
     });
     if (!survey) {
-      throw new BadRequestException('Survey not found');
+      throw new BadRequestException('Encuesta no encontrada');
     }
     return survey;
   }
-
   async getClaims() {
     const claims = await this.claimRepository.find();
     if (!claims) {
-      throw new BadRequestException('No claims found');
+      throw new BadRequestException('No se encontraron reclamos');
     }
     return claims;
   }
-
   async getClaimById(id: number) {
     const claim = await this.claimRepository.findOne({
       where: { reclamo_id: id },
     });
     if (!claim) {
-      throw new BadRequestException('Claim not found');
+      throw new BadRequestException('Reclamo no encontrado');
     }
     return claim;
   }
@@ -59,7 +55,7 @@ export class ClientsPortalService {
       await this.claimRepository.save(claim);
       return claim;
     } catch (error) {
-      throw new BadRequestException(`Error creating claim ${error}`);
+      throw new BadRequestException(`Error al crear reclamo: ${error}`);
     }
   }
 
@@ -69,7 +65,11 @@ export class ClientsPortalService {
       await this.satisfactionSurveyRepository.save(survey);
       return survey;
     } catch (error) {
-      throw new BadRequestException('Error creating satisfaction survey');
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new BadRequestException(
+        `Error al crear encuesta de satisfacción: ${errorMessage}`,
+      );
     }
   }
 
@@ -78,14 +78,14 @@ export class ClientsPortalService {
       where: { reclamo_id: id },
     });
     if (!claim) {
-      throw new BadRequestException('Claim not found');
+      throw new BadRequestException('Reclamo no encontrado');
     }
     Object.assign(claim, claimData);
     try {
       await this.claimRepository.save(claim);
       return claim;
     } catch (error) {
-      throw new BadRequestException('Error updating claim');
+      throw new BadRequestException(`Error al actualizar reclamo: ${error}`);
     }
   }
 
@@ -97,19 +97,23 @@ export class ClientsPortalService {
       where: { encuesta_id: id },
     });
     if (!survey) {
-      throw new BadRequestException('Survey not found');
+      throw new BadRequestException('Encuesta no encontrada');
     }
     Object.assign(survey, surveyData);
     try {
       await this.satisfactionSurveyRepository.save(survey);
       return survey;
     } catch (error) {
-      throw new BadRequestException('Error updating satisfaction survey');
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new BadRequestException(
+        `Error al actualizar encuesta de satisfacción: ${errorMessage}`,
+      );
     }
   }
-  async askForService(formData: AskForServiceDto) {
+  askForService(formData: AskForServiceDto) {
     return {
-      message: 'Service request received successfully',
+      message: 'Solicitud de servicio recibida exitosamente',
       data: formData, // necesario para que el interceptor lo intercepte y dispare el correo
     };
   }

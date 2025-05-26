@@ -8,10 +8,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Empleado } from './entities/employee.entity';
-import {
-  CreateEmployeeDto,
-  CreateFullEmployeeDto,
-} from './dto/create_employee.dto';
+import { CreateFullEmployeeDto } from './dto/create_employee.dto';
 import { UpdateEmployeeDto } from './dto/update_employee.dto';
 import { UpdateLicenseDto } from './dto/update_license.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
@@ -23,7 +20,7 @@ import { UpdateContactEmergencyDto } from './dto/update_contact_emergency.dto';
 import { ExamenPreocupacional } from './entities/examenPreocupacional.entity';
 import { CreateExamenPreocupacionalDto } from './dto/create_examen.dto';
 import { UpdateExamenPreocupacionalDto } from './dto/modify_examen.dto';
-import { DataSource, MoreThan } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { Service } from 'src/services/entities/service.entity';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from 'src/users/users.service';
@@ -90,7 +87,7 @@ export class EmployeesService {
       // Opcionalmente, enviar un correo con las credenciales iniciales
     } catch (error) {
       this.logger.error(
-        `Error al crear usuario para empleado: ${error.message}`,
+        `Error al crear usuario para empleado: ${error instanceof Error ? error.message : 'Error desconocido'}`,
       );
       // Decide si quieres manejar este error o simplemente registrarlo
     }
@@ -283,7 +280,7 @@ export class EmployeesService {
       );
     }
     if (!employee.licencia) {
-      const licencia = await this.licenciaRepository.create({
+      const licencia = this.licenciaRepository.create({
         categoria: createLicenseDto.categoria,
         fecha_expedicion: createLicenseDto.fecha_expedicion,
         fecha_vencimiento: createLicenseDto.fecha_vencimiento,
@@ -333,7 +330,7 @@ export class EmployeesService {
       );
     }
 
-    const contactoEmergencia = await this.emergencyContactRepository.create({
+    const contactoEmergencia = this.emergencyContactRepository.create({
       nombre: createEmergencyContactDto.nombre,
       apellido: createEmergencyContactDto.apellido,
       parentesco: createEmergencyContactDto.parentesco,
@@ -619,14 +616,13 @@ export class EmployeesService {
         `Empleado con id ${createExamenPreocupacionalDto.empleado_id} no encontrado`,
       );
     }
-    const examenPreocupacional =
-      await this.examenPreocupacionalRepository.create({
-        fecha_examen: createExamenPreocupacionalDto.fecha_examen,
-        resultado: createExamenPreocupacionalDto.resultado,
-        observaciones: createExamenPreocupacionalDto.observaciones,
-        realizado_por: createExamenPreocupacionalDto.realizado_por,
-        empleado: employee,
-      });
+    const examenPreocupacional = this.examenPreocupacionalRepository.create({
+      fecha_examen: createExamenPreocupacionalDto.fecha_examen,
+      resultado: createExamenPreocupacionalDto.resultado,
+      observaciones: createExamenPreocupacionalDto.observaciones,
+      realizado_por: createExamenPreocupacionalDto.realizado_por,
+      empleado: employee,
+    });
     await this.examenPreocupacionalRepository.save(examenPreocupacional);
 
     const examenCreado = await this.examenPreocupacionalRepository.findOne({

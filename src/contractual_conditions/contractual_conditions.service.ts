@@ -26,7 +26,7 @@ export class ContractualConditionsService {
     // Validamos que los parámetros de paginación sean válidos
     if (page < 1 || limit < 1) {
       throw new Error(
-        `Invalid pagination parameters: "page" and "limit" must both be greater than 0. Received page=${page}, limit=${limit}.`,
+        `Parámetros de paginación inválidos: "page" y "limit" deben ser mayores que 0. Recibido page=${page}, limit=${limit}.`,
       );
     }
 
@@ -55,18 +55,17 @@ export class ContractualConditionsService {
       });
     if (!contractualCondition) {
       throw new NotFoundException(
-        `An error ocurred, Contractual Condition with ID: ${contractualConditionId} not found`,
+        `Ocurrió un error, Condición Contractual con ID: ${contractualConditionId} no encontrada`,
       );
     }
     return contractualCondition;
   }
-
   async getContractualConditionsByClient(clientId: number) {
     const client = await this.clientRepository.findOne({
       where: { clienteId: clientId },
     });
     if (!client) {
-      throw new NotFoundException(`Client with ID: ${clientId} not found`);
+      throw new NotFoundException(`Cliente con ID: ${clientId} no encontrado`);
     }
 
     // Modificar la consulta para usar las relaciones explícitamente
@@ -79,10 +78,9 @@ export class ContractualConditionsService {
           },
         },
       });
-
     if (!contractualConditions || contractualConditions.length === 0) {
       throw new NotFoundException(
-        `The client with ID: ${clientId} not have contractual Conditions`,
+        `El cliente con ID: ${clientId} no tiene Condiciones Contractuales`,
       );
     }
     return contractualConditions;
@@ -110,7 +108,7 @@ export class ContractualConditionsService {
       where: { clienteId: clientId },
     });
     if (!client) {
-      throw new NotFoundException(`Client with ID: ${clientId} not found`);
+      throw new NotFoundException(`Cliente con ID: ${clientId} no encontrado`);
     }
     const newContractualCondition = this.contractualConditionsRepository.create(
       {
@@ -144,7 +142,7 @@ export class ContractualConditionsService {
       });
     if (!contractualCondition) {
       throw new NotFoundException(
-        `Contractual Condition with ID: ${id} not found`,
+        `Condición Contractual con ID: ${id} no encontrada`,
       );
     }
     await this.contractualConditionsRepository.update(
@@ -157,7 +155,6 @@ export class ContractualConditionsService {
       });
     return updatedContractualCondition;
   }
-
   async deleteContractualCondition(id: number) {
     const contractualCondition =
       await this.contractualConditionsRepository.findOne({
@@ -165,10 +162,10 @@ export class ContractualConditionsService {
       });
     if (!contractualCondition) {
       throw new NotFoundException(
-        `Contractual Condition with ID: ${id} not found`,
+        `Condición Contractual con ID: ${id} no encontrada`,
       );
     }
     await this.contractualConditionsRepository.delete(id);
-    return `Contractual Condition with ID ${id} has been deleted`;
+    return `Condición Contractual con ID ${id} ha sido eliminada`;
   }
 }

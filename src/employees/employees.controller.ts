@@ -14,10 +14,7 @@ import {
 } from '@nestjs/common';
 import { Role } from 'src/roles/enums/role.enum';
 import { EmployeesService } from './employees.service';
-import {
-  CreateEmployeeDto,
-  CreateFullEmployeeDto,
-} from './dto/create_employee.dto';
+import { CreateFullEmployeeDto } from './dto/create_employee.dto';
 import { UpdateEmployeeDto } from './dto/update_employee.dto';
 import { Empleado } from './entities/employee.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';

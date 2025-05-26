@@ -28,9 +28,9 @@ export class SalaryAdvanceController {
 
   @Post()
   @UseGuards(AuthGuard('jwt')) // Asegúrate de usar el guard de JWT
-  create(@Body() dto: CreateAdvanceDto, @Request() req) {
+  create(@Body() dto: CreateAdvanceDto, @Request() req: { user?: any }) {
     // Pasa tanto el dto como el user (req.user) al servicio
-    return this.advanceService.createAdvance(dto, req.user);
+    return this.advanceService.createAdvance(dto, req?.user);
   }
 
   @Get()
@@ -43,10 +43,10 @@ export class SalaryAdvanceController {
   approveOrRejectAdvance(
     @Param('id') id: string,
     @Body() dto: ApproveAdvanceDto,
-    @Req() req: any,
+    @Req() req: { user?: { userId: string } },
   ) {
     // Cambiar sub a userId
-    const adminId = req.user?.userId; // Ahora accedemos a userId en lugar de sub
+    const adminId: string | undefined = req.user?.userId; // Ahora accedemos a userId en lugar de sub
     if (!adminId) {
       throw new UnauthorizedException();
     }
