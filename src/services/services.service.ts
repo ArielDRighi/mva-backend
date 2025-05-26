@@ -276,8 +276,15 @@ export class ServicesService {
         }
       }
 
-      if (!cliente) throw new Error('No se pudo determinar el cliente');
-      newService.cliente = cliente;
+      // Replace the validation check with this conditional check
+      if (!cliente && dto.tipoServicio !== ServiceType.CAPACITACION) {
+        throw new Error('No se pudo determinar el cliente');
+      }
+
+      // If there's a client, assign it; otherwise, leave it null for CAPACITACION
+      if (cliente) {
+        newService.cliente = cliente;
+      }
 
       if (
         dto.tipoServicio &&
