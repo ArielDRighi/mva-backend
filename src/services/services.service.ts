@@ -275,8 +275,13 @@ export class ServicesService {
         }
       }
 
-      if (!cliente) throw new Error('No se pudo determinar el cliente');
-      newService.cliente = cliente;
+         if (!cliente && dto.tipoServicio !== ServiceType.CAPACITACION) {
+          throw new Error('No se pudo determinar el cliente');
+            }
+
+              if (cliente) {
+                    newService.cliente = cliente;
+                              }
 
       if (
         dto.tipoServicio &&

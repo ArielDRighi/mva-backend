@@ -67,7 +67,7 @@ export class CreateEmployeeDto {
 
   @IsString()
   @IsOptional()
-  estado: string = 'ACTIVO';
+  estado: string = 'DISPONIBLE';
 
   @IsNotEmpty()
   @IsNumber()
