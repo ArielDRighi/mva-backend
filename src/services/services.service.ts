@@ -3,14 +3,12 @@ import {
   NotFoundException,
   BadRequestException,
   Logger,
-  ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   Repository,
   Not,
   In,
-  IsNull,
   EntityManager,
   DataSource,
   MoreThanOrEqual,
@@ -32,10 +30,7 @@ import { ChemicalToilet } from '../chemical_toilets/entities/chemical_toilet.ent
 import { VehicleMaintenanceService } from '../vehicle_maintenance/vehicle_maintenance.service';
 import { ToiletMaintenanceService } from '../toilet_maintenance/toilet_maintenance.service';
 import { EmployeeLeavesService } from '../employee_leaves/employee-leaves.service';
-import {
-  CondicionesContractuales,
-  EstadoContrato,
-} from '../contractual_conditions/entities/contractual_conditions.entity';
+import { CondicionesContractuales } from '../contractual_conditions/entities/contractual_conditions.entity';
 import { FutureCleaningsService } from 'src/future_cleanings/futureCleanings.service';
 import {
   CreateServiceDto,
@@ -129,8 +124,10 @@ export class ServicesService {
               `Limpieza futura #${i + 1} creada: ${dias[i].toISOString()}`,
             );
           } catch (error) {
+            const errorMessage =
+              error instanceof Error ? error.message : 'Error desconocido';
             this.logger.error(
-              `Error al crear limpieza #${i + 1}: ${error.message}`,
+              `Error al crear limpieza #${i + 1}: ${errorMessage}`,
             );
           }
         }
@@ -207,8 +204,10 @@ export class ServicesService {
               `Limpieza futura #${i + 1} programada: ${fechas[i].toISOString()}`,
             );
           } catch (error) {
+            const errorMessage =
+              error instanceof Error ? error.message : 'Error desconocido';
             this.logger.error(
-              `Error al crear limpieza futura #${i + 1}: ${error.message}`,
+              `Error al crear limpieza futura #${i + 1}: ${errorMessage}`,
             );
           }
         }
@@ -308,7 +307,10 @@ export class ServicesService {
       });
 
       this.validateServiceTypeSpecificRequirements(dto);
-      (newService as any).forzar = dto.forzar ?? false;
+      // Handle forzar property without unsafe any casting
+      if (dto.forzar !== undefined) {
+        Object.assign(newService, { forzar: dto.forzar });
+      }
 
       await this.verifyResourcesAvailability(newService);
 
@@ -339,7 +341,9 @@ export class ServicesService {
 
       return saved;
     } catch (err) {
-      this.logger.error(`[Service] Error al crear servicio: ${err.message}`);
+      const errorMessage =
+        err instanceof Error ? err.message : 'Error desconocido';
+      this.logger.error(`[Service] Error al crear servicio: ${errorMessage}`);
       await queryRunner.rollbackTransaction();
       throw err;
     } finally {

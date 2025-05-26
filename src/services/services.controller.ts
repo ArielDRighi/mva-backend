@@ -15,7 +15,6 @@ import {
   HttpStatus,
   UseInterceptors,
   ClassSerializerInterceptor,
-  Req,
 } from '@nestjs/common';
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto/create-service.dto';
@@ -74,7 +73,7 @@ export class ServicesController {
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
     @Query('search') search?: string,
-  ) {
+  ): Promise<any> {
     try {
       const paginationDto = { page, limit, search };
       return this.servicesService.getCompletedServices(

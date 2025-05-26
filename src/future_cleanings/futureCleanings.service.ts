@@ -31,11 +31,9 @@ export class FutureCleaningsService {
       .take(limit);
 
     // Obtener resultados y total de registros
-    const [items, total] = await query.getManyAndCount();
-
-    // Verificar si hay resultados
+    const [items, total] = await query.getManyAndCount(); // Verificar si hay resultados
     if (items.length === 0) {
-      throw new BadRequestException('No future cleanings found');
+      throw new BadRequestException('No se encontraron limpiezas futuras');
     }
 
     // Retornar objeto de paginación
@@ -47,40 +45,37 @@ export class FutureCleaningsService {
       totalPages: Math.ceil(total / limit),
     };
   }
-
   async getById(id: number) {
     const futureCleaning = await this.futurasLimpiezasRepository.findOne({
       where: { id: id },
       relations: ['cliente', 'servicio'],
     });
     if (!futureCleaning) {
-      throw new BadRequestException('Future cleaning not found');
+      throw new BadRequestException('Limpieza futura no encontrada');
     }
     return futureCleaning;
   }
-
   async deleteFutureCleaning(id: number) {
     const futureCleaning = await this.futurasLimpiezasRepository.findOne({
       where: { id: id },
     });
     if (!futureCleaning) {
-      throw new BadRequestException('Future cleaning not found');
+      throw new BadRequestException('Limpieza futura no encontrada');
     }
     await this.futurasLimpiezasRepository.delete(id);
-    return { message: 'Future cleaning deleted successfully' };
+    return { message: 'Limpieza futura eliminada exitosamente' };
   }
-
   async updateFutureCleaning(id: number, data: ModifyFutureCleaningDto) {
     const futureCleaning = await this.futurasLimpiezasRepository.findOne({
       where: { id: id },
     });
     if (!futureCleaning) {
-      throw new BadRequestException('Future cleaning not found');
+      throw new BadRequestException('Limpieza futura no encontrada');
     }
     await this.futurasLimpiezasRepository.update(id, {
       isActive: data.isActive,
     });
-    return { message: 'Future cleaning updated successfully' };
+    return { message: 'Limpieza futura actualizada exitosamente' };
   }
 
   async createFutureCleaning(data: CreateFutureCleaningDto) {
@@ -88,13 +83,13 @@ export class FutureCleaningsService {
       where: { clienteId: data.clientId },
     });
     if (!cliente) {
-      throw new BadRequestException('Client not found');
+      throw new BadRequestException('Cliente no encontrado');
     }
     const service = await this.serviceRepository.findOne({
       where: { id: data.servicioId },
     });
     if (!service) {
-      throw new BadRequestException('Service not found');
+      throw new BadRequestException('Servicio no encontrado');
     }
     try {
       const futureCleaning = this.futurasLimpiezasRepository.create({
@@ -107,7 +102,7 @@ export class FutureCleaningsService {
       return futureCleaning;
     } catch (error) {
       throw new BadRequestException(
-        error instanceof Error ? error.message : 'Unknown error occurred',
+        error instanceof Error ? error.message : 'Error desconocido ocurrido',
       );
     }
   }

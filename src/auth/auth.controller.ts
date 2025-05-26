@@ -9,6 +9,7 @@ import {
   UseInterceptors,
   UseGuards,
   Req,
+  Request,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
@@ -32,7 +33,7 @@ export class AuthController {
   async login(@Body() loginDto: LoginDto) {
     try {
       return this.authService.login(loginDto);
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException('Credenciales inválidas');
     }
   }
@@ -42,21 +43,23 @@ export class AuthController {
   async forgotPassword(@Body() email: ForgotPasswordDto) {
     try {
       return this.authService.forgotPassword(email);
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException('Error al restablecer la contraseña');
     }
   }
-
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR, Role.CLIENTE, Role.OPERARIO)
   @Put('change_password')
   @HttpCode(HttpStatus.OK)
-  async resetPassword(@Body() data: ChangePasswordDto, @Req() req: any) {
+  async resetPassword(
+    @Body() data: ChangePasswordDto,
+    @Req() req: Request & { user: { userId: string } },
+  ) {
     try {
-      const userId = req.user.userId;
+      const userId: string = req.user.userId;
       console.log('userId', userId);
-      return this.authService.resetPassword(data, userId);
-    } catch (error) {
+      return this.authService.resetPassword(data, parseInt(userId, 10));
+    } catch {
       throw new UnauthorizedException('Error al restablecer la contraseña');
     }
   }

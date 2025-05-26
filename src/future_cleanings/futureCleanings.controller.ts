@@ -38,11 +38,10 @@ export class FutureCleaningsController {
         page: Number(page),
         limit: Number(limit),
       };
-
       return await this.futureCleaningsService.getAll(paginationDto);
     } catch (error) {
       throw new BadRequestException(
-        error instanceof Error ? error.message : 'Unknown error occurred',
+        error instanceof Error ? error.message : 'Error desconocido ocurrido',
       );
     }
   }
@@ -55,7 +54,7 @@ export class FutureCleaningsController {
       return await this.futureCleaningsService.deleteFutureCleaning(id);
     } catch (error) {
       throw new BadRequestException(
-        error instanceof Error ? error.message : 'Unknown error occurred',
+        error instanceof Error ? error.message : 'Error desconocido ocurrido',
       );
     }
   }
@@ -67,7 +66,7 @@ export class FutureCleaningsController {
       return await this.futureCleaningsService.getById(id);
     } catch (error) {
       throw new BadRequestException(
-        error instanceof Error ? error.message : 'Unknown error occurred',
+        error instanceof Error ? error.message : 'Error desconocido ocurrido',
       );
     }
   }
@@ -79,7 +78,7 @@ export class FutureCleaningsController {
       return await this.futureCleaningsService.createFutureCleaning(data);
     } catch (error) {
       throw new BadRequestException(
-        error instanceof Error ? error.message : 'Unknown error occurred',
+        error instanceof Error ? error.message : 'Error desconocido ocurrido',
       );
     }
   }
@@ -94,7 +93,7 @@ export class FutureCleaningsController {
       return await this.futureCleaningsService.updateFutureCleaning(id, data);
     } catch (error) {
       throw new BadRequestException(
-        error instanceof Error ? error.message : 'Unknown error occurred',
+        error instanceof Error ? error.message : 'Error desconocido ocurrido',
       );
     }
   }

@@ -33,9 +33,9 @@ export class ClientsPortalController {
     try {
       return this.clientsPortalService.getSatisfactionSurveys();
     } catch (error) {
-      console.error('Error retrieving satisfaction surveys:', error);
+      console.error('Error al obtener encuestas de satisfacción:', error);
       throw new HttpException(
-        'Error retrieving satisfaction surveys',
+        'Error al obtener encuestas de satisfacción',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -49,9 +49,9 @@ export class ClientsPortalController {
     try {
       return this.clientsPortalService.getSatisfactionSurveyById(id);
     } catch (error) {
-      console.error('Error retrieving satisfaction survey:', error);
+      console.error('Error al obtener encuesta de satisfacción:', error);
       throw new HttpException(
-        'Error retrieving satisfaction survey',
+        'Error al obtener encuesta de satisfacción',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -65,9 +65,9 @@ export class ClientsPortalController {
     try {
       return this.clientsPortalService.getClaims();
     } catch (error) {
-      console.error('Error retrieving claims:', error);
+      console.error('Error al obtener reclamos:', error);
       throw new HttpException(
-        'Error retrieving claims',
+        'Error al obtener reclamos',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -80,9 +80,9 @@ export class ClientsPortalController {
     try {
       return this.clientsPortalService.getClaimById(id);
     } catch (error) {
-      console.error('Error retrieving claim:', error);
+      console.error('Error al obtener reclamo:', error);
       throw new HttpException(
-        'Error retrieving claim',
+        'Error al obtener reclamo',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -94,9 +94,9 @@ export class ClientsPortalController {
     try {
       return await this.clientsPortalService.createClaim(claimData);
     } catch (error) {
-      console.error('Error creating claim:', error);
+      console.error('Error al crear reclamo:', error);
       throw new HttpException(
-        'Error creating claim',
+        'Error al crear reclamo',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -108,14 +108,14 @@ export class ClientsPortalController {
     @Body() surveyData: CreateSatisfactionSurveyDto,
   ) {
     try {
-      console.log('Creating satisfaction survey:', surveyData);
+      console.log('Creando encuesta de satisfacción:', surveyData);
       return await this.clientsPortalService.createSatisfactionSurvey(
         surveyData,
       );
     } catch (error) {
-      console.error('Error creating satisfaction survey:', error);
+      console.error('Error al crear encuesta de satisfacción:', error);
       throw new HttpException(
-        'Error creating satisfaction survey',
+        'Error al crear encuesta de satisfacción',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -132,9 +132,9 @@ export class ClientsPortalController {
     try {
       return await this.clientsPortalService.updateClaim(id, claimData);
     } catch (error) {
-      console.error('Error updating claim:', error);
+      console.error('Error al actualizar reclamo:', error);
       throw new HttpException(
-        'Error updating claim',
+        'Error al actualizar reclamo',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -154,9 +154,9 @@ export class ClientsPortalController {
         surveyData,
       );
     } catch (error) {
-      console.error('Error updating satisfaction survey:', error);
+      console.error('Error al actualizar encuesta de satisfacción:', error);
       throw new HttpException(
-        'Error updating satisfaction survey',
+        'Error al actualizar encuesta de satisfacción',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -168,10 +168,14 @@ export class ClientsPortalController {
     try {
       return await this.clientsPortalService.askForService(formData);
     } catch (error: unknown) {
-      console.error('Error creating ask for service form:', error);
-      const message = error instanceof Error ? error.message : 'Unknown error';
+      console.error(
+        'Error al crear formulario de solicitud de servicio:',
+        error,
+      );
+      const message =
+        error instanceof Error ? error.message : 'Error desconocido';
       throw new HttpException(
-        `Error creating ask for service form: ${message}`,
+        `Error al crear formulario de solicitud de servicio: ${message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -185,9 +189,9 @@ export class ClientsPortalController {
     try {
       return await this.clientsPortalService.getStats();
     } catch (error) {
-      console.error('Error retrieving stats:', error);
+      console.error('Error al obtener estadísticas:', error);
       throw new HttpException(
-        'Error retrieving stats',
+        'Error al obtener estadísticas',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
