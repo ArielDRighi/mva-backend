@@ -275,8 +275,15 @@ export class ServicesService {
         }
       }
 
-      if (!cliente) throw new Error('No se pudo determinar el cliente');
-      newService.cliente = cliente;
+      // Replace the validation check with this conditional check
+      if (!cliente && dto.tipoServicio !== ServiceType.CAPACITACION) {
+        throw new Error('No se pudo determinar el cliente');
+      }
+
+      // If there's a client, assign it; otherwise, leave it null for CAPACITACION
+      if (cliente) {
+        newService.cliente = cliente;
+      }
 
       if (
         dto.tipoServicio &&
@@ -1740,6 +1747,44 @@ export class ServicesService {
       skip: (page - 1) * limit,
       take: limit,
     });
+    return {
+      data: services,
+      totalItems: services.length,
+      currentPage: page,
+      totalPages: Math.ceil(services.length / limit),
+    };
+  }
+
+  async getLimpiezaServices(page: number, limit: number) {
+    const serviceTypes = [
+      ServiceType.LIMPIEZA,
+      ServiceType.MANTENIMIENTO,
+      ServiceType.MANTENIMIENTO_IN_SITU,
+      ServiceType.REPARACION,
+      ServiceType.REEMPLAZO,
+      ServiceType.RETIRO,
+      ServiceType.TRASLADO,
+      ServiceType.REUBICACION,
+    ];
+
+    const services = await this.serviceRepository.find({
+      where: {
+        tipoServicio: In(serviceTypes),
+      },
+      relations: [
+        'cliente',
+        'asignaciones',
+        'asignaciones.empleado',
+        'asignaciones.vehiculo',
+        'asignaciones.bano',
+      ],
+      order: {
+        fechaProgramada: 'ASC',
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
     return {
       data: services,
       totalItems: services.length,
