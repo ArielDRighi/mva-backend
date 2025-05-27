@@ -217,6 +217,7 @@ export class ServicesService {
     return this.findOne(service.id);
   }
 
+
   private async createGenerico(dto: CreateServiceDto): Promise<Service> {
     return this.createBaseService(dto);
   }
@@ -709,110 +710,126 @@ export class ServicesService {
   }
 
   async changeStatus(
-    id: number,
-    nuevoEstado: ServiceState,
-    comentarioIncompleto?: string,
-  ): Promise<Service> {
-    this.logger.log(`Cambiando estado del servicio ${id} a ${nuevoEstado}`);
+  id: number,
+  nuevoEstado: ServiceState,
+  comentarioIncompleto?: string,
+): Promise<Service> {
+  this.logger.log(`Cambiando estado del servicio ${id} a ${nuevoEstado}`);
 
-    const service = await this.findOne(id);
+  const service = await this.findOne(id);
 
-    // Validar transición de estado
-    this.validateStatusTransition(service.estado, nuevoEstado);
+  // Validar transición de estado
+  this.validateStatusTransition(service.estado, nuevoEstado);
 
-    // Validar que se proporcione comentario obligatorio para estado INCOMPLETO
-    if (nuevoEstado === ServiceState.INCOMPLETO && !comentarioIncompleto) {
-      throw new BadRequestException(
-        'Para cambiar un servicio a estado INCOMPLETO, debe proporcionar un comentario explicando el motivo',
-      );
-    }
-
-    // Actualizar fechas y estados de recursos al iniciar servicio
-    if (nuevoEstado === ServiceState.EN_PROGRESO) {
-      if (!service.fechaInicio) {
-        service.fechaInicio = new Date();
-      }
-
-      // ✅ CAMBIO DE ESTADO DE LOS RECURSOS ASIGNADOS
-      const assignments = await this.assignmentRepository.find({
-        where: { servicio: { id: service.id } },
-        relations: ['empleado', 'vehiculo', 'bano'],
-      });
-
-      for (const assignment of assignments) {
-        // Cambiar estado del empleado
-        if (assignment.empleado) {
-          await this.employeesService.update(assignment.empleado.id, {
-            estado: ResourceState.ASIGNADO, // o el estado que corresponda
-          });
-        }
-
-        // Cambiar estado del vehículo
-        if (assignment.vehiculo) {
-          await this.vehiclesService.update(assignment.vehiculo.id, {
-            estado: ResourceState.ASIGNADO,
-          });
-        }
-
-        // Cambiar estado del baño, si **no** es una instalación activa
-        if (
-          assignment.bano &&
-          !service.banosInstalados?.includes(assignment.bano.baño_id)
-        ) {
-          await this.toiletsService.update(assignment.bano.baño_id, {
-            estado: ResourceState.ASIGNADO,
-          });
-        }
-      }
-    }
-
-    if (nuevoEstado === ServiceState.COMPLETADO && !service.fechaFin) {
-      service.fechaFin = new Date();
-
-      // Si es un servicio de RETIRO, cambiar el estado de los baños retirados
-      if (
-        service.tipoServicio === ServiceType.RETIRO &&
-        service.banosInstalados?.length > 0
-      ) {
-        for (const banoId of service.banosInstalados) {
-          await this.toiletsService.update(banoId, {
-            estado: ResourceState.EN_MANTENIMIENTO,
-          });
-        }
-      }
-    }
-
-    if (nuevoEstado === ServiceState.INCOMPLETO) {
-      service.fechaFin = new Date();
-      service.comentarioIncompleto = comentarioIncompleto || '';
-    }
-
-    // Liberar recursos si corresponde
-    if (
-      nuevoEstado === ServiceState.CANCELADO ||
-      nuevoEstado === ServiceState.COMPLETADO ||
-      nuevoEstado === ServiceState.INCOMPLETO
-    ) {
-      if (service.tipoServicio === ServiceType.INSTALACION) {
-        await this.releaseNonToiletResources(service);
-      } else if (service.tipoServicio === ServiceType.RETIRO) {
-        await this.releaseNonToiletResources(service);
-      } else if (
-        service.tipoServicio === ServiceType.LIMPIEZA ||
-        service.tipoServicio === ServiceType.MANTENIMIENTO_IN_SITU
-      ) {
-        await this.releaseNonToiletResources(service);
-      } else {
-        await this.releaseAssignedResources(service);
-      }
-    }
-
-    // Guardar estado actualizado
-    service.estado = nuevoEstado;
-    const savedService = await this.serviceRepository.save(service);
-
-    return savedService;
+  // Validar comentario obligatorio para estado INCOMPLETO
+  if (nuevoEstado === ServiceState.INCOMPLETO && !comentarioIncompleto) {
+    throw new BadRequestException(
+      'Para cambiar un servicio a estado INCOMPLETO, debe proporcionar un comentario explicando el motivo',
+    );
   }
+
+  // Al iniciar servicio
+  if (nuevoEstado === ServiceState.EN_PROGRESO) {
+    if (!service.fechaInicio) {
+      service.fechaInicio = new Date();
+    }
+
+    // Cambiar estado recursos asignados a ASIGNADO
+    const assignments = await this.assignmentRepository.find({
+      where: { servicio: { id: service.id } },
+      relations: ['empleado', 'vehiculo', 'bano'],
+    });
+
+    for (const assignment of assignments) {
+      if (assignment.empleado) {
+        await this.employeesService.update(assignment.empleado.id, {
+          estado: ResourceState.ASIGNADO,
+        });
+      }
+      if (assignment.vehiculo) {
+        await this.vehiclesService.update(assignment.vehiculo.id, {
+          estado: ResourceState.ASIGNADO,
+        });
+      }
+      if (
+        assignment.bano &&
+        !service.banosInstalados?.includes(assignment.bano.baño_id)
+      ) {
+        await this.toiletsService.update(assignment.bano.baño_id, {
+          estado: ResourceState.ASIGNADO,
+        });
+      }
+    }
+  }
+
+  // Al completar servicio
+  if (nuevoEstado === ServiceState.COMPLETADO) {
+    if (!service.fechaFin) {
+      service.fechaFin = new Date();
+    }
+
+    // Si es servicio RETIRO, cambiar estado baños a EN_MANTENIMIENTO
+    if (
+      service.tipoServicio === ServiceType.RETIRO &&
+      service.banosInstalados?.length > 0
+    ) {
+      for (const banoId of service.banosInstalados) {
+        await this.toiletsService.update(banoId, {
+          estado: ResourceState.EN_MANTENIMIENTO,
+        });
+      }
+    }
+
+    // ---------> Desactivar limpieza futura si es limpieza
+    this.logger.log(`Tipo de servicio: ${service.tipoServicio}`);
+    if (service.tipoServicio === ServiceType.LIMPIEZA) {
+      this.logger.log(`Buscando limpieza futura activa para servicio ${service.id}`);
+      await this.dataSource.query(`
+        WITH limpieza_a_desactivar AS (
+          SELECT limpieza_id
+          FROM future_cleanings
+          WHERE "servicioId" = $1 AND "isActive" = true
+          ORDER BY limpieza_fecha ASC
+          LIMIT 1
+        )
+        UPDATE future_cleanings
+        SET "isActive" = false
+        WHERE limpieza_id IN (SELECT limpieza_id FROM limpieza_a_desactivar);
+      `, [service.id]);
+      this.logger.log(`Limpieza futura relacionada al servicio ${service.id} desactivada.`);
+    }
+  }
+
+  if (nuevoEstado === ServiceState.INCOMPLETO) {
+    service.fechaFin = new Date();
+    service.comentarioIncompleto = comentarioIncompleto || '';
+  }
+
+  // Liberar recursos si corresponde
+  if (
+    nuevoEstado === ServiceState.CANCELADO ||
+    nuevoEstado === ServiceState.COMPLETADO ||
+    nuevoEstado === ServiceState.INCOMPLETO
+  ) {
+    if (
+      service.tipoServicio === ServiceType.INSTALACION ||
+      service.tipoServicio === ServiceType.RETIRO ||
+      service.tipoServicio === ServiceType.LIMPIEZA ||
+      service.tipoServicio === ServiceType.MANTENIMIENTO_IN_SITU
+    ) {
+      await this.releaseNonToiletResources(service);
+    } else {
+      await this.releaseAssignedResources(service);
+    }
+  }
+
+  // Guardar estado actualizado
+  service.estado = nuevoEstado;
+  const savedService = await this.serviceRepository.save(service);
+
+  return savedService;
+}
+
 
   // Nuevo método para liberar solo recursos excepto baños
   private async releaseNonToiletResources(service: Service): Promise<void> {
