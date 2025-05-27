@@ -203,7 +203,7 @@ export class VehiclesService {
       where: { estado: ResourceState.DISPONIBLE },
     });
     const totalMantenimiento = await this.vehicleRepository.count({
-      where: { estado: ResourceState.EN_MANTENIMIENTO },
+      where: { estado: ResourceState.MANTENIMIENTO },
     });
     const totalAsignado = await this.vehicleRepository.count({
       where: { estado: ResourceState.ASIGNADO },

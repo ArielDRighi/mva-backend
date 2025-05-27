@@ -55,10 +55,10 @@ export class VehicleMaintenanceService {
       // Cambiar estado inmediatamente
       await this.vehiclesService.changeStatus(
         vehicle.id,
-        ResourceState.EN_MANTENIMIENTO,
+        ResourceState.MANTENIMIENTO,
       );
       // Actualizar también el estado en el objeto en memoria
-      vehicle.estado = ResourceState.EN_MANTENIMIENTO.toString();
+      vehicle.estado = ResourceState.MANTENIMIENTO.toString();
     } else {
       // Es un mantenimiento futuro, verificar que el vehículo esté DISPONIBLE o ASIGNADO
       if (
@@ -247,7 +247,7 @@ export class MaintenanceSchedulerService {
     for (const maintenance of todaysMaintenances) {
       await this.vehiclesService.changeStatus(
         maintenance.vehiculoId,
-        ResourceState.EN_MANTENIMIENTO,
+        ResourceState.MANTENIMIENTO,
       );
     }
   }

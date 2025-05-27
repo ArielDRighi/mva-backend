@@ -775,7 +775,7 @@ export class ServicesService {
     ) {
       for (const banoId of service.banosInstalados) {
         await this.toiletsService.update(banoId, {
-          estado: ResourceState.EN_MANTENIMIENTO,
+          estado: ResourceState.MANTENIMIENTO,
         });
       }
     }
