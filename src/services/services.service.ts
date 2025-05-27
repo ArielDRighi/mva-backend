@@ -185,16 +185,17 @@ export class ServicesService {
       // 🧹 Desactivar la próxima limpieza futura activa del cliente
       await this.dataSource.query(`
   WITH limpieza_a_desactivar AS (
-    SELECT id
+    SELECT limpieza_id
     FROM future_cleanings
     WHERE "clienteClienteId" = $1 AND "isActive" = true
-    ORDER BY "fecha_de_limpieza" ASC
+    ORDER BY "limpieza_fecha" ASC
     LIMIT 1
   )
   UPDATE future_cleanings
   SET "isActive" = false
-  WHERE id IN (SELECT id FROM limpieza_a_desactivar);
-`, [contrato.cliente.clienteId]);
+  WHERE limpieza_id IN (SELECT limpieza_id FROM limpieza_a_desactivar);
+`, [contrato.cliente.clienteId]);;
+
 
       // 🗓 Crear nuevas limpiezas futuras según la periodicidad
       const fechas = this.toiletMaintenanceService.calculateMaintenanceDays(
