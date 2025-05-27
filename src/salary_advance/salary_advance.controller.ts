@@ -10,6 +10,7 @@ import {
   Patch,
   Req,
   UnauthorizedException,
+  Query,
 } from '@nestjs/common';
 import { SalaryAdvanceService } from './salary_advance.service';
 import { CreateAdvanceDto } from './dto/create-salary_advance.dto';
@@ -34,12 +35,16 @@ export class SalaryAdvanceController {
   }
 
   @Get()
-  findAll() {
-    return this.advanceService.getAll();
+  findAll(
+    @Query('status') status?: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    return this.advanceService.getAll(status, page, limit);
   }
 
   @Roles(Role.ADMIN)
-  @Patch(':id')
+  @Patch('update/:id')
   approveOrRejectAdvance(
     @Param('id') id: string,
     @Body() dto: ApproveAdvanceDto,
@@ -58,5 +63,15 @@ export class SalaryAdvanceController {
       console.log('Rejecting advance');
       return this.advanceService.reject(id);
     }
+  }
+
+  @Get('employee')
+  getEmployeeAdvances(@Request() req: { user?: any }) {
+    // Asegúrate de que el usuario esté autenticado
+    if (!req.user) {
+      throw new UnauthorizedException('Usuario no autenticado');
+    }
+    // Pasa el user al servicio
+    return this.advanceService.getEmployeeAdvances(req.user);
   }
 }
