@@ -11,6 +11,7 @@ export enum TipoContrato {
 export enum Periodicidad {
   DIARIA = 'Diaria',
   SEMANAL = 'Semanal',
+  QUINCENAL = 'Quincenal',
   MENSUAL = 'Mensual',
   ANUAL = 'Anual',
 }

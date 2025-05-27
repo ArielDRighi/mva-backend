@@ -8,7 +8,6 @@ import {
 import { Empleado } from '../../employees/entities/employee.entity';
 
 export enum LeaveType {
-  ORDINARIA = 'ORDINARIA',
   ENFERMEDAD = 'ENFERMEDAD',
   FALLECIMIENTO_FAMILIAR = 'FALLECIMIENTO_FAMILIAR',
   CASAMIENTO = 'CASAMIENTO',
