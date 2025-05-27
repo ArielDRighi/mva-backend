@@ -1,6 +1,10 @@
 import { Empleado } from 'src/employees/entities/employee.entity';
 import { AdvanceRequest } from './Interface/advance.interface';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeepPartial, Repository } from 'typeorm';
 import { SalaryAdvance } from './entities/salary_advance.entity';
@@ -30,6 +34,20 @@ export class SalaryAdvanceService {
       throw new NotFoundException('Empleado no encontrado');
     }
 
+    // Verificar si ya tiene un adelanto pendiente
+    const pendingAdvance = await this.salaryAdvanceRepository.findOne({
+      where: {
+        employee: { id: employee.id },
+        status: 'pending',
+      },
+    });
+
+    if (pendingAdvance) {
+      throw new BadRequestException(
+        'Ya tienes una solicitud de adelanto pendiente. No puedes crear otra hasta que se resuelva la actual.',
+      );
+    }
+
     // Crear el nuevo adelanto salarial
     const newAdvance = this.salaryAdvanceRepository.create({
       employee, // Relacionamos el empleado con el adelanto
@@ -43,11 +61,31 @@ export class SalaryAdvanceService {
   }
 
   // Función para obtener todos los adelantos (puedes personalizarla más tarde)
-  async getAll(): Promise<SalaryAdvance[]> {
-    return await this.salaryAdvanceRepository.find({
-      relations: ['employee'], // Incluye los datos del empleado
-      order: { createdAt: 'DESC' },
+  async getAll(
+    status: string | undefined = undefined,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{
+    advances: SalaryAdvance[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const advances = await this.salaryAdvanceRepository.find({
+      where: status ? { status } : {},
+      relations: ['employee'], // Asegurarse de obtener la relación con el empleado
+      skip: (page - 1) * limit,
+      take: limit,
+      order: { createdAt: 'DESC' }, // Ordenar por fecha de creación
     });
+    return {
+      advances,
+      total: await this.salaryAdvanceRepository.count({
+        where: status ? { status } : {},
+      }),
+      page,
+      limit,
+    };
   }
 
   // Función para aprobar un adelanto salarial
@@ -89,5 +127,27 @@ export class SalaryAdvanceService {
 
     // Guardar la solicitud rechazada
     return await this.salaryAdvanceRepository.save(request);
+  }
+
+  async getEmployeeAdvances(user: any) {
+    // Asegurarse de que el usuario esté autenticado
+    if (!user || !user.empleadoId) {
+      throw new BadRequestException('Usuario no autenticado');
+    }
+
+    // Buscar al empleado por su ID
+    const employee = await this.employeeRepository.findOne({
+      where: { id: user.empleadoId },
+    });
+
+    if (!employee) {
+      throw new NotFoundException('Empleado no encontrado');
+    }
+
+    // Obtener los adelantos del empleado
+    return await this.salaryAdvanceRepository.find({
+      where: { employee: { id: employee.id } },
+      order: { createdAt: 'DESC' },
+    });
   }
 }
