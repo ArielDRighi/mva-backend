@@ -147,75 +147,88 @@ export class ServicesService {
   }
 
   private async createLimpieza(dto: CreateServiceDto): Promise<Service> {
-    const service = await this.createBaseService(dto);
+  const service = await this.createBaseService(dto);
 
-    if (
-      (!dto.banosInstalados || dto.banosInstalados.length === 0) &&
-      dto.clienteId
-    ) {
-      const ultimoServicioInstalacion = await this.serviceRepository.findOne({
-        where: {
-          cliente: { clienteId: dto.clienteId },
-          tipoServicio: ServiceType.INSTALACION,
-        },
-        order: { fechaProgramada: 'DESC' },
-      });
+  if (
+    (!dto.banosInstalados || dto.banosInstalados.length === 0) &&
+    dto.clienteId
+  ) {
+    const ultimoServicioInstalacion = await this.serviceRepository.findOne({
+      where: {
+        cliente: { clienteId: dto.clienteId },
+        tipoServicio: ServiceType.INSTALACION,
+      },
+      order: { fechaProgramada: 'DESC' },
+    });
 
-      if (ultimoServicioInstalacion?.banosInstalados?.length) {
-        service.banosInstalados = ultimoServicioInstalacion.banosInstalados;
-      } else {
-        this.logger.warn(
-          `No se encontraron baños instalados para cliente ${dto.clienteId}`,
-        );
-        service.banosInstalados = [];
-      }
+    if (ultimoServicioInstalacion?.banosInstalados?.length) {
+      service.banosInstalados = ultimoServicioInstalacion.banosInstalados;
+    } else {
+      this.logger.warn(
+        `No se encontraron baños instalados para cliente ${dto.clienteId}`,
+      );
+      service.banosInstalados = [];
     }
+  }
 
-    if (
-      service.condicionContractualId &&
-      service.fechaInicio &&
-      service.fechaFin
-    ) {
-      const contrato = await this.condicionesContractualesRepository.findOne({
-        where: { condicionContractualId: service.condicionContractualId },
-        relations: ['cliente'],
-      });
+  if (
+    service.condicionContractualId &&
+    service.fechaInicio &&
+    service.fechaFin
+  ) {
+    const contrato = await this.condicionesContractualesRepository.findOne({
+      where: { condicionContractualId: service.condicionContractualId },
+      relations: ['cliente'],
+    });
 
-      if (contrato?.periodicidad) {
-        const fechas = this.toiletMaintenanceService.calculateMaintenanceDays(
-          service.fechaInicio,
-          service.fechaFin,
-          contrato.periodicidad,
-        );
+    if (contrato?.periodicidad) {
+      // 🧹 Desactivar la próxima limpieza futura activa del cliente
+      await this.dataSource
+        .createQueryBuilder()
+        .update('future_cleanings')
+        .set({ isActive: false })
+        .where('clienteClienteId = :clienteId', { clienteId: contrato.cliente.clienteId })
+        .andWhere('isActive = true')
+        .orderBy('fecha_de_limpieza', 'ASC')
+        .limit(1)
+        .execute();
 
-        for (let i = 0; i < fechas.length; i++) {
-          try {
-            const limpieza = {
-              cliente: { clienteId: contrato.cliente.clienteId },
-              fecha_de_limpieza: fechas[i],
-              numero_de_limpieza: i + 1,
-              isActive: true,
-              servicio: { id: service.id },
-              banos: service.banosInstalados,
-            };
+      // 🗓 Crear nuevas limpiezas futuras según la periodicidad
+      const fechas = this.toiletMaintenanceService.calculateMaintenanceDays(
+        service.fechaInicio,
+        service.fechaFin,
+        contrato.periodicidad,
+      );
 
-            await this.dataSource.manager.save('future_cleanings', limpieza);
-            this.logger.log(
-              `Limpieza futura #${i + 1} programada: ${fechas[i].toISOString()}`,
-            );
-          } catch (error) {
-            const errorMessage =
-              error instanceof Error ? error.message : 'Error desconocido';
-            this.logger.error(
-              `Error al crear limpieza futura #${i + 1}: ${errorMessage}`,
-            );
-          }
+      for (let i = 0; i < fechas.length; i++) {
+        try {
+          const limpieza = {
+            cliente: { clienteId: contrato.cliente.clienteId },
+            fecha_de_limpieza: fechas[i],
+            numero_de_limpieza: i + 1,
+            isActive: true,
+            servicio: { id: service.id },
+            banos: service.banosInstalados,
+          };
+
+          await this.dataSource.manager.save('future_cleanings', limpieza);
+          this.logger.log(
+            `Limpieza futura #${i + 1} programada: ${fechas[i].toISOString()}`,
+          );
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : 'Error desconocido';
+          this.logger.error(
+            `Error al crear limpieza futura #${i + 1}: ${errorMessage}`,
+          );
         }
       }
     }
-
-    return this.findOne(service.id);
   }
+
+  return this.findOne(service.id);
+}
+
 
   private async createGenerico(dto: CreateServiceDto): Promise<Service> {
     return this.createBaseService(dto);
