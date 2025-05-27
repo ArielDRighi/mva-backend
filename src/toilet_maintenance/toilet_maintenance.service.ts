@@ -60,6 +60,9 @@ export class ToiletMaintenanceService {
       case Periodicidad.SEMANAL:
         intervalDays = 7;
         break;
+      case Periodicidad.QUINCENAL:
+        intervalDays = 15; // Aproximación de dos semanas
+        break;
       case Periodicidad.MENSUAL:
         intervalDays = 30; // Aproximación de un mes
         break;

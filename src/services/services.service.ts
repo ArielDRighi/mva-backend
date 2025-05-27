@@ -763,8 +763,10 @@ export class ServicesService {
   }
 
   // Al completar servicio
-  if (nuevoEstado === ServiceState.COMPLETADO && !service.fechaFin) {
-    service.fechaFin = new Date();
+  if (nuevoEstado === ServiceState.COMPLETADO) {
+    if (!service.fechaFin) {
+      service.fechaFin = new Date();
+    }
 
     // Si es servicio RETIRO, cambiar estado baños a EN_MANTENIMIENTO
     if (
@@ -778,8 +780,10 @@ export class ServicesService {
       }
     }
 
-    // ---------> NUEVA LÓGICA: Desactivar limpieza futura relacionada (solo si es limpieza)
+    // ---------> Desactivar limpieza futura si es limpieza
+    this.logger.log(`Tipo de servicio: ${service.tipoServicio}`);
     if (service.tipoServicio === ServiceType.LIMPIEZA) {
+      this.logger.log(`Buscando limpieza futura activa para servicio ${service.id}`);
       await this.dataSource.query(`
         WITH limpieza_a_desactivar AS (
           SELECT limpieza_id
