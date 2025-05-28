@@ -2,10 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import {
-  EmployeeLeave,
-  LeaveStatus,
-} from '../../employee_leaves/entities/employee-leave.entity';
+import { EmployeeLeave } from '../../employee_leaves/entities/employee-leave.entity';
 import { EmployeesService } from '../../employees/employees.service';
 import { format as dateFormat } from 'date-fns';
 
@@ -32,7 +29,7 @@ export class EmployeeLeaveSchedulerService {
     const startingLeaves = await this.leaveRepository.find({
       where: {
         fechaInicio: today,
-        status: LeaveStatus.APROBADO,
+        aprobado: true,
       },
       relations: ['employee'],
     });
@@ -52,7 +49,7 @@ export class EmployeeLeaveSchedulerService {
     const endingLeaves = await this.leaveRepository.find({
       where: {
         fechaFin: today,
-        status: LeaveStatus.APROBADO,
+        aprobado: true,
       },
       relations: ['employee'],
     });
@@ -64,7 +61,7 @@ export class EmployeeLeaveSchedulerService {
         where: {
           employeeId: leave.employeeId,
           fechaInicio: today,
-          status: LeaveStatus.APROBADO,
+          aprobado: true,
         },
       });
 
