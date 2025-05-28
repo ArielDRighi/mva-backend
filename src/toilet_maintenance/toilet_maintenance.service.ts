@@ -123,11 +123,11 @@ export class ToiletMaintenanceService {
     if (maintenanceDate <= now) {
       // El mantenimiento es para hoy o una fecha pasada, cambiar estado inmediatamente
       await this.chemicalToiletsService.update(toilet.baño_id, {
-        estado: ResourceState.EN_MANTENIMIENTO,
+        estado: ResourceState.MANTENIMIENTO,
       });
 
       // Actualizar también el estado en el objeto en memoria
-      toilet.estado = ResourceState.EN_MANTENIMIENTO;
+      toilet.estado = ResourceState.MANTENIMIENTO;
     }
     // Si es para una fecha futura, no cambiar el estado ahora
 
@@ -436,7 +436,7 @@ export class ToiletMaintenanceSchedulerService {
     for (const maintenance of todaysMaintenances) {
       if (maintenance.toilet) {
         await this.chemicalToiletsService.update(maintenance.toilet.baño_id, {
-          estado: ResourceState.EN_MANTENIMIENTO,
+          estado: ResourceState.MANTENIMIENTO,
         });
       }
     }

@@ -305,7 +305,7 @@ export class ChemicalToiletsService {
       where: { estado: ResourceState.DISPONIBLE },
     });
     const totalMantenimiento = await this.chemicalToiletRepository.count({
-      where: { estado: ResourceState.EN_MANTENIMIENTO },
+      where: { estado: ResourceState.MANTENIMIENTO },
     });
     const totalAsignado = await this.chemicalToiletRepository.count({
       where: { estado: ResourceState.ASIGNADO },
