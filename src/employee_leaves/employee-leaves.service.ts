@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThanOrEqual, MoreThanOrEqual, Not } from 'typeorm';
-import { EmployeeLeave } from './entities/employee-leave.entity';
+import { EmployeeLeave, LeaveType } from './entities/employee-leave.entity';
 import { CreateEmployeeLeaveDto } from './dto/create-employee-leave.dto';
 import { UpdateEmployeeLeaveDto } from './dto/update-employee-leave.dto';
 import { EmployeesService } from '../employees/employees.service';
@@ -70,12 +70,47 @@ export class EmployeeLeavesService {
     return this.leaveRepository.save(leave);
   }
 
-  async findAll(): Promise<EmployeeLeave[]> {
-    return this.leaveRepository.find({
-      relations: ['employee'],
-      order: { fechaInicio: 'ASC' },
-    });
+  async findAll(
+  page = 1,
+  limit = 10,
+  search?: string,
+  tipoLicencia?: LeaveType,
+): Promise<{
+  data: EmployeeLeave[];
+  totalItems: number;
+  currentPage: number;
+  totalPages: number;
+}> {
+  const queryBuilder = this.leaveRepository
+    .createQueryBuilder('leave')
+    .leftJoinAndSelect('leave.employee', 'employee')
+    .orderBy('leave.fechaInicio', 'ASC')
+    .skip((page - 1) * limit)
+    .take(limit);
+
+  if (search) {
+    queryBuilder.andWhere(
+      `unaccent(lower(employee.nombre)) LIKE unaccent(lower(:search)) OR
+       unaccent(lower(employee.apellido)) LIKE unaccent(lower(:search))`,
+      { search: `%${search}%` },
+    );
   }
+
+  if (tipoLicencia) {
+    queryBuilder.andWhere('leave.tipoLicencia = :tipoLicencia', { tipoLicencia });
+  }
+
+  const [data, totalItems] = await queryBuilder.getManyAndCount();
+
+  return {
+    data,
+    totalItems,
+    currentPage: page,
+    totalPages: Math.ceil(totalItems / limit),
+  };
+}
+
+
 
   async findOne(id: number): Promise<EmployeeLeave> {
     const leave = await this.leaveRepository.findOne({
