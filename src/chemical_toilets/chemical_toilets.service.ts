@@ -93,7 +93,7 @@ export class ChemicalToiletsService {
 
     if (estado) {
       query.andWhere(
-        'LOWER(UNACCENT(toilet.estado)) LIKE LOWER(UNACCENT(:estado))',
+        'LOWER(UNACCENT(CAST(toilet.estado AS TEXT))) LIKE LOWER(UNACCENT(:estado))',
         {
           estado: `%${estado}%`,
         },
@@ -305,7 +305,7 @@ export class ChemicalToiletsService {
       where: { estado: ResourceState.DISPONIBLE },
     });
     const totalMantenimiento = await this.chemicalToiletRepository.count({
-      where: { estado: ResourceState.EN_MANTENIMIENTO },
+      where: { estado: ResourceState.MANTENIMIENTO },
     });
     const totalAsignado = await this.chemicalToiletRepository.count({
       where: { estado: ResourceState.ASIGNADO },

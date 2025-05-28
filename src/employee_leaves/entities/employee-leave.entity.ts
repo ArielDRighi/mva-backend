@@ -8,19 +8,11 @@ import {
 import { Empleado } from '../../employees/entities/employee.entity';
 
 export enum LeaveType {
-  VACACIONES = 'VACACIONES',
   ENFERMEDAD = 'ENFERMEDAD',
-  ORDINARIA = 'ORDINARIA',
   FALLECIMIENTO_FAMILIAR = 'FALLECIMIENTO_FAMILIAR',
   CASAMIENTO = 'CASAMIENTO',
   NACIMIENTO = 'NACIMIENTO',
-  CAPACITACION = 'CAPACITACION',
-}
-
-export enum LeaveStatus {
-  PENDIENTE = 'PENDIENTE',
-  APROBADO = 'APROBADO',
-  RECHAZADO = 'RECHAZADO',
+  VACACIONES = 'VACACIONES',
 }
 
 @Entity('employee_leaves')
@@ -50,7 +42,9 @@ export class EmployeeLeave {
 
   @Column({ type: 'text', nullable: true })
   notas: string;
+  @Column({ type: 'text', nullable: true })
+  comentarioRechazo?: string;
 
-  @Column({ default: LeaveStatus.PENDIENTE })
-  status: LeaveStatus;
+  @Column({ default: false })
+  aprobado: boolean;
 }

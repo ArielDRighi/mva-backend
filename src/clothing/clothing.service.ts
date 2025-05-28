@@ -5,9 +5,8 @@ import { RopaTalles } from './entities/clothing.entity';
 import { Repository } from 'typeorm';
 import { Empleado } from 'src/employees/entities/employee.entity';
 import { UpdateRopaTallesDto } from './dto/updateRopaTalles.dto';
-import { Workbook } from 'exceljs';
 import { Response } from 'express';
-
+import * as ExcelJS from 'exceljs';
 
 @Injectable()
 export class ClothingService {
@@ -36,7 +35,6 @@ export class ClothingService {
 
     return this.tallesRepository.save(ropaTalles);
   }
-
   async getClothingSpecs(empleadoId: number): Promise<RopaTalles> {
     const talles = await this.tallesRepository.findOne({
       where: { empleado: { id: empleadoId } },
@@ -48,14 +46,34 @@ export class ClothingService {
     return talles;
   }
 
-  async getAllClothingSpecs(): Promise<RopaTalles[]> {
-    const talles = await this.tallesRepository.find({
-      relations: ['empleado'],
-    });
-    if (!talles) {
-      throw new BadRequestException('Talles no encontrados');
+  async getAllClothingSpecs(
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{
+    data: RopaTalles[];
+    totalItems: number;
+    currentPage: number;
+    totalPages: number;
+  }> {
+    try {
+      const [talles, total] = await this.tallesRepository.findAndCount({
+        relations: ['empleado'],
+        skip: (page - 1) * limit,
+        take: limit,
+      });
+
+      // Devolver respuesta exitosa incluso con array vacío
+      return {
+        data: talles,
+        totalItems: total,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
+      throw new BadRequestException('Error al obtener talles: ' + errorMessage);
     }
-    return talles;
   }
 
   async updateClothingSpecs(
@@ -95,62 +113,88 @@ export class ClothingService {
     const ropaTalles = await this.tallesRepository.findOne({
       where: { empleado: { id: empleadoId } },
     });
-
     if (!ropaTalles) {
       throw new BadRequestException('Talles no encontrados');
     }
 
-    this.tallesRepository.remove(ropaTalles);
+    await this.tallesRepository.remove(ropaTalles);
 
     return { message: 'Talles eliminados correctamente' };
   }
   async exportToExcel(res: Response): Promise<void> {
+    // 1. Obtener todos los registros con empleado
     const specs = await this.tallesRepository.find({
       relations: ['empleado'],
     });
 
-    const workbook = new Workbook();
-    const worksheet = workbook.addWorksheet('Talles');
+    // 2. Crear un workbook y hoja
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Talles Ropa');
 
-    // Encabezados
+    // 3. Definir columnas (modificalo según campos que tengas)
     worksheet.columns = [
-      { header: 'Empleado ID', key: 'empleadoId', width: 15 },
-      { header: 'Nombre Empleado', key: 'nombreEmpleado', width: 25 },
+      { header: 'ID', key: 'id', width: 10 },
+      { header: 'Empleado', key: 'empleado', width: 30 },
       { header: 'Calzado', key: 'calzado_talle', width: 10 },
       { header: 'Pantalón', key: 'pantalon_talle', width: 10 },
       { header: 'Camisa', key: 'camisa_talle', width: 10 },
-      { header: 'Campera BigNort', key: 'campera_bigNort_talle', width: 18 },
+      { header: 'Campera BigNort', key: 'campera_bigNort_talle', width: 15 },
       { header: 'Piel BigNort', key: 'pielBigNort_talle', width: 15 },
       { header: 'Medias', key: 'medias_talle', width: 10 },
-      { header: 'Pantalón térmico BigNort', key: 'pantalon_termico_bigNort_talle', width: 25 },
-      { header: 'Campera polar BigNort', key: 'campera_polar_bigNort_talle', width: 25 },
-      { header: 'Mameluco', key: 'mameluco_talle', width: 15 },
+      {
+        header: 'Pantalón Térmico BigNort',
+        key: 'pantalon_termico_bigNort_talle',
+        width: 20,
+      },
+      {
+        header: 'Campera Polar BigNort',
+        key: 'campera_polar_bigNort_talle',
+        width: 20,
+      },
+      { header: 'Mameluco', key: 'mameluco_talle', width: 10 },
+      { header: 'Fecha Creación', key: 'createdAt', width: 20 },
+      { header: 'Fecha Actualización', key: 'updatedAt', width: 20 },
     ];
 
-    // Agregar filas
-    specs.forEach((item) => {
+    // 4. Agregar filas
+    specs.forEach((spec) => {
       worksheet.addRow({
-        empleadoId: item.empleado?.id,
-        nombreEmpleado: item.empleado?.nombre || '',
-        calzado_talle: item.calzado_talle,
-        pantalon_talle: item.pantalon_talle,
-        camisa_talle: item.camisa_talle,
-        campera_bigNort_talle: item.campera_bigNort_talle,
-        pielBigNort_talle: item.pielBigNort_talle,
-        medias_talle: item.medias_talle,
-        pantalon_termico_bigNort_talle: item.pantalon_termico_bigNort_talle,
-        campera_polar_bigNort_talle: item.campera_polar_bigNort_talle,
-        mameluco_talle: item.mameluco_talle,
+        id: spec.id,
+        empleado: spec.empleado
+          ? `${spec.empleado.nombre} ${spec.empleado.apellido}`
+          : 'Sin empleado',
+        calzado_talle: spec.calzado_talle,
+        pantalon_talle: spec.pantalon_talle,
+        camisa_talle: spec.camisa_talle,
+        campera_bigNort_talle: spec.campera_bigNort_talle,
+        pielBigNort_talle: spec.pielBigNort_talle,
+        medias_talle: spec.medias_talle,
+        pantalon_termico_bigNort_talle: spec.pantalon_termico_bigNort_talle,
+        campera_polar_bigNort_talle: spec.campera_polar_bigNort_talle,
+        mameluco_talle: spec.mameluco_talle,
+        createdAt: spec.createdAt
+          ? spec.createdAt.toISOString().slice(0, 19).replace('T', ' ')
+          : '',
+        updatedAt: spec.updatedAt
+          ? spec.updatedAt.toISOString().slice(0, 19).replace('T', ' ')
+          : '',
       });
     });
 
+    // 5. Preparar respuesta para descarga
     res.setHeader(
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
-    res.setHeader('Content-Disposition', 'attachment; filename=talles.xlsx');
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename=talles_ropa.xlsx',
+    );
 
+    // 6. Escribir el archivo en la respuesta
     await workbook.xlsx.write(res);
+
+    // 7. Finalizar la respuesta
     res.end();
   }
 }

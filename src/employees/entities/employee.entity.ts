@@ -45,7 +45,7 @@ export class Empleado {
   @Column({ name: 'cargo', length: 100 })
   cargo: string;
 
-  @Column({ name: 'estado', length: 20, default: 'ACTIVO' })
+  @Column({ name: 'estado', length: 20, default: 'DISPONIBLE' })
   estado: string;
 
   @Column({

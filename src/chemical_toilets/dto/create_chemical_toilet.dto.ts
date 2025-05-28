@@ -1,4 +1,10 @@
-import { IsString, IsDateString, IsNotEmpty, IsEnum, IsOptional } from 'class-validator';
+import {
+  IsString,
+  IsDateString,
+  IsNotEmpty,
+  IsEnum,
+  IsOptional,
+} from 'class-validator';
 import { ResourceState } from 'src/common/enums/resource-states.enum';
 
 export class CreateChemicalToiletDto {

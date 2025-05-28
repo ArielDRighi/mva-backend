@@ -3,12 +3,13 @@ import {
   NotFoundException,
   ConflictException,
   Logger,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { CreateClientDto } from './dto/create_client.dto';
 import { UpdateClientDto } from './dto/update_client.dto';
 import { Cliente } from './entities/client.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan } from 'typeorm';
+import { Repository, MoreThan, QueryFailedError } from 'typeorm';
 import { ChemicalToiletsService } from '../chemical_toilets/chemical_toilets.service';
 import {
   CondicionesContractuales,
@@ -141,11 +142,21 @@ export class ClientService {
       throw new NotFoundException(`Client with id ${clienteId} not found`);
     }
 
-    // Opción 1: Usar el ID directamente
-    await this.clientRepository.delete(clienteId);
+    try {
+      await this.clientRepository.delete(clienteId);
+    } catch (error) {
+      // Si el error viene de una violación de clave foránea
+      if (
+        error instanceof QueryFailedError &&
+        (error as any).code === '23503'
+      ) {
+        throw new ConflictException(
+          `No se puede eliminar el cliente con ID ${clienteId} porque tiene servicios asociados.`,
+        );
+      }
 
-    // O Alternativa: Usar remove para entidades completas
-    // await this.clientRepository.remove(client);
+      throw new InternalServerErrorException('Error interno del servidor');
+    }
   }
 
   async getActiveContract(clientId: number) {

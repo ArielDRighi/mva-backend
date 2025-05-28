@@ -77,7 +77,7 @@ export class MailerService {
     serviceType: string,
     taskDate: string,
     serviceId?: number, // ID del servicio (nuevo parámetro)
-    assignedEmployees?: string[], // Lista de empleados asignados (nuevo parámetro)
+    assignedEmployees?: { name: string; rol?: string | null }[], // Lista de empleados asignados (nuevo parámetro)
     clientAddress?: string, // Dirección del cliente donde se realizará el servicio
     serviceStartDate?: string, // Fecha de inicio del servicio según la condición contractual
   ): Promise<void> {
@@ -131,10 +131,14 @@ export class MailerService {
     // Agregar la sección de empleados asignados si está disponible
     if (assignedEmployees && assignedEmployees.length > 0) {
       body += `
-        <li><strong>Equipo asignado al servicio:</strong></li>
-        <ul>
-          ${assignedEmployees.map((emp) => `<li>${emp}</li>`).join('')}
-        </ul>`;
+    <li><strong>Equipo asignado al servicio:</strong></li>
+    <ul>
+      ${assignedEmployees
+        .map(
+          (emp) => `<li>${emp.name}${emp.rol ? ` (Rol ${emp.rol})` : ''}</li>`,
+        )
+        .join('')}
+    </ul>`;
     }
 
     body += `
@@ -159,6 +163,7 @@ export class MailerService {
     // Enviar el correo
     try {
       await this.sendMail(mailOptions);
+      console.log(`Correo enviado exitosamente a ${email}}`);
     } catch (error) {
       console.error(`Error al enviar el correo a ${email}`, error);
     }

@@ -6,20 +6,25 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThanOrEqual, LessThan, Between } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Empleado } from './entities/employee.entity';
-import { CreateEmployeeDto } from './dto/create_employee.dto';
+import { CreateFullEmployeeDto } from './dto/create_employee.dto';
 import { UpdateEmployeeDto } from './dto/update_employee.dto';
+import { UpdateLicenseDto } from './dto/update_license.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { Licencias } from './entities/license.entity';
 import { CreateLicenseDto } from './dto/create_license.dto';
 import { CreateContactEmergencyDto } from './dto/create_contact_emergency.dto';
 import { ContactosEmergencia } from './entities/emergencyContacts.entity';
 import { UpdateContactEmergencyDto } from './dto/update_contact_emergency.dto';
-import { UpdateLicenseDto } from './dto/update_license.dto';
 import { ExamenPreocupacional } from './entities/examenPreocupacional.entity';
 import { CreateExamenPreocupacionalDto } from './dto/create_examen.dto';
 import { UpdateExamenPreocupacionalDto } from './dto/modify_examen.dto';
+import { DataSource } from 'typeorm';
+import { Service } from 'src/services/entities/service.entity';
+import * as bcrypt from 'bcrypt';
+import { UsersService } from 'src/users/users.service';
+import { Role } from 'src/roles/enums/role.enum';
 
 @Injectable()
 export class EmployeesService {
@@ -28,15 +33,17 @@ export class EmployeesService {
   constructor(
     @InjectRepository(Empleado)
     private employeeRepository: Repository<Empleado>,
+    private readonly dataSource: DataSource,
     @InjectRepository(Licencias)
     private readonly licenciaRepository: Repository<Licencias>,
     @InjectRepository(ContactosEmergencia)
     private readonly emergencyContactRepository: Repository<ContactosEmergencia>,
     @InjectRepository(ExamenPreocupacional)
     private readonly examenPreocupacionalRepository: Repository<ExamenPreocupacional>,
+    private usersService: UsersService, // Inyecta el servicio de usuarios
   ) {}
 
-  async create(createEmployeeDto: CreateEmployeeDto): Promise<Empleado> {
+  async create(createEmployeeDto: CreateFullEmployeeDto): Promise<Empleado> {
     this.logger.log(
       `Creando empleado: ${createEmployeeDto.nombre} ${createEmployeeDto.apellido}`,
     );
@@ -63,8 +70,29 @@ export class EmployeesService {
       );
     }
 
-    const employee = this.employeeRepository.create(createEmployeeDto);
-    return this.employeeRepository.save(employee);
+    // Crear el empleado
+    const newEmployee = this.employeeRepository.create(createEmployeeDto);
+    const savedEmployee = await this.employeeRepository.save(newEmployee);
+
+    // Crear automáticamente un usuario para el empleado
+    try {
+      await this.usersService.create({
+        nombre: `${createEmployeeDto.nombre} ${createEmployeeDto.apellido}`,
+        email: createEmployeeDto.email,
+        password: createEmployeeDto.documento,
+        roles: [Role.OPERARIO], // Rol por defecto para empleados
+        empleadoId: savedEmployee.id,
+      });
+
+      // Opcionalmente, enviar un correo con las credenciales iniciales
+    } catch (error) {
+      this.logger.error(
+        `Error al crear usuario para empleado: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+      );
+      // Decide si quieres manejar este error o simplemente registrarlo
+    }
+
+    return savedEmployee;
   }
 
   async findAll(paginationDto: PaginationDto): Promise<any> {
@@ -184,6 +212,10 @@ export class EmployeesService {
         );
       }
     }
+    if (updateEmployeeDto.password) {
+      const hashedPassword = await bcrypt.hash(updateEmployeeDto.password, 10);
+      updateEmployeeDto.password = hashedPassword;
+    }
 
     Object.assign(employee, updateEmployeeDto);
     return this.employeeRepository.save(employee);
@@ -248,7 +280,7 @@ export class EmployeesService {
       );
     }
     if (!employee.licencia) {
-      const licencia = await this.licenciaRepository.create({
+      const licencia = this.licenciaRepository.create({
         categoria: createLicenseDto.categoria,
         fecha_expedicion: createLicenseDto.fecha_expedicion,
         fecha_vencimiento: createLicenseDto.fecha_vencimiento,
@@ -271,7 +303,7 @@ export class EmployeesService {
     );
   }
 
-  async findLicenciasByEmpleadoId(empleadoId: number): Promise<Empleado> {
+  async findLicenciasByEmpleadoId(empleadoId: number): Promise<Licencias> {
     const employee = await this.employeeRepository.findOne({
       where: { id: empleadoId },
       relations: ['licencia'],
@@ -281,7 +313,7 @@ export class EmployeesService {
         `Empleado con id ${empleadoId} no encontrado`,
       );
     }
-    return employee;
+    return employee.licencia;
   }
 
   async createEmergencyContact(
@@ -298,7 +330,7 @@ export class EmployeesService {
       );
     }
 
-    const contactoEmergencia = await this.emergencyContactRepository.create({
+    const contactoEmergencia = this.emergencyContactRepository.create({
       nombre: createEmergencyContactDto.nombre,
       apellido: createEmergencyContactDto.apellido,
       parentesco: createEmergencyContactDto.parentesco,
@@ -318,20 +350,74 @@ export class EmployeesService {
     }
     return contact;
   }
+  async findLicencias(
+    days: number = 0,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{
+    data: Licencias[];
+    totalItems: number;
+    currentPage: number;
+    totalPages: number;
+  }> {
+    this.logger.log(
+      `Buscando licencias (página ${page}, límite ${limit}, días: ${days})`,
+    );
 
-  async findLicencias(): Promise<Licencias[]> {
-    const licencias = await this.licenciaRepository.find({
-      relations: ['empleado'],
-    });
-    if (!licencias) {
-      throw new NotFoundException(`No se encontraron licencias`);
+    try {
+      const queryBuilder = this.licenciaRepository
+        .createQueryBuilder('licencia')
+        .leftJoinAndSelect('licencia.empleado', 'empleado')
+        .orderBy('licencia.fecha_vencimiento', 'ASC');
+
+      // Si se especifica el número de días, filtrar por fecha de vencimiento
+      if (days > 0) {
+        const today = new Date();
+        const futureDateLimit = new Date(
+          today.getTime() + days * 24 * 60 * 60 * 1000,
+        );
+
+        queryBuilder.where(
+          'licencia.fecha_vencimiento BETWEEN :today AND :futureDateLimit',
+          {
+            today: today.toISOString().split('T')[0],
+            futureDateLimit: futureDateLimit.toISOString().split('T')[0],
+          },
+        );
+      }
+
+      // Obtener el total de licencias
+      const totalItems = await queryBuilder.getCount();
+
+      // Obtener licencias paginadas
+      const licencias = await queryBuilder
+        .skip((page - 1) * limit)
+        .take(limit)
+        .getMany();
+
+      if (licencias.length === 0) {
+        this.logger.warn(
+          'No se encontraron licencias con los criterios especificados',
+        );
+      }
+
+      return {
+        data: licencias,
+        totalItems,
+        currentPage: page,
+        totalPages: Math.ceil(totalItems / limit),
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error al buscar licencias: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+      );
+      throw new NotFoundException('No se pudieron encontrar licencias');
     }
-    return licencias;
   }
 
   async findEmergencyContactsByEmpleadoId(
     empleadoId: number,
-  ): Promise<Empleado> {
+  ): Promise<ContactosEmergencia[]> {
     const employee = await this.employeeRepository.findOne({
       where: { id: empleadoId },
       relations: ['emergencyContacts'],
@@ -341,7 +427,7 @@ export class EmployeesService {
         `Empleado con id ${empleadoId} no encontrado`,
       );
     }
-    return employee;
+    return employee.emergencyContacts;
   }
 
   async updateEmergencyContact(
@@ -429,27 +515,56 @@ export class EmployeesService {
     await this.licenciaRepository.remove(licencia);
     return { message: `Licencia eliminada correctamente` };
   }
-
-  async findLicensesToExpire(): Promise<Licencias[]> {
+  async findLicensesToExpire(
+    days: number = 30,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{
+    data: Licencias[];
+    totalItems: number;
+    currentPage: number;
+    totalPages: number;
+  }> {
     const today = new Date();
-    const thirtyDaysLater = new Date(
-      today.getTime() + 30 * 24 * 60 * 60 * 1000,
+    const futureDateLimit = new Date(
+      today.getTime() + days * 24 * 60 * 60 * 1000,
     );
 
-    this.logger.log('Buscando licencias que vencen en los próximos 30 días');
+    this.logger.log(
+      `Buscando licencias que vencen en los próximos ${days} días (página ${page}, límite ${limit})`,
+    );
 
     try {
-      const licensesToExpire = await this.licenciaRepository.find({
-        where: {
-          fecha_vencimiento: Between(today, thirtyDaysLater),
-        },
-        relations: ['empleado'],
-      });
+      const queryBuilder = this.licenciaRepository
+        .createQueryBuilder('licencia')
+        .leftJoinAndSelect('licencia.empleado', 'empleado')
+        .where(
+          'licencia.fecha_vencimiento BETWEEN :today AND :futureDateLimit',
+          {
+            today: today.toISOString().split('T')[0],
+            futureDateLimit: futureDateLimit.toISOString().split('T')[0],
+          },
+        )
+        .orderBy('licencia.fecha_vencimiento', 'ASC');
 
-      return licensesToExpire;
+      // Obtener el total de licencias por vencer
+      const totalItems = await queryBuilder.getCount();
+
+      // Obtener licencias paginadas
+      const licensesToExpire = await queryBuilder
+        .skip((page - 1) * limit)
+        .take(limit)
+        .getMany();
+
+      return {
+        data: licensesToExpire,
+        totalItems,
+        currentPage: page,
+        totalPages: Math.ceil(totalItems / limit),
+      };
     } catch (error) {
       this.logger.error(
-        `Error al buscar licencias por vencer: ${error.message}`,
+        `Error al buscar licencias por vencer: ${error instanceof Error ? error.message : 'Error desconocido'}`,
       );
       throw new NotFoundException(
         'No se pudieron encontrar licencias por vencer',
@@ -476,6 +591,19 @@ export class EmployeesService {
     }
     return employee.examenesPreocupacionales;
   }
+  async findProximosServiciosPorEmpleadoId(empleadoId: number) {
+    const ahora = new Date();
+
+    return this.dataSource
+      .getRepository(Service)
+      .createQueryBuilder('service')
+      .innerJoin('service.asignaciones', 'asignacion')
+      .leftJoinAndSelect('service.cliente', 'cliente')
+      .where('asignacion.empleadoId = :empleadoId', { empleadoId })
+      .andWhere('service.fechaProgramada > :ahora', { ahora })
+      .orderBy('service.fechaProgramada', 'ASC')
+      .getMany();
+  }
 
   async createExamenPreocupacional(
     createExamenPreocupacionalDto: CreateExamenPreocupacionalDto,
@@ -488,14 +616,13 @@ export class EmployeesService {
         `Empleado con id ${createExamenPreocupacionalDto.empleado_id} no encontrado`,
       );
     }
-    const examenPreocupacional =
-      await this.examenPreocupacionalRepository.create({
-        fecha_examen: createExamenPreocupacionalDto.fecha_examen,
-        resultado: createExamenPreocupacionalDto.resultado,
-        observaciones: createExamenPreocupacionalDto.observaciones,
-        realizado_por: createExamenPreocupacionalDto.realizado_por,
-        empleado: employee,
-      });
+    const examenPreocupacional = this.examenPreocupacionalRepository.create({
+      fecha_examen: createExamenPreocupacionalDto.fecha_examen,
+      resultado: createExamenPreocupacionalDto.resultado,
+      observaciones: createExamenPreocupacionalDto.observaciones,
+      realizado_por: createExamenPreocupacionalDto.realizado_por,
+      empleado: employee,
+    });
     await this.examenPreocupacionalRepository.save(examenPreocupacional);
 
     const examenCreado = await this.examenPreocupacionalRepository.findOne({
@@ -570,5 +697,18 @@ export class EmployeesService {
       totalDisponibles,
       totalInactivos,
     };
+  }
+
+  // Añadir método para buscar empleado por email
+  async findByEmail(email: string): Promise<Empleado> {
+    const employee = await this.employeeRepository.findOne({
+      where: { email },
+    });
+
+    if (!employee) {
+      throw new NotFoundException(`Empleado con email ${email} no encontrado`);
+    }
+
+    return employee;
   }
 }

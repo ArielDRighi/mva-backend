@@ -65,7 +65,7 @@ export class ContractExpirationService {
       }
     } catch (error: unknown) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
+        error instanceof Error ? error.message : 'Error desconocido';
       const errorStack = error instanceof Error ? error.stack : undefined;
       this.logger.error(
         `Error al verificar contratos expirados: ${errorMessage}`,

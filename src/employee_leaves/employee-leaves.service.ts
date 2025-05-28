@@ -6,10 +6,11 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThanOrEqual, MoreThanOrEqual, Not } from 'typeorm';
-import { EmployeeLeave, LeaveStatus } from './entities/employee-leave.entity';
+import { EmployeeLeave } from './entities/employee-leave.entity';
 import { CreateEmployeeLeaveDto } from './dto/create-employee-leave.dto';
 import { UpdateEmployeeLeaveDto } from './dto/update-employee-leave.dto';
 import { EmployeesService } from '../employees/employees.service';
+import { differenceInCalendarDays } from 'date-fns';
 
 @Injectable()
 export class EmployeeLeavesService {
@@ -176,6 +177,27 @@ export class EmployeeLeavesService {
     Object.assign(leave, updateLeaveDto);
     return this.leaveRepository.save(leave);
   }
+  async reject(id: number, comentario?: string): Promise<EmployeeLeave> {
+    this.logger.log(`Rechazando licencia con ID: ${id}`);
+
+    const leave = await this.findOne(id);
+
+    if (leave.aprobado === true) {
+      throw new BadRequestException(
+        `No se puede rechazar una licencia que ya fue aprobada`,
+      );
+    }
+
+    // Guardamos el comentario de rechazo
+    leave.comentarioRechazo =
+      comentario ?? 'Solicitud rechazada sin comentarios';
+
+    // Podrías eliminarla o marcarla como rechazada explícitamente
+    // En este ejemplo simplemente se conserva con comentario
+    await this.leaveRepository.save(leave);
+
+    return leave;
+  }
 
   async remove(id: number): Promise<{ message: string }> {
     const leave = await this.findOne(id);
@@ -196,7 +218,7 @@ export class EmployeeLeavesService {
         employeeId,
         fechaInicio: LessThanOrEqual(endOfDay),
         fechaFin: MoreThanOrEqual(startOfDay),
-        status: LeaveStatus.APROBADO,
+        aprobado: true,
       },
     });
 
@@ -215,7 +237,7 @@ export class EmployeeLeavesService {
       where: {
         fechaInicio: LessThanOrEqual(endOfDay),
         fechaFin: MoreThanOrEqual(startOfDay),
-        status: LeaveStatus.APROBADO,
+        aprobado: true,
       },
       relations: ['employee'],
     });
@@ -225,23 +247,22 @@ export class EmployeeLeavesService {
     this.logger.log(`Aprobando licencia con ID: ${id}`);
 
     const leave = await this.findOne(id);
-    if (leave.status === LeaveStatus.APROBADO) {
+    if (leave.aprobado === true) {
       throw new BadRequestException(
         `La licencia con ID ${id} ya está aprobada`,
       );
     }
 
-    // Convertir las fechas a objetos Date si son strings
     const fechaInicio =
       leave.fechaInicio instanceof Date
         ? leave.fechaInicio
         : new Date(leave.fechaInicio);
+
     const fechaFin =
       leave.fechaFin instanceof Date
         ? leave.fechaFin
         : new Date(leave.fechaFin);
 
-    // Verificar disponibilidad de días
     const employee = await this.employeesService.findOne(leave.employeeId);
     if (!employee) {
       throw new NotFoundException(
@@ -249,11 +270,10 @@ export class EmployeeLeavesService {
       );
     }
 
-    // Calcular días usados
-    const diasUsados = fechaFin.getTime() - fechaInicio.getTime();
-    const diasUsadosEnLicencia = Math.ceil(diasUsados / (1000 * 3600 * 24));
+    // Calcular días usados (incluyendo fechaInicio y fechaFin)
+    const diasUsadosEnLicencia =
+      differenceInCalendarDays(fechaFin, fechaInicio) + 1;
     const diasDisponibles = employee.diasVacacionesRestantes;
-    console.log('employee: ', employee);
 
     this.logger.log(`Días usados en licencia: ${diasUsadosEnLicencia}`);
     this.logger.log(`Días disponibles: ${diasDisponibles}`);
@@ -264,7 +284,6 @@ export class EmployeeLeavesService {
       );
     }
 
-    // Actualizar los días del empleado
     const diasRestantes = diasDisponibles - diasUsadosEnLicencia;
 
     this.logger.log(
@@ -277,23 +296,7 @@ export class EmployeeLeavesService {
         employee.diasVacacionesUsados + diasUsadosEnLicencia,
     });
 
-    // Aprobar la licencia
-    leave.status = LeaveStatus.APROBADO;
-
-    await this.leaveRepository.save(leave);
-
-    return await this.findOne(id);
-  }
-
-  async reject(id: number) {
-    const leave = await this.findOne(id);
-    if (leave.status === LeaveStatus.RECHAZADO) {
-      throw new BadRequestException(
-        `La licencia con ID ${id} ya está rechazada`,
-      );
-    }
-
-    leave.status = LeaveStatus.RECHAZADO;
+    leave.aprobado = true;
 
     await this.leaveRepository.save(leave);
 

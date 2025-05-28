@@ -44,7 +44,7 @@ export class ContractualConditionsController {
     } catch (error: unknown) {
       // Si ocurre un error, lo lanzamos con un mensaje adecuado
       const message =
-        error instanceof Error ? error.message : 'Unknown error occurred';
+        error instanceof Error ? error.message : 'Error desconocido ocurrido';
       throw new HttpException(message, HttpStatus.BAD_REQUEST);
     }
   }
@@ -60,7 +60,7 @@ export class ContractualConditionsController {
       );
     } catch (error: unknown) {
       const message =
-        error instanceof Error ? error.message : 'Unknown error occurred';
+        error instanceof Error ? error.message : 'Error desconocido ocurrido';
       throw new HttpException(message, HttpStatus.BAD_REQUEST);
     }
   }
@@ -77,7 +77,7 @@ export class ContractualConditionsController {
       );
     } catch (error: unknown) {
       const message =
-        error instanceof Error ? error.message : 'Unknown error occurred';
+        error instanceof Error ? error.message : 'Error desconocido ocurrido';
       throw new HttpException(message, HttpStatus.BAD_REQUEST);
     }
   }
@@ -93,7 +93,7 @@ export class ContractualConditionsController {
       );
     } catch (error: unknown) {
       const message =
-        error instanceof Error ? error.message : 'Unknown error occurred';
+        error instanceof Error ? error.message : 'Error desconocido ocurrido';
       throw new HttpException(message, HttpStatus.BAD_REQUEST);
     }
   }
@@ -111,7 +111,7 @@ export class ContractualConditionsController {
       );
     } catch (error: unknown) {
       const message =
-        error instanceof Error ? error.message : 'Unknown error occurred';
+        error instanceof Error ? error.message : 'Error desconocido ocurrido';
       throw new HttpException(message, HttpStatus.BAD_REQUEST);
     }
   }
@@ -125,7 +125,7 @@ export class ContractualConditionsController {
       );
     } catch (error: unknown) {
       const message =
-        error instanceof Error ? error.message : 'Unknown error occurred';
+        error instanceof Error ? error.message : 'Error desconocido ocurrido';
       throw new HttpException(message, HttpStatus.BAD_REQUEST);
     }
   }

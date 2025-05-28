@@ -185,12 +185,9 @@ import { CreateContactEmergencyDto } from './__mocks__/dto/create_contact_emerge
 import { UpdateContactEmergencyDto } from './dto/update_contact_emergency.dto';
 import { CreateExamenPreocupacionalDto } from './__mocks__/dto/create_examen.dto';
 import { UpdateExamenPreocupacionalDto } from './dto/modify_examen.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../roles/guards/roles.guard';
 
 describe('EmployeesController', () => {
   let controller: EmployeesController;
-  let service: EmployeesService;
 
   const mockEmployeesService = {
     create: jest.fn(),
@@ -211,6 +208,8 @@ describe('EmployeesController', () => {
     removeExamenPreocupacional: jest.fn(),
     findExamenesByEmpleadoId: jest.fn(),
     findLicenciasByEmpleadoId: jest.fn(),
+    findLicensesToExpire: jest.fn(),
+    findLicencias: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -683,6 +682,91 @@ describe('EmployeesController', () => {
       expect(
         mockEmployeesService.findLicenciasByEmpleadoId,
       ).toHaveBeenCalledWith(1);
+    });
+  });
+
+  describe('findLicensesToExpire', () => {
+    const mockPaginatedLicenses = {
+      data: [
+        {
+          licencia_id: 1,
+          categoria: 'B',
+          fecha_expedicion: new Date('2022-01-15'),
+          fecha_vencimiento: new Date('2023-06-01'),
+          empleado: {
+            id: 1,
+            nombre: 'Juan',
+            apellido: 'Pérez',
+            documento: '12345678',
+          },
+        },
+      ],
+      totalItems: 1,
+      currentPage: 1,
+      totalPages: 1,
+    };
+
+    it('should return licenses about to expire with pagination and custom days', async () => {
+      mockEmployeesService.findLicensesToExpire.mockResolvedValue(
+        mockPaginatedLicenses,
+      );
+
+      const result = await controller.findLicensesToExpire(60, 1, 10);
+
+      expect(result).toEqual(mockPaginatedLicenses);
+      expect(mockEmployeesService.findLicensesToExpire).toHaveBeenCalledWith(
+        60,
+        1,
+        10,
+      );
+    });
+  });
+
+  describe('findLicencias', () => {
+    const mockPaginatedLicencias = {
+      data: [
+        {
+          licencia_id: 1,
+          categoria: 'B',
+          fecha_expedicion: new Date('2022-01-15'),
+          fecha_vencimiento: new Date('2023-06-01'),
+          empleado: {
+            id: 1,
+            nombre: 'Juan',
+            apellido: 'Pérez',
+            documento: '12345678',
+          },
+        },
+      ],
+      totalItems: 1,
+      currentPage: 1,
+      totalPages: 1,
+    };
+
+    it('should return all licenses with pagination', async () => {
+      mockEmployeesService.findLicencias.mockResolvedValue(
+        mockPaginatedLicencias,
+      );
+
+      const result = await controller.findLicencias(0, 1, 10);
+
+      expect(result).toEqual(mockPaginatedLicencias);
+      expect(mockEmployeesService.findLicencias).toHaveBeenCalledWith(0, 1, 10);
+    });
+
+    it('should return licenses filtered by days parameter', async () => {
+      mockEmployeesService.findLicencias.mockResolvedValue(
+        mockPaginatedLicencias,
+      );
+
+      const result = await controller.findLicencias(30, 1, 10);
+
+      expect(result).toEqual(mockPaginatedLicencias);
+      expect(mockEmployeesService.findLicencias).toHaveBeenCalledWith(
+        30,
+        1,
+        10,
+      );
     });
   });
 });

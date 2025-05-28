@@ -18,5 +18,5 @@ export class CreateAdvanceDto {
     }
     return value;
   })
-  status: string = 'pending';  // Valor por defecto es 'pending'
+  status: string = 'pending'; // Valor por defecto es 'pending'
 }

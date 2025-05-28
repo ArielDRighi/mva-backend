@@ -1,4 +1,17 @@
-import { Controller, Get, Post, Body, Param, Request, UseGuards, UseInterceptors, Patch, Req, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Request,
+  UseGuards,
+  UseInterceptors,
+  Patch,
+  Req,
+  UnauthorizedException,
+  Query,
+} from '@nestjs/common';
 import { SalaryAdvanceService } from './salary_advance.service';
 import { CreateAdvanceDto } from './dto/create-salary_advance.dto';
 import { AuthGuard } from '@nestjs/passport';
@@ -13,34 +26,36 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 @Controller('salary-advances')
 export class SalaryAdvanceController {
   constructor(private readonly advanceService: SalaryAdvanceService) {}
-  
-  @Post()
-  @UseGuards(AuthGuard('jwt'))  // Asegúrate de usar el guard de JWT
-  create(@Body() dto: CreateAdvanceDto, @Request() req) {
-    // Pasa tanto el dto como el user (req.user) al servicio
-    return this.advanceService.createAdvance(dto, req.user);
-  }
 
+  @Post()
+  @UseGuards(AuthGuard('jwt')) // Asegúrate de usar el guard de JWT
+  create(@Body() dto: CreateAdvanceDto, @Request() req: { user?: any }) {
+    // Pasa tanto el dto como el user (req.user) al servicio
+    return this.advanceService.createAdvance(dto, req?.user);
+  }
 
   @Get()
-  findAll() {
-    return this.advanceService.getAll();
+  findAll(
+    @Query('status') status?: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    return this.advanceService.getAll(status, page, limit);
   }
- 
+
   @Roles(Role.ADMIN)
-  @Patch(':id')
+  @Patch('update/:id')
   approveOrRejectAdvance(
     @Param('id') id: string,
     @Body() dto: ApproveAdvanceDto,
-    @Req() req: any
+    @Req() req: { user?: { userId: string } },
   ) {
-      
     // Cambiar sub a userId
-    const adminId = req.user?.userId;  // Ahora accedemos a userId en lugar de sub
+    const adminId: string | undefined = req.user?.userId; // Ahora accedemos a userId en lugar de sub
     if (!adminId) {
       throw new UnauthorizedException();
     }
-      
+
     if (dto.status === 'approved') {
       console.log('Approving advance');
       return this.advanceService.approve(id, adminId);
@@ -49,5 +64,14 @@ export class SalaryAdvanceController {
       return this.advanceService.reject(id);
     }
   }
-    
+
+  @Get('employee')
+  getEmployeeAdvances(@Request() req: { user?: any }) {
+    // Asegúrate de que el usuario esté autenticado
+    if (!req.user) {
+      throw new UnauthorizedException('Usuario no autenticado');
+    }
+    // Pasa el user al servicio
+    return this.advanceService.getEmployeeAdvances(req.user);
+  }
 }

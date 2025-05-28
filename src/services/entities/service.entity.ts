@@ -59,12 +59,7 @@ export class Service {
   @Column({ name: 'cantidad_empleados', default: 2 })
   cantidadEmpleados: number = 2; // Siempre será 2
 
-  // Añadimos identificadores específicos para empleadoA y empleadoB con tipo explícito
-  @Column({ name: 'empleado_a_id', type: 'int', nullable: true })
-  empleadoAId: number | null;
-
-  @Column({ name: 'empleado_b_id', type: 'int', nullable: true })
-  empleadoBId: number | null;
+  // Añadimos identificadores específicos para empleadoA y empleadoB con tipo explíci
 
   @Column({ name: 'cantidad_vehiculos', default: 1 })
   cantidadVehiculos: number;

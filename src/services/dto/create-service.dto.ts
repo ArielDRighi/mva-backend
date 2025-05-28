@@ -11,6 +11,7 @@ import {
   ValidateNested,
   Min,
   IsDateString,
+  IsInt,
 } from 'class-validator';
 import {
   ServiceState,
@@ -75,6 +76,7 @@ export class CreateServiceDto {
   @IsOptional()
   notas?: string;
 
+  @IsOptional()
   @IsBoolean()
   asignacionAutomatica: boolean;
 
@@ -104,11 +106,19 @@ export class CreateServiceDto {
   condicionContractualId?: number;
 
   @IsOptional()
+  @IsBoolean()
+  forzar?: boolean;
+
+  @IsOptional()
   @IsDateString()
   fechaFinAsignacion?: string;
 }
 
 export class ResourceAssignmentDto {
+  @IsOptional()
+  @IsEnum(['A', 'B'])
+  rol?: 'A' | 'B';
+
   @IsOptional()
   @IsNumber()
   empleadoId?: number;

@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import {
   ChangePasswordDto,
@@ -11,7 +7,6 @@ import {
 } from './dto/login.dto';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
-import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class AuthService {
@@ -29,12 +24,12 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto) {
-    const { username, password } = loginDto;
+    const { email, password } = loginDto;
 
     // Buscar usuario por username
-    const user = await this.usersService.findByUsername(username);
+    const user = await this.usersService.findByEmail(email);
     console.log('Usuario encontrado:', user);
-
+    console.log('Contraseña proporcionada:', password);
     // Si no se encuentra el usuario o la contraseña es incorrecta, lanzar excepción
     if (!user || !(await user.comparePassword(password))) {
       throw new UnauthorizedException('Credenciales inválidas');

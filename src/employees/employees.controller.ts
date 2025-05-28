@@ -1,4 +1,3 @@
-import { Role } from 'src/roles/enums/role.enum';
 import {
   Controller,
   Get,
@@ -11,9 +10,11 @@ import {
   UseGuards,
   Patch,
   Query,
+  DefaultValuePipe,
 } from '@nestjs/common';
+import { Role } from 'src/roles/enums/role.enum';
 import { EmployeesService } from './employees.service';
-import { CreateEmployeeDto } from './dto/create_employee.dto';
+import { CreateFullEmployeeDto } from './dto/create_employee.dto';
 import { UpdateEmployeeDto } from './dto/update_employee.dto';
 import { Empleado } from './entities/employee.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -75,7 +76,7 @@ export class EmployeesController {
   }
 
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
   @Post('emergency/:empleadoId')
   async createEmergencyContact(
     @Body() createEmergencyContactDto: CreateContactEmergencyDto,
@@ -88,16 +89,17 @@ export class EmployeesController {
   }
 
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
   @Delete('emergency/delete/:contactoId')
   async removeEmergencyContact(
     @Param('contactoId', ParseIntPipe) contactoId: number,
   ): Promise<{ message: string }> {
     return await this.employeesService.removeEmergencyContact(contactoId);
   }
+
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
-  @Put('emergency/:contactoId')
+  @Put('emergency/modify/:contactoId')
   async updateEmergencyContact(
     @Body() updateEmergencyContactDto: UpdateContactEmergencyDto,
     @Param('contactoId', ParseIntPipe) contactoId: number,
@@ -113,21 +115,33 @@ export class EmployeesController {
   @Get('emergency/:empleadoId')
   async findEmergencyContactsByEmpleadoId(
     @Param('empleadoId', ParseIntPipe) empleadoId: number,
-  ): Promise<Empleado> {
-    return await this.employeesService.findEmergencyContactsByEmpleadoId(
-      empleadoId,
-    );
+  ) {
+    try {
+      return await this.employeesService.findEmergencyContactsByEmpleadoId(
+        empleadoId,
+      );
+    } catch (error) {
+      console.error('Error finding emergency contacts:', error);
+    }
   }
-
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
-  @Get('licences/to/expire')
-  async findLicensesToExpire(): Promise<Licencias[]> {
-    return await this.employeesService.findLicensesToExpire();
+  @Get('licencias/por-vencer')
+  async findLicensesToExpire(
+    @Query('dias', new DefaultValuePipe(30), ParseIntPipe) dias: number,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ): Promise<{
+    data: Licencias[];
+    totalItems: number;
+    currentPage: number;
+    totalPages: number;
+  }> {
+    return await this.employeesService.findLicensesToExpire(dias, page, limit);
   }
 
   @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
   @Put('licencia/update/:empleadoId')
   async updateLicencia(
     @Body() updateLicenseDto: UpdateLicenseDto,
@@ -155,33 +169,49 @@ export class EmployeesController {
     @Body() createEmployeeDto: CreateLicenseDto,
     @Param('empleadoId', ParseIntPipe) empleadoId: number,
   ): Promise<Licencias> {
+    console.log('Empleado ID:', empleadoId);
+    console.log('Create License DTO:', createEmployeeDto);
     return await this.employeesService.createLicencia(
       createEmployeeDto,
       empleadoId,
     );
   }
-
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
   @Get('licencia/:empleadoId')
   async findLicenciasByEmpleadoId(
     @Param('empleadoId', ParseIntPipe) empleadoId: number,
-  ): Promise<Empleado> {
+  ): Promise<Licencias> {
     return await this.employeesService.findLicenciasByEmpleadoId(empleadoId);
+  }
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @Get(':id/proximos-servicios')
+  async obtenerProximosServicios(@Param('id', ParseIntPipe) id: number) {
+    return await this.employeesService.findProximosServiciosPorEmpleadoId(id);
   }
 
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
   @Get('licencias')
-  async findLicencias(): Promise<Licencias[]> {
-    return await this.employeesService.findLicencias();
+  async findLicencias(
+    @Query('dias', new DefaultValuePipe(0), ParseIntPipe) dias: number,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ): Promise<{
+    data: Licencias[];
+    totalItems: number;
+    currentPage: number;
+    totalPages: number;
+  }> {
+    return await this.employeesService.findLicencias(dias, page, limit);
   }
 
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Post()
   async create(
-    @Body() createEmployeeDto: CreateEmployeeDto,
+    @Body() createEmployeeDto: CreateFullEmployeeDto,
   ): Promise<Empleado> {
     return this.employeesService.create(createEmployeeDto);
   }

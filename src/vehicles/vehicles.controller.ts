@@ -20,7 +20,6 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../roles/guards/roles.guard';
 import { Roles } from '../roles/decorators/roles.decorator';
 import { Role } from '../roles/enums/role.enum';
-import { ResourceState } from '../common/enums/resource-states.enum';
 
 @Controller('vehicles')
 @UseGuards(JwtAuthGuard)
@@ -42,6 +41,29 @@ export class VehiclesController {
     totalAsignado: number;
   }> {
     return this.vehiclesService.getTotalVehicles();
+  }
+  @Get('documentos-por-vencer')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  async getDocumentosPorVencer(
+    @Query('dias', new DefaultValuePipe(30), ParseIntPipe) dias: number,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ): Promise<{
+    segurosProximosAVencer: {
+      data: Vehicle[];
+      totalItems: number;
+      currentPage: number;
+      totalPages: number;
+    };
+    vtvProximosAVencer: {
+      data: Vehicle[];
+      totalItems: number;
+      currentPage: number;
+      totalPages: number;
+    };
+  }> {
+    return this.vehiclesService.getExpiringDocuments(dias, page, limit);
   }
 
   @Get()

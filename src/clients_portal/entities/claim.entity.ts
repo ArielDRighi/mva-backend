@@ -103,4 +103,7 @@ export class Claim {
 
   @Column({ name: 'notas_internas', type: 'text', nullable: true })
   notasInternas: string; // Notas visibles solo para personal interno
+
+  @Column({ name: 'empleado_asignado', type: 'text', nullable: true })
+  empleadoAsignado: string;
 }

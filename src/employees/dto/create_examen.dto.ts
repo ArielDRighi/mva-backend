@@ -1,25 +1,31 @@
 import { Transform, Type } from 'class-transformer';
-import { IsDate, IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import {
+  IsDate,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class CreateExamenPreocupacionalDto {
-  @IsNotEmpty()
+  @IsOptional()
   @Transform(({ value }) => new Date(value))
   @Type(() => Date)
   fecha_examen: Date;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   resultado: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   observaciones: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   realizado_por: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsNumber()
   empleado_id: number;
 }
