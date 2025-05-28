@@ -81,12 +81,12 @@ export class MailerService {
     clientAddress?: string, // Dirección del cliente donde se realizará el servicio
     serviceStartDate?: string, // Fecha de inicio del servicio según la condición contractual
   ): Promise<void> {
-    const subject = '🚚 ¡Nueva ruta de trabajo asignada!';
+    const subject = '🚚 ¡Nueva tarea de trabajo asignada!';
 
     // Crear contenido del cuerpo del correo
     let body = `
       <p style="font-size: 16px;">¡Hola ${name || 'Empleado'}!</p>
-      <p style="font-size: 16px;">Se te ha asignado una nueva ruta de trabajo para el día <strong>${taskDate || 'fecha no especificada'}</strong>.</p>`;
+      <p style="font-size: 16px;">Se te ha asignado una nueva tarea de trabajo para el día <strong>${taskDate || 'fecha no especificada'}</strong>.</p>`;
 
     // Agregar la información de dirección y fecha de inicio si están disponibles
     if (clientAddress || serviceStartDate) {
@@ -181,11 +181,11 @@ export class MailerService {
     clientAddress?: string, // Dirección del cliente donde se realizará el servicio
     serviceStartDate?: string, // Fecha de inicio del servicio según la condición contractual
   ): Promise<void> {
-    const subject = '🔔 ¡Tu ruta asignada sufrió modificaciones!';
+    const subject = '🔔 ¡Tu tarea asignada sufrió modificaciones!';
 
     let body = `
       <p style="font-size: 16px;">¡Hola ${name || 'Empleado'}!</p>
-      <p style="font-size: 16px;">Queremos informarte que tu ruta asignada ha sido actualizada para el día <strong>${taskDate || 'fecha no especificada'}</strong>.</p>`;
+      <p style="font-size: 16px;">Queremos informarte que tu tarea asignada ha sido actualizada para el día <strong>${taskDate || 'fecha no especificada'}</strong>.</p>`;
 
     // Agregar la información de dirección y fecha de inicio si están disponibles
     if (clientAddress || serviceStartDate) {
