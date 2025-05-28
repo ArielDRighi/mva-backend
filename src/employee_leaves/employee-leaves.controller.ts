@@ -8,6 +8,8 @@ import {
   Delete,
   UseGuards,
   ParseIntPipe,
+  Query,
+  DefaultValuePipe,
 } from '@nestjs/common';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -17,6 +19,7 @@ import { Role } from '../roles/enums/role.enum';
 import { EmployeeLeavesService } from './employee-leaves.service';
 import { CreateEmployeeLeaveDto } from './dto/create-employee-leave.dto';
 import { UpdateEmployeeLeaveDto } from './dto/update-employee-leave.dto';
+import { LeaveType } from './entities/employee-leave.entity';
 
 @Controller('employee-leaves')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -28,10 +31,18 @@ export class EmployeeLeavesController {
     return this.leavesService.create(createLeaveDto);
   }
 
-  @Get()
-  findAll() {
-    return this.leavesService.findAll();
-  }
+@Roles(Role.ADMIN, Role.SUPERVISOR)
+@Get()
+findAll(
+  @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+  @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  @Query('search') search?: string,
+  @Query('tipoLicencia') tipoLicencia?: LeaveType,
+) {
+  return this.leavesService.findAll(page, limit, search, tipoLicencia);
+}
+
+
 
   @Get(':id')
   findOne(@Param('id') id: string) {
