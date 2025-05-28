@@ -191,21 +191,23 @@ export class EmployeesController {
     return await this.employeesService.findProximosServiciosPorEmpleadoId(id);
   }
 
-  @UseGuards(RolesGuard)
-  @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
-  @Get('licencias')
-  async findLicencias(
-    @Query('dias', new DefaultValuePipe(0), ParseIntPipe) dias: number,
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
-  ): Promise<{
-    data: Licencias[];
-    totalItems: number;
-    currentPage: number;
-    totalPages: number;
-  }> {
-    return await this.employeesService.findLicencias(dias, page, limit);
-  }
+ @UseGuards(RolesGuard)
+@Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
+@Get('licencias')
+async findLicencias(
+  @Query('dias', new DefaultValuePipe(0), ParseIntPipe) dias: number,
+  @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+  @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  @Query('search') search?: string,
+): Promise<{
+  data: Licencias[];
+  totalItems: number;
+  currentPage: number;
+  totalPages: number;
+}> {
+  return await this.employeesService.findLicencias(dias, page, limit, search);
+}
+
 
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
