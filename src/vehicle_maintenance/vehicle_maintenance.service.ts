@@ -140,6 +140,7 @@ export class VehicleMaintenanceService {
         skip,
         take: limit,
         order: { fechaMantenimiento: 'DESC' },
+        relations: ['vehicle'],
       }),
       this.maintenanceRepository.count(),
     ]);
