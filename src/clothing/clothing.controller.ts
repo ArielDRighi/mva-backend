@@ -37,14 +37,16 @@ export class ClothingController {
   async getAllClothingSpecs(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+    @Query('search') search?: string,
   ): Promise<{
     data: RopaTalles[];
     totalItems: number;
     currentPage: number;
     totalPages: number;
   }> {
-    return this.clothingService.getAllClothingSpecs(page, limit);
+    return this.clothingService.getAllClothingSpecs(page, limit, search);
   }
+
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   @HttpCode(HttpStatus.OK)

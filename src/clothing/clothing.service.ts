@@ -49,6 +49,7 @@ export class ClothingService {
   async getAllClothingSpecs(
     page: number = 1,
     limit: number = 10,
+    search: string = '',
   ): Promise<{
     data: RopaTalles[];
     totalItems: number;
@@ -56,18 +57,46 @@ export class ClothingService {
     totalPages: number;
   }> {
     try {
-      const [talles, total] = await this.tallesRepository.findAndCount({
-        relations: ['empleado'],
-        skip: (page - 1) * limit,
-        take: limit,
-      });
+      const queryBuilder = this.tallesRepository
+        .createQueryBuilder('ropaTalles')
+        .leftJoinAndSelect('ropaTalles.empleado', 'empleado');
 
-      // Devolver respuesta exitosa incluso con array vacío
+      if (search) {
+        const searchTerms = search.toLowerCase().split(' ');
+
+        queryBuilder.where(
+          `LOWER(empleado.nombre) ILIKE :term0
+  OR LOWER(empleado.apellido) ILIKE :term0
+  OR LOWER(empleado.documento) ILIKE :term0
+  OR LOWER(CAST(ropaTalles.calzado_talle AS TEXT)) ILIKE :term0
+  OR LOWER(CAST(ropaTalles.pantalon_talle AS TEXT)) ILIKE :term0
+  OR LOWER(CAST(ropaTalles.camisa_talle AS TEXT)) ILIKE :term0`,
+          { term0: `%${searchTerms[0]}%` },
+        );
+
+        // Términos adicionales con AND
+        for (let i = 1; i < searchTerms.length; i++) {
+          queryBuilder.andWhere(
+            `LOWER(UNACCENT(empleado.nombre)) LIKE :term${i}
+          OR LOWER(UNACCENT(empleado.apellido)) LIKE :term${i}
+          OR LOWER(UNACCENT(empleado.documento)) LIKE :term${i}
+          OR LOWER(UNACCENT(CAST(ropaTalles.calzado_talle AS TEXT))) LIKE :term${i}
+          OR LOWER(UNACCENT(CAST(ropaTalles.pantalon_talle AS TEXT))) LIKE :term${i}
+          OR LOWER(UNACCENT(CAST(ropaTalles.camisa_talle AS TEXT))) LIKE :term${i}`,
+            { [`term${i}`]: `%${searchTerms[i]}%` },
+          );
+        }
+      }
+
+      queryBuilder.skip((page - 1) * limit).take(limit);
+
+      const [data, totalItems] = await queryBuilder.getManyAndCount();
+
       return {
-        data: talles,
-        totalItems: total,
+        data,
+        totalItems,
         currentPage: page,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil(totalItems / limit),
       };
     } catch (error) {
       const errorMessage =
