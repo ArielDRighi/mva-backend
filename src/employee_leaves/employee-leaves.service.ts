@@ -90,8 +90,12 @@ export class EmployeeLeavesService {
 
     if (search) {
       queryBuilder.andWhere(
-        `unaccent(lower(employee.nombre)) LIKE unaccent(lower(:search)) OR
-       unaccent(lower(employee.apellido)) LIKE unaccent(lower(:search))`,
+        `(LOWER(employee.nombre) LIKE LOWER(:search) OR
+      LOWER(employee.apellido) LIKE LOWER(:search) OR
+      LOWER(employee.documento) LIKE LOWER(:search) OR
+      LOWER(employee.cargo) LIKE LOWER(:search) OR
+      LOWER(CAST(leave.tipoLicencia AS TEXT)) LIKE LOWER(:search) OR
+      LOWER(COALESCE(leave.comentarioRechazo, '')) LIKE LOWER(:search))`,
         { search: `%${search}%` },
       );
     }

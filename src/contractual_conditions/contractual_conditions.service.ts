@@ -22,6 +22,7 @@ export class ContractualConditionsService {
   async getAllContractualConditions(
     page: number = 1,
     limit: number = 10,
+    search?: string,
   ): Promise<Pagination<CondicionesContractuales>> {
     // Validamos que los parámetros de paginación sean válidos
     if (page < 1 || limit < 1) {
@@ -30,12 +31,28 @@ export class ContractualConditionsService {
       );
     }
 
-    // Obtener las condiciones contractuales con paginación
-    const [contractualConditions, total] =
-      await this.contractualConditionsRepository.findAndCount({
-        skip: (page - 1) * limit,
-        take: limit,
-      });
+    // Creamos el queryBuilder para poder aplicar filtros de búsqueda
+    const queryBuilder = this.contractualConditionsRepository
+      .createQueryBuilder('condicion')
+      .leftJoinAndSelect('condicion.cliente', 'cliente');
+
+    // Aplicamos filtro de búsqueda si se proporciona el parámetro search
+    if (search) {
+      queryBuilder.where(
+        '(condicion.tipo_de_contrato LIKE :search OR ' +
+          'condicion.condiciones_especificas LIKE :search OR ' +
+          'condicion.tipo_servicio LIKE :search OR ' +
+          'cliente.nombre LIKE :search OR ' +
+          'cliente.razon_social LIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
+
+    // Aplicamos la paginación
+    queryBuilder.skip((page - 1) * limit).take(limit);
+
+    // Obtener las condiciones contractuales con paginación y búsqueda
+    const [contractualConditions, total] = await queryBuilder.getManyAndCount();
 
     // Retornar resultados (aunque esté vacío)
     return {
