@@ -35,16 +35,20 @@ export class VehicleMaintenanceController {
     return this.maintenanceService.create(createMaintenanceDto);
   }
 
-  @Get()
-  async findAll(@Query() paginationDto: PaginationDto): Promise<{
-    data: VehicleMaintenanceRecord[];
-    total: number;
-    page: number;
-    limit: number;
-    pages: number;
-  }> {
-    return await this.maintenanceService.findAll(paginationDto);
-  }
+@Get()
+async findAll(
+  @Query('page') page = '1',
+  @Query('limit') limit = '10',
+  @Query('search') search?: string,
+) {
+  const paginationDto = {
+    page: Number(page),
+    limit: Number(limit),
+  };
+
+  return this.maintenanceService.findAll(paginationDto, search);
+}
+
 
   @Get('upcoming')
   findUpcoming(): Promise<VehicleMaintenanceRecord[]> {
