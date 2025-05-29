@@ -1,25 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Cliente = void 0;
-class Cliente {
-    clienteId;
-    nombre;
-    email;
-    cuit;
-    direccion;
-    telefono;
-    contacto_principal;
-    contacto_principal_telefono;
-    contactoObra1;
-    contacto_obra1_telefono;
-    contactoObra2;
-    contacto_obra2_telefono;
-    fecha_registro;
-    estado;
-    contratos;
-    servicios;
-    futurasLimpiezas;
-}
+var Cliente = (function () {
+    function Cliente() {
+    }
+    return Cliente;
+}());
 exports.Cliente = Cliente;
-exports.default = { Cliente };
+exports.default = { Cliente: Cliente };
 //# sourceMappingURL=client.entity.js.map
