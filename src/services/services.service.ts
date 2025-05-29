@@ -217,7 +217,6 @@ export class ServicesService {
     return this.findOne(service.id);
   }
 
-
   private async createGenerico(dto: CreateServiceDto): Promise<Service> {
     return this.createBaseService(dto);
   }
@@ -276,13 +275,13 @@ export class ServicesService {
         }
       }
 
-         if (!cliente && dto.tipoServicio !== ServiceType.CAPACITACION) {
-          throw new Error('No se pudo determinar el cliente');
-            }
+      if (!cliente && dto.tipoServicio !== ServiceType.CAPACITACION) {
+        throw new Error('No se pudo determinar el cliente');
+      }
 
-              if (cliente) {
-                    newService.cliente = cliente;
-                              }
+      if (cliente) {
+        newService.cliente = cliente;
+      }
 
       if (
         dto.tipoServicio &&
@@ -710,81 +709,84 @@ export class ServicesService {
   }
 
   async changeStatus(
-  id: number,
-  nuevoEstado: ServiceState,
-  comentarioIncompleto?: string,
-): Promise<Service> {
-  this.logger.log(`Cambiando estado del servicio ${id} a ${nuevoEstado}`);
+    id: number,
+    nuevoEstado: ServiceState,
+    comentarioIncompleto?: string,
+  ): Promise<Service> {
+    this.logger.log(`Cambiando estado del servicio ${id} a ${nuevoEstado}`);
 
-  const service = await this.findOne(id);
+    const service = await this.findOne(id);
 
-  // Validar transición de estado
-  this.validateStatusTransition(service.estado, nuevoEstado);
+    // Validar transición de estado
+    this.validateStatusTransition(service.estado, nuevoEstado);
 
-  // Validar comentario obligatorio para estado INCOMPLETO
-  if (nuevoEstado === ServiceState.INCOMPLETO && !comentarioIncompleto) {
-    throw new BadRequestException(
-      'Para cambiar un servicio a estado INCOMPLETO, debe proporcionar un comentario explicando el motivo',
-    );
-  }
-
-  // Al iniciar servicio
-  if (nuevoEstado === ServiceState.EN_PROGRESO) {
-    if (!service.fechaInicio) {
-      service.fechaInicio = new Date();
+    // Validar comentario obligatorio para estado INCOMPLETO
+    if (nuevoEstado === ServiceState.INCOMPLETO && !comentarioIncompleto) {
+      throw new BadRequestException(
+        'Para cambiar un servicio a estado INCOMPLETO, debe proporcionar un comentario explicando el motivo',
+      );
     }
 
-    // Cambiar estado recursos asignados a ASIGNADO
-    const assignments = await this.assignmentRepository.find({
-      where: { servicio: { id: service.id } },
-      relations: ['empleado', 'vehiculo', 'bano'],
-    });
+    // Al iniciar servicio
+    if (nuevoEstado === ServiceState.EN_PROGRESO) {
+      if (!service.fechaInicio) {
+        service.fechaInicio = new Date();
+      }
 
-    for (const assignment of assignments) {
-      if (assignment.empleado) {
-        await this.employeesService.update(assignment.empleado.id, {
-          estado: ResourceState.ASIGNADO,
-        });
+      // Cambiar estado recursos asignados a ASIGNADO
+      const assignments = await this.assignmentRepository.find({
+        where: { servicio: { id: service.id } },
+        relations: ['empleado', 'vehiculo', 'bano'],
+      });
+
+      for (const assignment of assignments) {
+        if (assignment.empleado) {
+          await this.employeesService.update(assignment.empleado.id, {
+            estado: ResourceState.ASIGNADO,
+          });
+        }
+        if (assignment.vehiculo) {
+          await this.vehiclesService.update(assignment.vehiculo.id, {
+            estado: ResourceState.ASIGNADO,
+          });
+        }
+        if (
+          assignment.bano &&
+          !service.banosInstalados?.includes(assignment.bano.baño_id)
+        ) {
+          await this.toiletsService.update(assignment.bano.baño_id, {
+            estado: ResourceState.ASIGNADO,
+          });
+        }
       }
-      if (assignment.vehiculo) {
-        await this.vehiclesService.update(assignment.vehiculo.id, {
-          estado: ResourceState.ASIGNADO,
-        });
+    }
+
+    // Al completar servicio
+    if (nuevoEstado === ServiceState.COMPLETADO) {
+      if (!service.fechaFin) {
+        service.fechaFin = new Date();
       }
+
+      // Si es servicio RETIRO, cambiar estado baños a EN_MANTENIMIENTO
       if (
-        assignment.bano &&
-        !service.banosInstalados?.includes(assignment.bano.baño_id)
+        service.tipoServicio === ServiceType.RETIRO &&
+        service.banosInstalados?.length > 0
       ) {
-        await this.toiletsService.update(assignment.bano.baño_id, {
-          estado: ResourceState.ASIGNADO,
-        });
+        for (const banoId of service.banosInstalados) {
+          await this.toiletsService.update(banoId, {
+            estado: ResourceState.MANTENIMIENTO,
+          });
+        }
       }
-    }
-  }
 
-  // Al completar servicio
-  if (nuevoEstado === ServiceState.COMPLETADO) {
-    if (!service.fechaFin) {
-      service.fechaFin = new Date();
-    }
-
-    // Si es servicio RETIRO, cambiar estado baños a EN_MANTENIMIENTO
-    if (
-      service.tipoServicio === ServiceType.RETIRO &&
-      service.banosInstalados?.length > 0
-    ) {
-      for (const banoId of service.banosInstalados) {
-        await this.toiletsService.update(banoId, {
-          estado: ResourceState.MANTENIMIENTO,
-        });
-      }
-    }
-
-    // ---------> Desactivar limpieza futura si es limpieza
-    this.logger.log(`Tipo de servicio: ${service.tipoServicio}`);
-    if (service.tipoServicio === ServiceType.LIMPIEZA) {
-      this.logger.log(`Buscando limpieza futura activa para servicio ${service.id}`);
-      await this.dataSource.query(`
+      // ---------> Desactivar limpieza futura si es limpieza
+      this.logger.log(`Tipo de servicio: ${service.tipoServicio}`);
+      if (service.tipoServicio === ServiceType.LIMPIEZA) {
+        this.logger.log(
+          `Buscando limpieza futura activa para servicio ${service.id}`,
+        );
+        await this.dataSource.query(
+          `
         WITH limpieza_a_desactivar AS (
           SELECT limpieza_id
           FROM future_cleanings
@@ -795,41 +797,44 @@ export class ServicesService {
         UPDATE future_cleanings
         SET "isActive" = false
         WHERE limpieza_id IN (SELECT limpieza_id FROM limpieza_a_desactivar);
-      `, [service.id]);
-      this.logger.log(`Limpieza futura relacionada al servicio ${service.id} desactivada.`);
+      `,
+          [service.id],
+        );
+        this.logger.log(
+          `Limpieza futura relacionada al servicio ${service.id} desactivada.`,
+        );
+      }
     }
-  }
 
-  if (nuevoEstado === ServiceState.INCOMPLETO) {
-    service.fechaFin = new Date();
-    service.comentarioIncompleto = comentarioIncompleto || '';
-  }
+    if (nuevoEstado === ServiceState.INCOMPLETO) {
+      service.fechaFin = new Date();
+      service.comentarioIncompleto = comentarioIncompleto || '';
+    }
 
-  // Liberar recursos si corresponde
-  if (
-    nuevoEstado === ServiceState.CANCELADO ||
-    nuevoEstado === ServiceState.COMPLETADO ||
-    nuevoEstado === ServiceState.INCOMPLETO
-  ) {
+    // Liberar recursos si corresponde
     if (
-      service.tipoServicio === ServiceType.INSTALACION ||
-      service.tipoServicio === ServiceType.RETIRO ||
-      service.tipoServicio === ServiceType.LIMPIEZA ||
-      service.tipoServicio === ServiceType.MANTENIMIENTO_IN_SITU
+      nuevoEstado === ServiceState.CANCELADO ||
+      nuevoEstado === ServiceState.COMPLETADO ||
+      nuevoEstado === ServiceState.INCOMPLETO
     ) {
-      await this.releaseNonToiletResources(service);
-    } else {
-      await this.releaseAssignedResources(service);
+      if (
+        service.tipoServicio === ServiceType.INSTALACION ||
+        service.tipoServicio === ServiceType.RETIRO ||
+        service.tipoServicio === ServiceType.LIMPIEZA ||
+        service.tipoServicio === ServiceType.MANTENIMIENTO_IN_SITU
+      ) {
+        await this.releaseNonToiletResources(service);
+      } else {
+        await this.releaseAssignedResources(service);
+      }
     }
+
+    // Guardar estado actualizado
+    service.estado = nuevoEstado;
+    const savedService = await this.serviceRepository.save(service);
+
+    return savedService;
   }
-
-  // Guardar estado actualizado
-  service.estado = nuevoEstado;
-  const savedService = await this.serviceRepository.save(service);
-
-  return savedService;
-}
-
 
   // Nuevo método para liberar solo recursos excepto baños
   private async releaseNonToiletResources(service: Service): Promise<void> {
@@ -1736,37 +1741,51 @@ export class ServicesService {
       totalPages: Math.ceil(services.length / limit),
     };
   }
+
   async getCapacitacionServices(
     page: number,
     limit: number,
+    search: string,
   ): Promise<{
     data: Service[];
     totalItems: number;
     currentPage: number;
     totalPages: number;
   }> {
-    const services = await this.serviceRepository.find({
-      where: {
+    const queryBuilder = this.serviceRepository
+      .createQueryBuilder('service')
+      .leftJoinAndSelect('service.cliente', 'cliente')
+      .leftJoinAndSelect('service.asignaciones', 'asignaciones')
+      .leftJoinAndSelect('asignaciones.empleado', 'empleado')
+      .leftJoinAndSelect('asignaciones.vehiculo', 'vehiculo')
+      .leftJoinAndSelect('asignaciones.bano', 'bano')
+      .where('service.tipoServicio = :tipoServicio', {
         tipoServicio: ServiceType.CAPACITACION,
-      },
-      relations: [
-        'cliente',
-        'asignaciones',
-        'asignaciones.empleado',
-        'asignaciones.vehiculo',
-        'asignaciones.bano',
-      ],
-      order: {
-        fechaProgramada: 'ASC',
-      },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+      });
+
+    if (search) {
+      const term = `%${search.toLowerCase()}%`;
+      queryBuilder.andWhere(
+        '(LOWER(service.estado::text) LIKE :term OR ' +
+          "COALESCE(LOWER(cliente.nombre_empresa), '') LIKE :term OR " +
+          "COALESCE(LOWER(service.ubicacion), '') LIKE :term OR " +
+          "COALESCE(LOWER(service.notas), '') LIKE :term)",
+        { term },
+      );
+    }
+
+    queryBuilder.orderBy('service.fechaProgramada', 'ASC');
+
+    const [services, total] = await queryBuilder
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
     return {
       data: services,
-      totalItems: services.length,
+      totalItems: total,
       currentPage: page,
-      totalPages: Math.ceil(services.length / limit),
+      totalPages: Math.ceil(total / limit),
     };
   }
 

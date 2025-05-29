@@ -47,17 +47,6 @@ export class ToiletMaintenanceController {
     return this.maintenanceService.findAll(paginationDto);
   }
 
-  // Rutas con prefijos específicos deben ir ANTES que rutas con parámetros
-  @Get('search')
-  async search(@Query() filterDto: FilterToiletMaintenanceDto): Promise<{
-    data: ToiletMaintenance[];
-    total: number;
-    page: number;
-    limit: number;
-  }> {
-    return this.maintenanceService.findAllWithFilters(filterDto);
-  }
-
   @Get('stats/:toiletId')
   async getMaintenanceStats(
     @Param('toiletId', ParseIntPipe) toiletId: number,

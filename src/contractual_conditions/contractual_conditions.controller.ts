@@ -32,14 +32,16 @@ export class ContractualConditionsController {
   @Get()
   @HttpCode(HttpStatus.OK)
   async getAllContractualConditions(
-    @Query('page') page: number = 1, // Recibe el número de página desde la URL
-    @Query('limit') limit: number = 10, // Recibe el límite de registros por página desde la URL
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+    @Query('search') search?: string,
   ): Promise<Pagination<CondicionesContractuales>> {
     try {
       // Llamamos al servicio pasando los parámetros de paginación
       return await this.contractualConditionsService.getAllContractualConditions(
         page,
         limit,
+        search,
       );
     } catch (error: unknown) {
       // Si ocurre un error, lo lanzamos con un mensaje adecuado

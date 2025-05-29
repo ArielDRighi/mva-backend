@@ -308,9 +308,9 @@ export class EmployeesService {
       where: { id: empleadoId },
       relations: ['licencia'],
     });
-    if (!employee) {
+    if (!employee.licencia) {
       throw new NotFoundException(
-        `Empleado con id ${empleadoId} no encontrado`,
+        `Empleado con id ${empleadoId} no tiene licencia asociada`,
       );
     }
     return employee.licencia;

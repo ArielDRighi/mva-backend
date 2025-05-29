@@ -15,6 +15,7 @@ import {
   HttpStatus,
   UseInterceptors,
   ClassSerializerInterceptor,
+  Search,
 } from '@nestjs/common';
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto/create-service.dto';
@@ -44,8 +45,9 @@ export class ServicesController {
   async getCapacitacionServices(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
+    @Query('search') search?: string,
   ) {
-    return this.servicesService.getCapacitacionServices(page, limit);
+    return this.servicesService.getCapacitacionServices(page, limit, search);
   }
 
   @Get('instalacion')
