@@ -109,11 +109,11 @@ export class EmployeesService {
 
       // First term uses WHERE
       query.where(
-        `LOWER(UNACCENT(empleado.nombre)) LIKE :term
-        OR LOWER(UNACCENT(empleado.apellido)) LIKE :term
-        OR LOWER(UNACCENT(empleado.documento)) LIKE :term
-        OR LOWER(UNACCENT(empleado.cargo)) LIKE :term
-        OR LOWER(UNACCENT(empleado.estado)) LIKE :term`,
+        `LOWER(empleado.nombre) LIKE :term
+  OR LOWER(empleado.apellido) LIKE :term
+  OR LOWER(empleado.documento) LIKE :term
+  OR LOWER(empleado.cargo) LIKE :term
+  OR LOWER(empleado.estado) LIKE :term`,
         { term: `%${searchTerms[0]}%` },
       );
 
@@ -351,79 +351,78 @@ export class EmployeesService {
     return contact;
   }
   async findLicencias(
-  days: number = 0,
-  page: number = 1,
-  limit: number = 10,
-  search?: string,
-): Promise<{
-  data: Licencias[];
-  totalItems: number;
-  currentPage: number;
-  totalPages: number;
-}> {
-  this.logger.log(
-    `Buscando licencias (página ${page}, límite ${limit}, días: ${days}, búsqueda: ${search})`,
-  );
+    days: number = 0,
+    page: number = 1,
+    limit: number = 10,
+    search?: string,
+  ): Promise<{
+    data: Licencias[];
+    totalItems: number;
+    currentPage: number;
+    totalPages: number;
+  }> {
+    this.logger.log(
+      `Buscando licencias (página ${page}, límite ${limit}, días: ${days}, búsqueda: ${search})`,
+    );
 
-  try {
-    const queryBuilder = this.licenciaRepository
-      .createQueryBuilder('licencia')
-      .leftJoinAndSelect('licencia.empleado', 'empleado')
-      .orderBy('licencia.fecha_vencimiento', 'ASC');
+    try {
+      const queryBuilder = this.licenciaRepository
+        .createQueryBuilder('licencia')
+        .leftJoinAndSelect('licencia.empleado', 'empleado')
+        .orderBy('licencia.fecha_vencimiento', 'ASC');
 
-    if (days > 0) {
-      const today = new Date();
-      const futureDateLimit = new Date(
-        today.getTime() + days * 24 * 60 * 60 * 1000,
-      );
+      if (days > 0) {
+        const today = new Date();
+        const futureDateLimit = new Date(
+          today.getTime() + days * 24 * 60 * 60 * 1000,
+        );
 
-      queryBuilder.where(
-        'licencia.fecha_vencimiento BETWEEN :today AND :futureDateLimit',
-        {
-          today: today.toISOString().split('T')[0],
-          futureDateLimit: futureDateLimit.toISOString().split('T')[0],
-        },
-      );
-    }
+        queryBuilder.where(
+          'licencia.fecha_vencimiento BETWEEN :today AND :futureDateLimit',
+          {
+            today: today.toISOString().split('T')[0],
+            futureDateLimit: futureDateLimit.toISOString().split('T')[0],
+          },
+        );
+      }
 
-    if (search) {
-      queryBuilder.andWhere(
-        `(
+      if (search) {
+        queryBuilder.andWhere(
+          `(
           unaccent(lower(empleado.nombre)) LIKE unaccent(lower(:search)) OR
           unaccent(lower(empleado.apellido)) LIKE unaccent(lower(:search)) OR
           unaccent(lower(empleado.cargo)) LIKE unaccent(lower(:search))
         )`,
-        { search: `%${search}%` },
+          { search: `%${search}%` },
+        );
+      }
+
+      const totalItems = await queryBuilder.getCount();
+
+      const licencias = await queryBuilder
+        .skip((page - 1) * limit)
+        .take(limit)
+        .getMany();
+
+      if (licencias.length === 0) {
+        this.logger.warn(
+          'No se encontraron licencias con los criterios especificados',
+        );
+      }
+
+      return {
+        data: licencias,
+        totalItems,
+        currentPage: page,
+        totalPages: Math.ceil(totalItems / limit),
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error al buscar licencias: ${error instanceof Error ? error.message : 'Error desconocido'}`,
       );
+      throw new NotFoundException('No se pudieron encontrar licencias');
     }
-
-    const totalItems = await queryBuilder.getCount();
-
-    const licencias = await queryBuilder
-      .skip((page - 1) * limit)
-      .take(limit)
-      .getMany();
-
-    if (licencias.length === 0) {
-      this.logger.warn(
-        'No se encontraron licencias con los criterios especificados',
-      );
-    }
-
-    return {
-      data: licencias,
-      totalItems,
-      currentPage: page,
-      totalPages: Math.ceil(totalItems / limit),
-    };
-  } catch (error) {
-    this.logger.error(
-      `Error al buscar licencias: ${error instanceof Error ? error.message : 'Error desconocido'}`,
-    );
-    throw new NotFoundException('No se pudieron encontrar licencias');
   }
-}
-
 
   async findEmergencyContactsByEmpleadoId(
     empleadoId: number,
