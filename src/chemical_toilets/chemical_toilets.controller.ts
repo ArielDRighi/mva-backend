@@ -47,33 +47,33 @@ export class ChemicalToiletsController {
   }
 
   @Get()
-  async findAll(
-    @Query('page') page = '1',
-    @Query('limit') limit = '10',
-    @Query('search') search?: string, // 👈 lo agregás acá
-  ): Promise<Pagination<ChemicalToilet>> {
-    const paginationDto = {
-      page: Number(page),
-      limit: Number(limit),
-    };
+async findAll(
+  @Query('page') page = '1',
+  @Query('limit') limit = '10',
+  @Query('search') search?: string,
+): Promise<Pagination<ChemicalToilet>> {
+  const paginationDto = {
+    page: Number(page),
+    limit: Number(limit),
+  };
 
-    return this.chemicalToiletsService.findAll(paginationDto, search); // 👈 lo pasás acá
-  }
+  return this.chemicalToiletsService.findAll(paginationDto, search);
+}
 
-  @Get('search')
-  async search(
-    @Query() filterDto: FilterChemicalToiletDto,
-  ): Promise<Pagination<ChemicalToilet>> {
-    // Convertimos page y limit si vienen como strings
-    const page = filterDto.page ? Number(filterDto.page) : 1;
-    const limit = filterDto.limit ? Number(filterDto.limit) : 10;
+  // @Get('search')
+  // async search(
+  //   @Query() filterDto: FilterChemicalToiletDto,
+  // ): Promise<Pagination<ChemicalToilet>> {
+  //   // Convertimos page y limit si vienen como strings
+  //   const page = filterDto.page ? Number(filterDto.page) : 1;
+  //   const limit = filterDto.limit ? Number(filterDto.limit) : 10;
 
-    return this.chemicalToiletsService.findAllWithFilters({
-      ...filterDto,
-      page,
-      limit,
-    });
-  }
+  //   return this.chemicalToiletsService.findAllWithFilters({
+  //     ...filterDto,
+  //     page,
+  //     limit,
+  //   });
+  // }
 
   @Get(':id')
   async findById(

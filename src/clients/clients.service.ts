@@ -114,23 +114,36 @@ export class ClientService {
   }
 
   async updateClient(
-    clienteId: number,
-    updateClientDto: UpdateClientDto,
-  ): Promise<Cliente> {
-    this.logger.log(`Actualizando cliente con id: ${clienteId}`);
-    const client = await this.clientRepository.findOne({
-      where: { clienteId },
-    });
+  clienteId: number,
+  updateClientDto: UpdateClientDto,
+): Promise<Cliente> {
+  this.logger.log(`Actualizando cliente con id: ${clienteId}`);
+  const client = await this.clientRepository.findOne({
+    where: { clienteId },
+  });
 
-    if (!client) {
-      throw new NotFoundException(`Client with id ${clienteId} not found`);
-    }
-
-    // Actualizar los campos del cliente
-    Object.assign(client, updateClientDto);
-
-    return this.clientRepository.save(client); // Guardar los cambios en la base de datos
+  if (!client) {
+    throw new NotFoundException(`El cliente con id ${clienteId} no se encuentra`);
   }
+
+  // Actualizar campos
+  Object.assign(client, updateClientDto);
+
+  try {
+    return await this.clientRepository.save(client);
+  } catch (error) {
+    // Manejar error de duplicado de cuit
+    if (
+      error instanceof QueryFailedError &&
+      error.driverError?.code === '23505' &&
+      error.driverError.detail?.includes('cuit')
+    ) {
+      throw new ConflictException('El CUIT ya está registrado para otro cliente.');
+    }
+    // Si es otro error, volver a lanzarlo
+    throw error;
+  }
+}
 
   async deleteClient(clienteId: number): Promise<void> {
     this.logger.log(`Eliminando cliente con id: ${clienteId}`);
