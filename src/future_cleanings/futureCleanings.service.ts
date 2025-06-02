@@ -31,12 +31,9 @@ export class FutureCleaningsService {
       .take(limit);
 
     // Obtener resultados y total de registros
-    const [items, total] = await query.getManyAndCount(); // Verificar si hay resultados
-    if (items.length === 0) {
-      throw new BadRequestException('No se encontraron limpiezas futuras');
-    }
+    const [items, total] = await query.getManyAndCount();
 
-    // Retornar objeto de paginación
+    // Retornar objeto de paginación (incluso si está vacío)
     return {
       items,
       total,
