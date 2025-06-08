@@ -135,9 +135,7 @@ describe('ToiletMaintenanceService', () => {
       expect(result.length).toBe(4); // 15, 16, 17, 18 May
       expect(result[0]).toEqual(new Date(startDate));
       expect(result[3]).toEqual(new Date('2025-05-18'));
-    });
-
-    it('should calculate maintenance days for weekly periodicity', () => {
+    });    it('should calculate maintenance days for weekly periodicity', () => {
       console.log(
         '🧪 TEST: Debe calcular días de mantenimiento para periodicidad semanal',
       );
@@ -162,6 +160,75 @@ describe('ToiletMaintenanceService', () => {
         prevDate.setDate(prevDate.getDate() + 7);
         expect(result[i]).toEqual(new Date(prevDate));
       }
+    });
+
+    it('should calculate maintenance days for DOS_VECES_SEMANA periodicity', () => {
+      console.log(
+        '🧪 TEST: Debe calcular días de mantenimiento para dos veces por semana',
+      );
+      // Arrange
+      const startDate = new Date('2025-05-15');
+      const endDate = new Date('2025-05-30');
+      const periodicidad = Periodicidad.DOS_VECES_SEMANA;
+
+      // Act
+      const result = service.calculateMaintenanceDays(
+        startDate,
+        endDate,
+        periodicidad,
+      );
+
+      // Assert
+      // Should have more maintenance dates than weekly but fewer than daily
+      expect(result.length).toBeGreaterThan(2); // More than weekly
+      expect(result.length).toBeLessThan(16); // Less than daily
+      expect(result[0]).toEqual(new Date(startDate));
+    });
+
+    it('should calculate maintenance days for TRES_VECES_SEMANA periodicity', () => {
+      console.log(
+        '🧪 TEST: Debe calcular días de mantenimiento para tres veces por semana',
+      );
+      // Arrange
+      const startDate = new Date('2025-05-15');
+      const endDate = new Date('2025-05-30');
+      const periodicidad = Periodicidad.TRES_VECES_SEMANA;
+
+      // Act
+      const result = service.calculateMaintenanceDays(
+        startDate,
+        endDate,
+        periodicidad,
+      );
+
+      // Assert
+      // Should have more maintenance dates than DOS_VECES_SEMANA
+      expect(result.length).toBeGreaterThan(4);
+      expect(result.length).toBeLessThan(16); // Less than daily
+      expect(result[0]).toEqual(new Date(startDate));
+    });
+
+    it('should calculate maintenance days for CUATRO_VECES_SEMANA periodicity', () => {
+      console.log(
+        '🧪 TEST: Debe calcular días de mantenimiento para cuatro veces por semana',
+      );
+      // Arrange
+      const startDate = new Date('2025-05-15');
+      const endDate = new Date('2025-05-30');
+      const periodicidad = Periodicidad.CUATRO_VECES_SEMANA;
+
+      // Act
+      const result = service.calculateMaintenanceDays(
+        startDate,
+        endDate,
+        periodicidad,
+      );
+
+      // Assert
+      // Should have more maintenance dates than TRES_VECES_SEMANA
+      expect(result.length).toBeGreaterThan(6);
+      expect(result.length).toBeLessThan(16); // Less than daily
+      expect(result[0]).toEqual(new Date(startDate));
     });
 
     it('should throw BadRequestException if end date is before or equal to start date', () => {
@@ -272,7 +339,7 @@ describe('ToiletMaintenanceService', () => {
 
       const unavailableToilet = {
         ...mockToilet,
-        estado: ResourceState.EN_MANTENIMIENTO,
+        estado: ResourceState.MANTENIMIENTO,
       };
       mockToiletsRepository.findOne.mockResolvedValue(unavailableToilet);
 
@@ -308,7 +375,7 @@ describe('ToiletMaintenanceService', () => {
 
       // Assert
       expect(mockChemicalToiletsService.update).toHaveBeenCalledWith(1, {
-        estado: ResourceState.EN_MANTENIMIENTO,
+        estado: ResourceState.MANTENIMIENTO,
       });
     });
 
@@ -857,7 +924,7 @@ describe('ToiletMaintenanceSchedulerService', () => {
       });
 
       expect(mockChemicalToiletsService.update).toHaveBeenCalledWith(1, {
-        estado: ResourceState.EN_MANTENIMIENTO,
+        estado: ResourceState.MANTENIMIENTO,
       });
     });
 

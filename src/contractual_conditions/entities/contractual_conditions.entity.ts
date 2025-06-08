@@ -10,6 +10,9 @@ export enum TipoContrato {
 
 export enum Periodicidad {
   DIARIA = 'Diaria',
+  DOS_VECES_SEMANA = 'Dos veces por semana',
+  TRES_VECES_SEMANA = 'Tres veces por semana',
+  CUATRO_VECES_SEMANA = 'Cuatro veces por semana',
   SEMANAL = 'Semanal',
   QUINCENAL = 'Quincenal',
   MENSUAL = 'Mensual',
