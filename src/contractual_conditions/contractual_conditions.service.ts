@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   CondicionesContractuales,
@@ -39,8 +43,7 @@ export class ContractualConditionsService {
     // Aplicamos filtro de búsqueda si se proporciona el parámetro search
     if (search) {
       queryBuilder.where(
-        '(condicion.tipo_de_contrato LIKE :search OR ' +
-          'condicion.condiciones_especificas LIKE :search OR ' +
+        '(condicion.condiciones_especificas LIKE :search OR ' +
           'condicion.tipo_servicio LIKE :search OR ' +
           'cliente.nombre LIKE :search OR ' +
           'cliente.razon_social LIKE :search)',
@@ -77,6 +80,7 @@ export class ContractualConditionsService {
     }
     return contractualCondition;
   }
+
   async getContractualConditionsByClient(clientId: number) {
     const client = await this.clientRepository.findOne({
       where: { clienteId: clientId },
@@ -102,13 +106,11 @@ export class ContractualConditionsService {
     }
     return contractualConditions;
   }
-
   async createContractualCondition(
     createContractualConditionDto: CreateContractualConditionDto,
   ) {
     const {
       clientId,
-      tipo_de_contrato,
       fecha_inicio,
       fecha_fin,
       condiciones_especificas,
@@ -121,16 +123,17 @@ export class ContractualConditionsService {
       tarifa_instalacion,
       tarifa_limpieza,
     } = createContractualConditionDto;
+
     const client = await this.clientRepository.findOne({
       where: { clienteId: clientId },
     });
     if (!client) {
       throw new NotFoundException(`Cliente con ID: ${clientId} no encontrado`);
     }
+
     const newContractualCondition = this.contractualConditionsRepository.create(
       {
         cliente: client,
-        tipo_de_contrato: tipo_de_contrato,
         fecha_inicio: fecha_inicio,
         fecha_fin: fecha_fin,
         condiciones_especificas: condiciones_especificas,
@@ -144,11 +147,11 @@ export class ContractualConditionsService {
         tarifa_limpieza: tarifa_limpieza,
       },
     );
+
     return await this.contractualConditionsRepository.save(
       newContractualCondition,
     );
   }
-
   async modifyContractualCondition(
     modifyContractualConditionDto: ModifyCondicionContractualDto,
     id: number,
@@ -162,6 +165,20 @@ export class ContractualConditionsService {
         `Condición Contractual con ID: ${id} no encontrada`,
       );
     }
+
+    // Validar fechas si se están modificando
+    const fechaInicio =
+      modifyContractualConditionDto.fecha_inicio ||
+      contractualCondition.fecha_inicio;
+    const fechaFin =
+      modifyContractualConditionDto.fecha_fin || contractualCondition.fecha_fin;
+
+    if (fechaInicio >= fechaFin) {
+      throw new BadRequestException(
+        'La fecha de inicio debe ser anterior a la fecha de fin',
+      );
+    }
+
     await this.contractualConditionsRepository.update(
       id,
       modifyContractualConditionDto,
@@ -172,6 +189,7 @@ export class ContractualConditionsService {
       });
     return updatedContractualCondition;
   }
+
   async deleteContractualCondition(id: number) {
     const contractualCondition =
       await this.contractualConditionsRepository.findOne({

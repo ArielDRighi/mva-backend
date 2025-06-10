@@ -22,11 +22,10 @@ export class AuthService {
       throw new UnauthorizedException('Token inválido');
     }
   }
-
   async login(loginDto: LoginDto) {
     const { email, password } = loginDto;
 
-    // Buscar usuario por username
+    // Buscar usuario por email
     const user = await this.usersService.findByEmail(email);
     console.log('Usuario encontrado:', user);
     console.log('Contraseña proporcionada:', password);

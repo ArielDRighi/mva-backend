@@ -3,11 +3,6 @@ import { Cliente } from 'src/clients/entities/client.entity';
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { ServiceType } from 'src/common/enums/resource-states.enum';
 
-export enum TipoContrato {
-  TEMPORAL = 'Temporal',
-  PERMANENTE = 'Permanente',
-}
-
 export enum Periodicidad {
   DIARIA = 'Diaria',
   DOS_VECES_SEMANA = 'Dos veces por semana',
@@ -29,15 +24,10 @@ export enum EstadoContrato {
 export class CondicionesContractuales {
   @PrimaryGeneratedColumn({ name: 'condicionContractual_id' })
   condicionContractualId: number;
-
   @ManyToOne(() => Cliente, (cliente) => cliente.contratos, {
     onDelete: 'CASCADE',
   })
   cliente: Cliente;
-
-  @Column({ name: 'tipo_de_contrato', type: 'enum', enum: TipoContrato })
-  @IsEnum(TipoContrato)
-  tipo_de_contrato: TipoContrato;
 
   @Column({ name: 'fecha_inicio', type: 'date', nullable: false })
   @IsNotEmpty()
