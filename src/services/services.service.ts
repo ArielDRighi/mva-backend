@@ -327,38 +327,25 @@ export class ServicesService {
   private async scheduleEmployeeStatusForCapacitacion(service: Service) {
     if (!service.fechaInicio || !service.fechaFin) return;
 
-    // Definimos el tipo esperado de cada asignación manualmente
-    type Asignacion = {
-      empleadoId: number;
-      servicioId: number;
-    };
-
-    const asignaciones = await this.dataSource.manager.find<Asignacion>(
-      'service_assignments',
-      {
-        where: { servicioId: service.id },
-        relations: ['empleado'], // opcional
-      },
-    );
+    const asignaciones = await this.assignmentRepository.find({
+      where: { servicioId: service.id },
+      relations: ['empleado'],
+    });
 
     const empleados: number[] = asignaciones
       .map((a) => a.empleadoId)
       .filter((id): id is number => typeof id === 'number');
 
     for (const empleadoId of empleados) {
-      await this.dataSource.manager.save('scheduled_employee_statuses', {
-        empleadoId,
-        nuevoEstado: 'EN_CAPACITACION',
-        fechaCambio: service.fechaInicio,
-        servicioId: service.id,
-      });
+      await this.dataSource.manager.query(
+        `INSERT INTO scheduled_employee_statuses (empleado_id, nuevo_estado, fecha_cambio, servicio_id) VALUES ($1, $2, $3, $4)`,
+        [empleadoId, 'EN_CAPACITACION', service.fechaInicio, service.id],
+      );
 
-      await this.dataSource.manager.save('scheduled_employee_statuses', {
-        empleadoId,
-        nuevoEstado: 'DISPONIBLE',
-        fechaCambio: service.fechaFin,
-        servicioId: service.id,
-      });
+      await this.dataSource.manager.query(
+        `INSERT INTO scheduled_employee_statuses (empleado_id, nuevo_estado, fecha_cambio, servicio_id) VALUES ($1, $2, $3, $4)`,
+        [empleadoId, 'DISPONIBLE', service.fechaFin, service.id],
+      );
     }
   }
 
@@ -1266,7 +1253,7 @@ export class ServicesService {
           page: 1,
           limit: 100,
         });
-        const empleados = empleadosResponse.data ?? [];
+        const empleados = (empleadosResponse.data ?? []) as Empleado[];
 
         const candidatos = empleados.filter((e) =>
           [ResourceState.DISPONIBLE, ResourceState.ASIGNADO].includes(
@@ -1871,7 +1858,7 @@ export class ServicesService {
               }
 
               // Advertencia: Baño ya asignado a otro servicio PROGRAMADO
-              const existingAssignment = await this.assignmentRepository
+              const existingAssignment = (await this.assignmentRepository
                 .createQueryBuilder('asig')
                 .innerJoin('asig.servicio', 'servicio')
                 .select([
@@ -1882,14 +1869,16 @@ export class ServicesService {
                 .andWhere('servicio.estado = :estado', {
                   estado: ServiceState.PROGRAMADO,
                 })
-                .getRawOne();
+                .getRawOne()) as
+                | { servicioId: number; fechaProgramada: string }
+                | undefined;
 
               if (existingAssignment) {
                 const fechaServicio = new Date(
-                  String(existingAssignment.fechaProgramada),
+                  existingAssignment.fechaProgramada,
                 );
                 warnings.push(
-                  `El baño ${bano.baño_id} (${bano.codigo_interno}) ya está seleccionado para el servicio ${String(existingAssignment.servicioId)} programado para ${fechaServicio.toLocaleDateString('es-ES')}`,
+                  `El baño ${bano.baño_id} (${bano.codigo_interno}) ya está seleccionado para el servicio ${existingAssignment.servicioId} programado para ${fechaServicio.toLocaleDateString('es-ES')}`,
                 );
               }
             }
