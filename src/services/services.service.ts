@@ -1591,6 +1591,255 @@ export class ServicesService {
     this.logger.log('Obteniendo resumen de servicios');
   }
 
+  async getCapacitacionServices(
+    page: number,
+    limit: number,
+    search?: string,
+  ): Promise<{
+    data: Service[];
+    totalItems: number;
+    currentPage: number;
+    totalPages: number;
+  }> {
+    const queryBuilder = this.serviceRepository
+      .createQueryBuilder('service')
+      .leftJoinAndSelect('service.cliente', 'cliente')
+      .leftJoinAndSelect('service.asignaciones', 'asignaciones')
+      .leftJoinAndSelect('asignaciones.empleado', 'empleado')
+      .leftJoinAndSelect('asignaciones.vehiculo', 'vehiculo')
+      .leftJoinAndSelect('asignaciones.bano', 'bano')
+      .where('service.tipoServicio = :tipoServicio', {
+        tipoServicio: ServiceType.CAPACITACION,
+      });
+
+    if (search) {
+      const term = `%${search.toLowerCase()}%`;
+      queryBuilder.andWhere(
+        '(LOWER(service.estado::text) LIKE :term OR ' +
+          "COALESCE(LOWER(cliente.nombre_empresa), '') LIKE :term OR " +
+          "COALESCE(LOWER(service.ubicacion), '') LIKE :term OR " +
+          "COALESCE(LOWER(service.notas), '') LIKE :term)",
+        { term },
+      );
+    }
+
+    queryBuilder.orderBy('service.fechaProgramada', 'ASC');
+
+    const [services, total] = await queryBuilder
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      data: services,
+      totalItems: total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async getInstalacionServices(
+    page: number,
+    limit: number,
+  ): Promise<{
+    data: Service[];
+    totalItems: number;
+    currentPage: number;
+    totalPages: number;
+  }> {
+    const queryBuilder = this.serviceRepository
+      .createQueryBuilder('service')
+      .leftJoinAndSelect('service.cliente', 'cliente')
+      .leftJoinAndSelect('service.asignaciones', 'asignaciones')
+      .leftJoinAndSelect('asignaciones.empleado', 'empleado')
+      .leftJoinAndSelect('asignaciones.vehiculo', 'vehiculo')
+      .leftJoinAndSelect('asignaciones.bano', 'bano')
+      .where('service.tipoServicio = :tipoServicio', {
+        tipoServicio: ServiceType.INSTALACION,
+      })
+      .orderBy('service.fechaProgramada', 'ASC');
+
+    const [services, total] = await queryBuilder
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      data: services,
+      totalItems: total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async getLimpiezaServices(
+    page: number,
+    limit: number,
+  ): Promise<{
+    data: Service[];
+    totalItems: number;
+    currentPage: number;
+    totalPages: number;
+  }> {
+    const serviceTypes = [
+      ServiceType.LIMPIEZA,
+      ServiceType.MANTENIMIENTO,
+      ServiceType.MANTENIMIENTO_IN_SITU,
+      ServiceType.REPARACION,
+      ServiceType.REEMPLAZO,
+      ServiceType.RETIRO,
+      ServiceType.TRASLADO,
+      ServiceType.REUBICACION,
+    ];
+
+    const queryBuilder = this.serviceRepository
+      .createQueryBuilder('service')
+      .leftJoinAndSelect('service.cliente', 'cliente')
+      .leftJoinAndSelect('service.asignaciones', 'asignaciones')
+      .leftJoinAndSelect('asignaciones.empleado', 'empleado')
+      .leftJoinAndSelect('asignaciones.vehiculo', 'vehiculo')
+      .leftJoinAndSelect('asignaciones.bano', 'bano')
+      .where('service.tipoServicio IN (:...serviceTypes)', { serviceTypes })
+      .orderBy('service.fechaProgramada', 'ASC');
+
+    const [services, total] = await queryBuilder
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      data: services,
+      totalItems: total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async getLastServices(employeeId: number) {
+    this.logger.log(
+      `Obteniendo últimos servicios realizados por el empleado ${employeeId}`,
+    );
+
+    try {
+      const services = await this.serviceRepository.find({
+        where: {
+          estado: ServiceState.COMPLETADO,
+          asignaciones: {
+            empleadoId: employeeId,
+          },
+        },
+        relations: [
+          'cliente',
+          'asignaciones',
+          'asignaciones.empleado',
+          'asignaciones.vehiculo',
+          'asignaciones.bano',
+        ],
+        order: {
+          fechaFin: 'DESC',
+        },
+        take: 5, // Limitar a los 5 últimos servicios
+      });
+
+      if (services.length === 0) {
+        this.logger.log(
+          `No se encontraron servicios completados para el empleado ${employeeId}`,
+        );
+      } else {
+        this.logger.log(
+          `Se encontraron ${services.length} servicios completados para el empleado ${employeeId}`,
+        );
+      }
+
+      return services;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
+      this.logger.error(
+        `Error al obtener los últimos servicios del empleado ${employeeId}: ${errorMessage}`,
+      );
+      throw new BadRequestException(
+        `Error al obtener los últimos servicios: ${errorMessage}`,
+      );
+    }
+  }
+
+  async getCompletedServices(
+    employeeId: number,
+    paginationDto: { page?: number; limit?: number; search?: string },
+  ): Promise<any> {
+    const { page = 1, limit = 10, search } = paginationDto;
+
+    const query = this.serviceRepository
+      .createQueryBuilder('service')
+      .leftJoinAndSelect('service.asignaciones', 'asignacion')
+      .leftJoinAndSelect('asignacion.empleado', 'empleado')
+      .leftJoinAndSelect('service.cliente', 'cliente')
+      .where('empleado.id = :employeeId', { employeeId })
+      .andWhere('service.estado = :estado', {
+        estado: ServiceState.COMPLETADO,
+      });
+
+    // Add search functionality if needed
+    if (search) {
+      query.andWhere(
+        '(LOWER(cliente.nombre) LIKE :search OR LOWER(service.ubicacion) LIKE :search)',
+        { search: `%${search.toLowerCase()}%` },
+      );
+    }
+
+    // Add pagination
+    const [servicios, total] = await query
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      data: servicios,
+      totalItems: total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async getAssignedPendings(employeeId: number) {
+    const services = await this.serviceRepository.find({
+      where: {
+        estado: ServiceState.PROGRAMADO,
+        asignaciones: {
+          empleadoId: employeeId,
+        },
+      },
+      relations: [
+        'cliente',
+        'asignaciones',
+        'asignaciones.empleado',
+        'asignaciones.vehiculo',
+        'asignaciones.bano',
+      ],
+    });
+    return services;
+  }
+
+  async getAssignedInProgress(employeeId: number) {
+    const services = await this.serviceRepository.find({
+      where: {
+        estado: ServiceState.EN_PROGRESO,
+        asignaciones: {
+          empleadoId: employeeId,
+        },
+      },
+      relations: [
+        'cliente',
+        'asignaciones',
+        'asignaciones.empleado',
+        'asignaciones.vehiculo',
+        'asignaciones.bano',
+      ],
+    });
+    return services;
+  }
+
   /**
    * Valida la disponibilidad de recursos para un servicio sin crearlo
    * Retorna advertencias y errores de disponibilidad
@@ -1632,7 +1881,8 @@ export class ServicesService {
                 .where('asig.bano_id = :banoId', { banoId: bano.baño_id })
                 .andWhere('servicio.estado = :estado', {
                   estado: ServiceState.PROGRAMADO,
-                })                .getRawOne();
+                })
+                .getRawOne();
 
               if (existingAssignment) {
                 const fechaServicio = new Date(
@@ -1673,7 +1923,8 @@ export class ServicesService {
         errors,
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
       return {
         valid: false,
         warnings,
