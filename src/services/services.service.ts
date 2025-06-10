@@ -87,11 +87,10 @@ export class ServicesService {
         return this.createGenerico(dto);
     }
   }
-
   private async createInstalacion(dto: CreateServiceDto): Promise<Service> {
     const service = await this.createBaseService(dto);
 
-    // Lógica específica: calcular limpiezas futuras
+    // Lógica específica: calcular recordatorios de limpiezas futuras
     if (
       service.condicionContractualId &&
       service.fechaInicio &&
@@ -111,23 +110,22 @@ export class ServicesService {
 
         for (let i = 0; i < dias.length; i++) {
           try {
-            const newCleaning = {
-              cliente: { clienteId: condicion.cliente.clienteId },
+            const createFutureCleaningDto = {
+              clientId: condicion.cliente.clienteId,
               fecha_de_limpieza: dias[i],
-              numero_de_limpieza: i + 1,
-              isActive: true,
-              servicio: { id: service.id },
+              servicioId: service.id,
             };
 
-            await this.dataSource.manager.save('future_cleanings', newCleaning);
+            // Usar el servicio de Future Cleanings para crear los recordatorios
+            await this.futureCleaningsService.createFutureCleaning(createFutureCleaningDto);
             this.logger.log(
-              `Limpieza futura #${i + 1} creada: ${dias[i].toISOString()}`,
+              `Recordatorio de limpieza #${i + 1} programado para: ${dias[i].toISOString()}`,
             );
           } catch (error) {
             const errorMessage =
               error instanceof Error ? error.message : 'Error desconocido';
             this.logger.error(
-              `Error al crear limpieza #${i + 1}: ${errorMessage}`,
+              `Error al crear recordatorio de limpieza #${i + 1}: ${errorMessage}`,
             );
           }
         }
@@ -145,10 +143,10 @@ export class ServicesService {
 
     return this.findOne(service.id);
   }
-
   private async createLimpieza(dto: CreateServiceDto): Promise<Service> {
     const service = await this.createBaseService(dto);
 
+    // Si no se especificaron baños, tomar los del último servicio de instalación del cliente
     if (
       (!dto.banosInstalados || dto.banosInstalados.length === 0) &&
       dto.clienteId
@@ -168,49 +166,6 @@ export class ServicesService {
           `No se encontraron baños instalados para cliente ${dto.clienteId}`,
         );
         service.banosInstalados = [];
-      }
-    }
-
-    if (
-      service.condicionContractualId &&
-      service.fechaInicio &&
-      service.fechaFin
-    ) {
-      const contrato = await this.condicionesContractualesRepository.findOne({
-        where: { condicionContractualId: service.condicionContractualId },
-        relations: ['cliente'],
-      });
-
-      if (contrato?.periodicidad) {
-        const fechas = this.toiletMaintenanceService.calculateMaintenanceDays(
-          service.fechaInicio,
-          service.fechaFin,
-          contrato.periodicidad,
-        );
-
-        for (let i = 0; i < fechas.length; i++) {
-          try {
-            const limpieza = {
-              cliente: { clienteId: contrato.cliente.clienteId },
-              fecha_de_limpieza: fechas[i],
-              numero_de_limpieza: i + 1,
-              isActive: true,
-              servicio: { id: service.id },
-              banos: service.banosInstalados,
-            };
-
-            await this.dataSource.manager.save('future_cleanings', limpieza);
-            this.logger.log(
-              `Limpieza futura #${i + 1} programada: ${fechas[i].toISOString()}`,
-            );
-          } catch (error) {
-            const errorMessage =
-              error instanceof Error ? error.message : 'Error desconocido';
-            this.logger.error(
-              `Error al crear limpieza futura #${i + 1}: ${errorMessage}`,
-            );
-          }
-        }
       }
     }
 
