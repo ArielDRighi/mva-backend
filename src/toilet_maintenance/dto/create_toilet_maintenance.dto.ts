@@ -10,8 +10,8 @@ export class CreateToiletMaintenanceDto {
   @IsString()
   descripcion: string;
 
-  @IsString()
-  tecnico_responsable: string;
+  @IsNumber()
+  empleado_id: number;
 
   @IsNumber()
   costo: number;
