@@ -29,8 +29,8 @@ export class CreateMaintenanceDto {
   @Min(0, { message: 'El costo debe ser mayor o igual a cero' })
   costo: number;
 
-  @IsDate()
-  @IsOptional()
-  @Type(() => Date)
-  proximoMantenimiento?: Date;
+@IsOptional()
+@Type(() => Date)
+@IsDate({ message: 'proximoMantenimiento debe ser una fecha válida' })
+proximoMantenimiento?: Date;
 }

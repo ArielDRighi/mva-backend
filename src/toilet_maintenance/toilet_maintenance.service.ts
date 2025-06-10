@@ -49,13 +49,20 @@ export class ToiletMaintenanceService {
     let currentDate = new Date(startDate);
 
     // La primera fecha de mantenimiento es la fecha de inicio
-    maintenanceDates.push(new Date(currentDate));
-
-    // Determinar el intervalo según la periodicidad
+    maintenanceDates.push(new Date(currentDate));    // Determinar el intervalo según la periodicidad
     let intervalDays: number;
     switch (periodicidad) {
       case Periodicidad.DIARIA:
         intervalDays = 1;
+        break;
+      case Periodicidad.DOS_VECES_SEMANA:
+        intervalDays = 3.5; // 7 días / 2 veces = 3.5 días
+        break;
+      case Periodicidad.TRES_VECES_SEMANA:
+        intervalDays = 2.33; // 7 días / 3 veces ≈ 2.33 días
+        break;
+      case Periodicidad.CUATRO_VECES_SEMANA:
+        intervalDays = 1.75; // 7 días / 4 veces = 1.75 días
         break;
       case Periodicidad.SEMANAL:
         intervalDays = 7;
