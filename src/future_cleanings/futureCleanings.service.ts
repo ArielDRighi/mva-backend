@@ -77,7 +77,6 @@ export class FutureCleaningsService {
     });
     return { message: 'Limpieza futura actualizada exitosamente' };
   }
-
   async createFutureCleaning(data: CreateFutureCleaningDto) {
     const cliente = await this.clientRepository.findOne({
       where: { clienteId: data.clientId },
@@ -91,11 +90,19 @@ export class FutureCleaningsService {
     if (!service) {
       throw new BadRequestException('Servicio no encontrado');
     }
+
+    // Calcular el número de limpieza basado en las limpiezas existentes para este servicio
+    const existingCleanings = await this.futurasLimpiezasRepository.count({
+      where: { servicio: { id: data.servicioId } },
+    });
+    const numeroLimpieza = existingCleanings + 1;
+
     try {
       const futureCleaning = this.futurasLimpiezasRepository.create({
         cliente: cliente,
         fecha_de_limpieza: data.fecha_de_limpieza,
-        isActive: data.isActive,
+        numero_de_limpieza: numeroLimpieza,
+        isActive: data.isActive ?? true, // Por defecto activo
         servicio: service,
       });
       await this.futurasLimpiezasRepository.save(futureCleaning);
@@ -105,5 +112,58 @@ export class FutureCleaningsService {
         error instanceof Error ? error.message : 'Error desconocido ocurrido',
       );
     }
+  }
+
+  async getByDateRange(startDate: Date, endDate: Date, paginationDto: PaginationDto) {
+    const { page = 1, limit = 10 } = paginationDto;
+
+    const query = this.futurasLimpiezasRepository
+      .createQueryBuilder('futurasLimpiezas')
+      .leftJoinAndSelect('futurasLimpiezas.cliente', 'cliente')
+      .leftJoinAndSelect('futurasLimpiezas.servicio', 'servicio')
+      .where('futurasLimpiezas.fecha_de_limpieza >= :startDate', { startDate })
+      .andWhere('futurasLimpiezas.fecha_de_limpieza <= :endDate', { endDate })
+      .orderBy('futurasLimpiezas.fecha_de_limpieza', 'ASC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    const [items, total] = await query.getManyAndCount();
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async getUpcomingCleanings(days: number, paginationDto: PaginationDto) {
+    const { page = 1, limit = 10 } = paginationDto;
+    const today = new Date();
+    const futureDate = new Date();
+    futureDate.setDate(today.getDate() + days);
+
+    const query = this.futurasLimpiezasRepository
+      .createQueryBuilder('futurasLimpiezas')
+      .leftJoinAndSelect('futurasLimpiezas.cliente', 'cliente')
+      .leftJoinAndSelect('futurasLimpiezas.servicio', 'servicio')
+      .where('futurasLimpiezas.fecha_de_limpieza >= :today', { today })
+      .andWhere('futurasLimpiezas.fecha_de_limpieza <= :futureDate', { futureDate })
+      .andWhere('futurasLimpiezas.isActive = :isActive', { isActive: true })
+      .orderBy('futurasLimpiezas.fecha_de_limpieza', 'ASC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    const [items, total] = await query.getManyAndCount();
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      daysRange: days,
+    };
   }
 }
