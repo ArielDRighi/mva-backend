@@ -254,7 +254,7 @@ Se pueden crear condiciones contractuales de dos formas:
 | tarifa_limpieza         | number             | No        | Tarifa específica para la limpieza de los baños                |
 | tipo_servicio           | string (enum)      | No        | Tipo de servicio específico para el contrato                   |
 | cantidad_banos          | number             | No        | Cantidad de baños establecida en el contrato                   |
-| periodicidad            | string (enum)      | Sí        | "Diaria", "Semanal", "Mensual" o "Anual"                       |
+| periodicidad            | string (enum)      | Sí        | "Diaria", "Dos veces por semana", "Tres veces por semana", "Cuatro veces por semana", "Semanal", "Quincenal", "Mensual" o "Anual" |
 | estado                  | string (enum)      | No        | "Activo", "Inactivo" o "Terminado" (default: "Activo")         |
 
 **Respuesta Exitosa (200 OK):**
@@ -355,12 +355,16 @@ DELETE /api/contractual_conditions/delete/5
 
 ### Periodicidades
 
-| Periodicidad | Descripción                |
-| ------------ | -------------------------- |
-| Diaria       | Tarifa aplicada por día    |
-| Semanal      | Tarifa aplicada por semana |
-| Mensual      | Tarifa aplicada por mes    |
-| Anual        | Tarifa aplicada por año    |
+| Periodicidad              | Descripción                                    | Intervalo Aproximado |
+| ------------------------- | ---------------------------------------------- | -------------------- |
+| Diaria                    | Tarifa aplicada por día                        | 1 día                |
+| Dos veces por semana      | Servicio prestado dos veces por semana         | 3.5 días             |
+| Tres veces por semana     | Servicio prestado tres veces por semana       | 2.33 días            |
+| Cuatro veces por semana   | Servicio prestado cuatro veces por semana     | 1.75 días            |
+| Semanal                   | Tarifa aplicada por semana                     | 7 días               |
+| Quincenal                 | Tarifa aplicada por quincena                   | 15 días              |
+| Mensual                   | Tarifa aplicada por mes                        | 30 días              |
+| Anual                     | Tarifa aplicada por año                        | 365 días             |
 
 ### Estados de Contrato
 
