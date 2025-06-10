@@ -21,12 +21,6 @@ export class ChangePasswordDto {
 
   @IsNotEmpty({ message: 'La nueva contraseña es requerida' }) // ✅ Mensaje corregido
   @IsString({ message: 'La nueva contraseña debe ser una cadena' })
-  @Matches(/[a-z]/, {
-    message: 'La contraseña debe contener al menos una letra minúscula',
-  })
-  @Matches(/[A-Z]/, {
-    message: 'La contraseña debe contener al menos una letra mayúscula',
-  })
   @Matches(/\d/, {
     message: 'La contraseña debe contener al menos un número',
   })

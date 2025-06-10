@@ -7,6 +7,7 @@ import {
 } from './dto/login.dto';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
+import { promises } from 'dns';
 
 @Injectable()
 export class AuthService {
@@ -62,7 +63,13 @@ export class AuthService {
     };
   }
 
-  async forgotPassword(emailDto: ForgotPasswordDto) {
+  async forgotPassword(emailDto: ForgotPasswordDto): Promise<{
+    user: {
+      email: string;
+      nombre: string; // o name
+      newPassword: string; // nueva contraseña generada
+    };
+  }> {
     const { email } = emailDto;
 
     // 1. Buscar el usuario por email
@@ -88,7 +95,16 @@ export class AuthService {
     };
   }
 
-  async resetPassword(data: ChangePasswordDto, userId: number) {
+  async resetPassword(
+    data: ChangePasswordDto,
+    userId: number,
+  ): Promise<{
+    user: {
+      email: string;
+      nombre: string; // o name
+      newPassword: string; // contraseña nueva enviada por el cliente
+    };
+  }> {
     const { oldPassword, newPassword } = data;
 
     // 1. Buscar el usuario por id
