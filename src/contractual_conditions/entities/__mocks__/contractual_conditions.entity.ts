@@ -1,11 +1,6 @@
 import { ServiceType } from 'src/common/enums/resource-states.enum';
 import { Cliente } from 'src/clients/entities/client.entity';
 
-export enum TipoContrato {
-  TEMPORAL = 'Temporal',
-  PERMANENTE = 'Permanente',
-}
-
 export enum Periodicidad {
   DIARIA = 'Diaria',
   SEMANAL = 'Semanal',
@@ -22,7 +17,6 @@ export enum EstadoContrato {
 export class CondicionesContractuales {
   condicionContractualId: number;
   cliente: Cliente;
-  tipo_de_contrato: TipoContrato;
   fecha_inicio: Date;
   fecha_fin: Date;
   condiciones_especificas: string;
@@ -39,7 +33,6 @@ export class CondicionesContractuales {
 // Export default to satisfy Jest mock requirements
 export default {
   CondicionesContractuales,
-  TipoContrato,
   Periodicidad,
   EstadoContrato,
 };

@@ -43,8 +43,7 @@ export class ContractualConditionsService {
     // Aplicamos filtro de búsqueda si se proporciona el parámetro search
     if (search) {
       queryBuilder.where(
-        '(condicion.tipo_de_contrato LIKE :search OR ' +
-          'condicion.condiciones_especificas LIKE :search OR ' +
+        '(condicion.condiciones_especificas LIKE :search OR ' +
           'condicion.tipo_servicio LIKE :search OR ' +
           'cliente.nombre LIKE :search OR ' +
           'cliente.razon_social LIKE :search)',
@@ -81,6 +80,7 @@ export class ContractualConditionsService {
     }
     return contractualCondition;
   }
+
   async getContractualConditionsByClient(clientId: number) {
     const client = await this.clientRepository.findOne({
       where: { clienteId: clientId },
@@ -111,7 +111,6 @@ export class ContractualConditionsService {
   ) {
     const {
       clientId,
-      tipo_de_contrato,
       fecha_inicio,
       fecha_fin,
       condiciones_especificas,
@@ -125,23 +124,16 @@ export class ContractualConditionsService {
       tarifa_limpieza,
     } = createContractualConditionDto;
 
-    // Validar que la fecha de inicio sea anterior a la fecha de fin
-    if (fecha_inicio >= fecha_fin) {
-      throw new BadRequestException(
-        'La fecha de inicio debe ser anterior a la fecha de fin',
-      );
-    }
-
     const client = await this.clientRepository.findOne({
       where: { clienteId: clientId },
     });
     if (!client) {
       throw new NotFoundException(`Cliente con ID: ${clientId} no encontrado`);
     }
+
     const newContractualCondition = this.contractualConditionsRepository.create(
       {
         cliente: client,
-        tipo_de_contrato: tipo_de_contrato,
         fecha_inicio: fecha_inicio,
         fecha_fin: fecha_fin,
         condiciones_especificas: condiciones_especificas,
@@ -155,6 +147,7 @@ export class ContractualConditionsService {
         tarifa_limpieza: tarifa_limpieza,
       },
     );
+
     return await this.contractualConditionsRepository.save(
       newContractualCondition,
     );
@@ -196,6 +189,7 @@ export class ContractualConditionsService {
       });
     return updatedContractualCondition;
   }
+
   async deleteContractualCondition(id: number) {
     const contractualCondition =
       await this.contractualConditionsRepository.findOne({
