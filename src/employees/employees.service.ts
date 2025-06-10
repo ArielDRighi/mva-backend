@@ -22,6 +22,7 @@ import { CreateExamenPreocupacionalDto } from './dto/create_examen.dto';
 import { UpdateExamenPreocupacionalDto } from './dto/modify_examen.dto';
 import { DataSource } from 'typeorm';
 import { Service } from 'src/services/entities/service.entity';
+import { ServiceState } from 'src/common/enums/resource-states.enum';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from 'src/users/users.service';
 import { Role } from 'src/roles/enums/role.enum';
@@ -599,17 +600,22 @@ export class EmployeesService {
       );
     }
     return employee.examenesPreocupacionales;
-  }
-  async findProximosServiciosPorEmpleadoId(empleadoId: number) {
-    const ahora = new Date();
+  }  async findProximosServiciosPorEmpleadoId(empleadoId: number) {
+    this.logger.log(`Obteniendo servicios activos asignados al empleado ${empleadoId}`);
 
     return this.dataSource
       .getRepository(Service)
       .createQueryBuilder('service')
       .innerJoin('service.asignaciones', 'asignacion')
       .leftJoinAndSelect('service.cliente', 'cliente')
+      .leftJoinAndSelect('service.asignaciones', 'asignaciones')
+      .leftJoinAndSelect('asignaciones.empleado', 'empleado')
+      .leftJoinAndSelect('asignaciones.vehiculo', 'vehiculo')
+      .leftJoinAndSelect('asignaciones.bano', 'bano')
       .where('asignacion.empleadoId = :empleadoId', { empleadoId })
-      .andWhere('service.fechaProgramada > :ahora', { ahora })
+      .andWhere('service.estado IN (:...estados)', { 
+        estados: [ServiceState.PROGRAMADO, ServiceState.EN_PROGRESO] 
+      })
       .orderBy('service.fechaProgramada', 'ASC')
       .getMany();
   }
