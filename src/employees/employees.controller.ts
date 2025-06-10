@@ -172,10 +172,10 @@ export class EmployeesController {
     console.log('Empleado ID:', empleadoId);
     console.log('Create License DTO:', createEmployeeDto);
     return await this.employeesService.createLicencia(
-      createEmployeeDto,
-      empleadoId,
+      createEmployeeDto,    empleadoId,
     );
   }
+  
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
   @Get('licencia/:empleadoId')
