@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   CondicionesContractuales,
@@ -102,7 +106,6 @@ export class ContractualConditionsService {
     }
     return contractualConditions;
   }
-
   async createContractualCondition(
     createContractualConditionDto: CreateContractualConditionDto,
   ) {
@@ -121,6 +124,14 @@ export class ContractualConditionsService {
       tarifa_instalacion,
       tarifa_limpieza,
     } = createContractualConditionDto;
+
+    // Validar que la fecha de inicio sea anterior a la fecha de fin
+    if (fecha_inicio >= fecha_fin) {
+      throw new BadRequestException(
+        'La fecha de inicio debe ser anterior a la fecha de fin',
+      );
+    }
+
     const client = await this.clientRepository.findOne({
       where: { clienteId: clientId },
     });
@@ -148,7 +159,6 @@ export class ContractualConditionsService {
       newContractualCondition,
     );
   }
-
   async modifyContractualCondition(
     modifyContractualConditionDto: ModifyCondicionContractualDto,
     id: number,
@@ -162,6 +172,20 @@ export class ContractualConditionsService {
         `Condición Contractual con ID: ${id} no encontrada`,
       );
     }
+
+    // Validar fechas si se están modificando
+    const fechaInicio =
+      modifyContractualConditionDto.fecha_inicio ||
+      contractualCondition.fecha_inicio;
+    const fechaFin =
+      modifyContractualConditionDto.fecha_fin || contractualCondition.fecha_fin;
+
+    if (fechaInicio >= fechaFin) {
+      throw new BadRequestException(
+        'La fecha de inicio debe ser anterior a la fecha de fin',
+      );
+    }
+
     await this.contractualConditionsRepository.update(
       id,
       modifyContractualConditionDto,
