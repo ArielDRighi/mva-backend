@@ -1,8 +1,10 @@
 import { ChemicalToilet } from '../../chemical_toilets/entities/chemical_toilet.entity';
+import { Empleado } from '../../employees/entities/employee.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -24,14 +26,14 @@ export class ToiletMaintenance {
 
   @Column()
   descripcion: string;
-
   @CreateDateColumn()
   createdAt: Date;
 
-  @Column()
-  tecnico_responsable: string;
+  @ManyToOne(() => Empleado, { nullable: true })
+  @JoinColumn({ name: 'empleado_id' })
+  tecnicoResponsable: Empleado;
 
-  @Column({ type: 'numeric', precision: 10, scale: 2 })
+  @Column({ type: 'numeric', precision: 10, scale: 2, nullable: true })
   costo: number;
 
   @ManyToOne(() => ChemicalToilet, (toilet) => toilet.maintenances)

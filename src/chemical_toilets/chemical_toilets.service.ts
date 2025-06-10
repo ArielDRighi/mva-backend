@@ -25,153 +25,153 @@ export class ChemicalToiletsService {
 
   // Método para crear un baño químico
   async create(
-  createChemicalToiletDto: CreateChemicalToiletDto,
-): Promise<ChemicalToilet> {
-  const newToilet = this.chemicalToiletRepository.create(createChemicalToiletDto);
+    createChemicalToiletDto: CreateChemicalToiletDto,
+  ): Promise<ChemicalToilet> {
+    const newToilet = this.chemicalToiletRepository.create(
+      createChemicalToiletDto,
+    );
 
-  try {
-    return await this.chemicalToiletRepository.save(newToilet);
-  } catch (error) {
-    if (error.code === '23505') {
-      // Error por clave única duplicada (por ejemplo, codigo_interno ya existe)
-      throw new BadRequestException('Ya existe un baño químico con ese código interno.');
+    try {
+      return await this.chemicalToiletRepository.save(newToilet);
+    } catch (error) {
+      if (error.code === '23505') {
+        // Error por clave única duplicada (por ejemplo, codigo_interno ya existe)
+        throw new BadRequestException(
+          'Ya existe un baño químico con ese código interno.',
+        );
+      }
+
+      // Otros errores no controlados
+      throw new BadRequestException('Error al crear el baño químico.');
     }
-
-    // Otros errores no controlados
-    throw new BadRequestException('Error al crear el baño químico.');
   }
-}
 
   async findAll(
-  paginationDto: PaginationDto,
-  search?: string,
-): Promise<Pagination<ChemicalToilet>> {
-  const { limit = 10, page = 1 } = paginationDto;
+    paginationDto: PaginationDto,
+    search?: string,
+  ): Promise<Pagination<ChemicalToilet>> {
+    const { limit = 10, page = 1 } = paginationDto;
 
-  const query = this.chemicalToiletRepository.createQueryBuilder('toilet');
+    const query = this.chemicalToiletRepository.createQueryBuilder('toilet');
 
-  if (search) {
-    const searchTerms = search.toLowerCase().split(' ');
+    if (search) {
+      const searchTerms = search.toLowerCase().split(' ');
 
-    // Primera condición con CAST en estado
-    query.where(
-      `LOWER(UNACCENT(CAST(toilet.estado AS TEXT))) LIKE :searchTerm
+      // Primera condición con CAST en estado
+      query.where(
+        `LOWER(UNACCENT(CAST(toilet.estado AS TEXT))) LIKE :searchTerm
       OR LOWER(UNACCENT(toilet.modelo)) LIKE :searchTerm
       OR LOWER(UNACCENT(toilet.codigo_interno)) LIKE :searchTerm`,
-      { searchTerm: `%${searchTerms[0]}%` },
-    );
+        { searchTerm: `%${searchTerms[0]}%` },
+      );
 
-    // Términos adicionales
-    for (let i = 1; i < searchTerms.length; i++) {
-      query.andWhere(
-        `LOWER(UNACCENT(CAST(toilet.estado AS TEXT))) LIKE :searchTerm${i}
+      // Términos adicionales
+      for (let i = 1; i < searchTerms.length; i++) {
+        query.andWhere(
+          `LOWER(UNACCENT(CAST(toilet.estado AS TEXT))) LIKE :searchTerm${i}
         OR LOWER(UNACCENT(toilet.modelo)) LIKE :searchTerm${i}
         OR LOWER(UNACCENT(toilet.codigo_interno)) LIKE :searchTerm${i}`,
-        { [`searchTerm${i}`]: `%${searchTerms[i]}%` },
-      );
+          { [`searchTerm${i}`]: `%${searchTerms[i]}%` },
+        );
+      }
     }
+
+    query.skip((page - 1) * limit).take(limit);
+
+    const [items, total] = await query.getManyAndCount();
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
-  query.skip((page - 1) * limit).take(limit);
+  async findAllWithFilters(
+    filterDto: FilterChemicalToiletDto,
+  ): Promise<Pagination<ChemicalToilet>> {
+    const {
+      search,
+      estado,
+      modelo,
+      codigoInterno,
+      fechaDesde,
+      fechaHasta,
+      page = 1,
+      limit = 10,
+    } = filterDto;
 
-  const [items, total] = await query.getManyAndCount();
+    const query = this.chemicalToiletRepository.createQueryBuilder('toilet');
 
-  return {
-    items,
-    total,
-    page,
-    limit,
-    totalPages: Math.ceil(total / limit),
-  };
-}
+    if (search) {
+      const searchTerms = search.toLowerCase().split(' ');
 
-
- async findAllWithFilters(
-  filterDto: FilterChemicalToiletDto,
-): Promise<Pagination<ChemicalToilet>> {
-  const {
-    search,
-    estado,
-    modelo,
-    codigoInterno,
-    fechaDesde,
-    fechaHasta,
-    page = 1,
-    limit = 10,
-  } = filterDto;
-
-  const query = this.chemicalToiletRepository.createQueryBuilder('toilet');
-
-  if (search) {
-    const searchTerms = search.toLowerCase().split(' ');
-
-    // Primera condición
-    query.andWhere(
-      `(LOWER(UNACCENT(CAST(toilet.estado AS TEXT))) LIKE :term0
+      // Primera condición
+      query.andWhere(
+        `(LOWER(UNACCENT(CAST(toilet.estado AS TEXT))) LIKE :term0
       OR LOWER(UNACCENT(toilet.modelo)) LIKE :term0
       OR LOWER(UNACCENT(toilet.codigo_interno)) LIKE :term0)`,
-      { term0: `%${searchTerms[0]}%` },
-    );
+        { term0: `%${searchTerms[0]}%` },
+      );
 
-    // Condiciones adicionales (una por término)
-    for (let i = 1; i < searchTerms.length; i++) {
-      query.andWhere(
-        `(LOWER(UNACCENT(CAST(toilet.estado AS TEXT))) LIKE :term${i}
+      // Condiciones adicionales (una por término)
+      for (let i = 1; i < searchTerms.length; i++) {
+        query.andWhere(
+          `(LOWER(UNACCENT(CAST(toilet.estado AS TEXT))) LIKE :term${i}
         OR LOWER(UNACCENT(toilet.modelo)) LIKE :term${i}
         OR LOWER(UNACCENT(toilet.codigo_interno)) LIKE :term${i})`,
-        { [`term${i}`]: `%${searchTerms[i]}%` },
-      );
-    }
-  } else {
-    if (estado) {
-      query.andWhere(
-        'LOWER(UNACCENT(CAST(toilet.estado AS TEXT))) LIKE :estado',
-        { estado: `%${estado.toLowerCase()}%` },
-      );
+          { [`term${i}`]: `%${searchTerms[i]}%` },
+        );
+      }
+    } else {
+      if (estado) {
+        query.andWhere(
+          'LOWER(UNACCENT(CAST(toilet.estado AS TEXT))) LIKE :estado',
+          { estado: `%${estado.toLowerCase()}%` },
+        );
+      }
+
+      if (modelo) {
+        query.andWhere('LOWER(UNACCENT(toilet.modelo)) LIKE :modelo', {
+          modelo: `%${modelo.toLowerCase()}%`,
+        });
+      }
+
+      if (codigoInterno) {
+        query.andWhere(
+          'LOWER(UNACCENT(toilet.codigo_interno)) LIKE :codigoInterno',
+          { codigoInterno: `%${codigoInterno.toLowerCase()}%` },
+        );
+      }
     }
 
-    if (modelo) {
-      query.andWhere(
-        'LOWER(UNACCENT(toilet.modelo)) LIKE :modelo',
-        { modelo: `%${modelo.toLowerCase()}%` },
-      );
+    if (fechaDesde) {
+      query.andWhere('toilet.fecha_adquisicion >= :fechaDesde', {
+        fechaDesde,
+      });
     }
 
-    if (codigoInterno) {
-      query.andWhere(
-        'LOWER(UNACCENT(toilet.codigo_interno)) LIKE :codigoInterno',
-        { codigoInterno: `%${codigoInterno.toLowerCase()}%` },
-      );
+    if (fechaHasta) {
+      query.andWhere('toilet.fecha_adquisicion <= :fechaHasta', {
+        fechaHasta,
+      });
     }
+
+    query.orderBy('toilet.baño_id', 'ASC');
+    query.skip((page - 1) * limit).take(limit);
+
+    const [items, total] = await query.getManyAndCount();
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
-
-  if (fechaDesde) {
-    query.andWhere('toilet.fecha_adquisicion >= :fechaDesde', {
-      fechaDesde,
-    });
-  }
-
-  if (fechaHasta) {
-    query.andWhere('toilet.fecha_adquisicion <= :fechaHasta', {
-      fechaHasta,
-    });
-  }
-
-  query.orderBy('toilet.baño_id', 'ASC');
-  query.skip((page - 1) * limit).take(limit);
-
-  const [items, total] = await query.getManyAndCount();
-
-  return {
-    items,
-    total,
-    page,
-    limit,
-    totalPages: Math.ceil(total / limit),
-  };
-}
-
-
 
   async findAllByState(
     estado: ResourceState,
@@ -288,7 +288,10 @@ export class ChemicalToiletsService {
         ? {
             fecha: lastMaintenance.fecha_mantenimiento,
             tipo: lastMaintenance.tipo_mantenimiento,
-            tecnico: lastMaintenance.tecnico_responsable,
+            tecnico:
+              lastMaintenance.tecnicoResponsable?.nombre +
+              ' ' +
+              lastMaintenance.tecnicoResponsable?.apellido,
           }
         : null,
       daysSinceLastMaintenance: lastMaintenance

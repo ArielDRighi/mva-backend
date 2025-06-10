@@ -7,9 +7,9 @@ import { UpdateToiletMaintenanceDto } from './dto/update_toilet_maintenance.dto'
 import { InjectRepository } from '@nestjs/typeorm';
 import { ToiletMaintenance } from './entities/toilet_maintenance.entity';
 import { ChemicalToilet } from '../chemical_toilets/entities/chemical_toilet.entity';
+import { Empleado } from '../employees/entities/employee.entity';
 import { Repository, Between } from 'typeorm';
 import { CreateToiletMaintenanceDto } from './dto/create_toilet_maintenance.dto';
-import { FilterToiletMaintenanceDto } from './dto/filter_toilet_maintenance.dto';
 import { ResourceState } from '../common/enums/resource-states.enum';
 import { ChemicalToiletsService } from '../chemical_toilets/chemical_toilets.service';
 import { Cron } from '@nestjs/schedule';
@@ -23,6 +23,8 @@ export class ToiletMaintenanceService {
     private maintenanceRepository: Repository<ToiletMaintenance>,
     @InjectRepository(ChemicalToilet)
     private toiletsRepository: Repository<ChemicalToilet>,
+    @InjectRepository(Empleado)
+    private empleadoRepository: Repository<Empleado>,
     private chemicalToiletsService: ChemicalToiletsService,
   ) {}
 
@@ -49,7 +51,7 @@ export class ToiletMaintenanceService {
     let currentDate = new Date(startDate);
 
     // La primera fecha de mantenimiento es la fecha de inicio
-    maintenanceDates.push(new Date(currentDate));    // Determinar el intervalo según la periodicidad
+    maintenanceDates.push(new Date(currentDate)); // Determinar el intervalo según la periodicidad
     let intervalDays: number;
     switch (periodicidad) {
       case Periodicidad.DIARIA:
@@ -113,6 +115,17 @@ export class ToiletMaintenanceService {
       );
     }
 
+    // Verificamos si el empleado existe
+    const empleado = await this.empleadoRepository.findOne({
+      where: { id: createMaintenanceDto.empleado_id },
+    });
+
+    if (!empleado) {
+      throw new NotFoundException(
+        `Empleado con ID ${createMaintenanceDto.empleado_id} no encontrado`,
+      );
+    }
+
     // Verificar que el baño está disponible
     if (toilet.estado !== ResourceState.DISPONIBLE) {
       throw new BadRequestException(
@@ -136,12 +149,14 @@ export class ToiletMaintenanceService {
       // Actualizar también el estado en el objeto en memoria
       toilet.estado = ResourceState.MANTENIMIENTO;
     }
-    // Si es para una fecha futura, no cambiar el estado ahora
-
-    // Creamos el nuevo objeto de mantenimiento
+    // Si es para una fecha futura, no cambiar el estado ahora    // Creamos el nuevo objeto de mantenimiento
     const maintenance = this.maintenanceRepository.create({
-      ...createMaintenanceDto,
+      fecha_mantenimiento: createMaintenanceDto.fecha_mantenimiento,
+      tipo_mantenimiento: createMaintenanceDto.tipo_mantenimiento,
+      descripcion: createMaintenanceDto.descripcion,
+      costo: createMaintenanceDto.costo,
       toilet, // Relacionamos el baño con el mantenimiento
+      tecnicoResponsable: empleado, // Relacionamos el empleado con el mantenimiento
       completado: false, // Agregamos campo para controlar si está completado
     });
 
@@ -207,7 +222,6 @@ export class ToiletMaintenanceService {
 
     return maintenanceCount > 0;
   }
-
   async findAll(paginationDto: PaginationDto): Promise<{
     data: ToiletMaintenance[];
     total: number;
@@ -218,7 +232,8 @@ export class ToiletMaintenanceService {
 
     const queryBuilder = this.maintenanceRepository
       .createQueryBuilder('maintenance')
-      .leftJoinAndSelect('maintenance.toilet', 'toilet');
+      .leftJoinAndSelect('maintenance.toilet', 'toilet')
+      .leftJoinAndSelect('maintenance.tecnicoResponsable', 'empleado');
 
     if (search) {
       const searchTerms = search.toLowerCase().split(' ');
@@ -228,7 +243,10 @@ export class ToiletMaintenanceService {
         `LOWER(UNACCENT(maintenance.tipo_mantenimiento)) LIKE :term0
         OR LOWER(UNACCENT(CAST(maintenance.completado AS TEXT))) LIKE :term0
         OR LOWER(UNACCENT(toilet.codigo_interno)) LIKE :term0
-        OR LOWER(UNACCENT(toilet.modelo)) LIKE :term0`,
+        OR LOWER(UNACCENT(toilet.modelo)) LIKE :term0
+        OR LOWER(UNACCENT(empleado.nombre)) LIKE :term0
+        OR LOWER(UNACCENT(empleado.apellido)) LIKE :term0
+        OR LOWER(UNACCENT(CONCAT(empleado.nombre, ' ', empleado.apellido))) LIKE :term0`,
         { term0: `%${searchTerms[0]}%` },
       );
 
@@ -238,7 +256,10 @@ export class ToiletMaintenanceService {
           `LOWER(UNACCENT(maintenance.tipo_mantenimiento)) LIKE :term${i}
           OR LOWER(UNACCENT(CAST(maintenance.completado AS TEXT))) LIKE :term${i}
           OR LOWER(UNACCENT(toilet.codigo_interno)) LIKE :term${i}
-          OR LOWER(UNACCENT(toilet.modelo)) LIKE :term${i}`,
+          OR LOWER(UNACCENT(toilet.modelo)) LIKE :term${i}
+          OR LOWER(UNACCENT(empleado.nombre)) LIKE :term${i}
+          OR LOWER(UNACCENT(empleado.apellido)) LIKE :term${i}
+          OR LOWER(UNACCENT(CONCAT(empleado.nombre, ' ', empleado.apellido))) LIKE :term${i}`,
           { [`term${i}`]: `%${searchTerms[i]}%` },
         );
       }
@@ -258,7 +279,6 @@ export class ToiletMaintenanceService {
       limit,
     };
   }
-
   async getUpcomingMaintenances(): Promise<ToiletMaintenance[]> {
     const today = new Date();
     today.setHours(0, 0, 0, 0); // El inicio del día de hoy
@@ -268,18 +288,16 @@ export class ToiletMaintenanceService {
         fecha_mantenimiento: Between(today, new Date('9999-12-31')),
         completado: false,
       },
-      relations: ['toilet'],
-
+      relations: ['toilet', 'tecnicoResponsable'],
       order: {
         fecha_mantenimiento: 'ASC',
       },
     });
   }
-
   async findById(mantenimiento_id: number): Promise<ToiletMaintenance> {
     const maintenance = await this.maintenanceRepository.findOne({
       where: { mantenimiento_id },
-      relations: ['toilet'], // Incluimos la relación con ChemicalToilet
+      relations: ['toilet', 'tecnicoResponsable'], // Incluimos las relaciones con ChemicalToilet y Empleado
     });
 
     if (!maintenance) {
@@ -290,7 +308,6 @@ export class ToiletMaintenanceService {
 
     return maintenance;
   }
-
   async update(
     mantenimiento_id: number,
     updateMaintenanceDto: UpdateToiletMaintenanceDto,
@@ -298,7 +315,7 @@ export class ToiletMaintenanceService {
     // Verificamos si el mantenimiento existe
     const maintenance = await this.maintenanceRepository.findOne({
       where: { mantenimiento_id },
-      relations: ['toilet'], // Incluimos la relación con ChemicalToilet
+      relations: ['toilet', 'tecnicoResponsable'], // Incluimos las relaciones con ChemicalToilet y Empleado
     });
 
     if (!maintenance) {
@@ -322,8 +339,26 @@ export class ToiletMaintenanceService {
       maintenance.toilet = toilet;
     }
 
+    // Verificamos si el empleado existe (si se está actualizando)
+    if (updateMaintenanceDto.empleado_id) {
+      const empleado = await this.empleadoRepository.findOne({
+        where: { id: updateMaintenanceDto.empleado_id },
+      });
+
+      if (!empleado) {
+        throw new NotFoundException(
+          `Empleado con ID ${updateMaintenanceDto.empleado_id} no encontrado`,
+        );
+      }
+      maintenance.tecnicoResponsable = empleado;
+    }
+
+    // Creamos una copia del DTO sin el empleado_id para evitar conflictos
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { empleado_id, ...updateData } = updateMaintenanceDto;
+
     // Usamos Object.assign para actualizar el mantenimiento con los nuevos datos
-    Object.assign(maintenance, updateMaintenanceDto);
+    Object.assign(maintenance, updateData);
 
     // Guardamos el mantenimiento actualizado en la base de datos
     return await this.maintenanceRepository.save(maintenance);
@@ -344,11 +379,10 @@ export class ToiletMaintenanceService {
     // Procedemos a eliminar el mantenimiento
     await this.maintenanceRepository.delete(mantenimiento_id);
   }
-
   async getMantenimientosStats(baño_id: number): Promise<any> {
     const maintenances = await this.maintenanceRepository.find({
       where: { toilet: { baño_id } },
-      relations: ['toilet'],
+      relations: ['toilet', 'tecnicoResponsable'],
     });
 
     if (maintenances.length === 0) {
@@ -409,7 +443,7 @@ export class ToiletMaintenanceSchedulerService {
         fecha_mantenimiento: Between(today, tomorrow),
         completado: false,
       },
-      relations: ['toilet'],
+      relations: ['toilet', 'tecnicoResponsable'],
     });
 
     // Cambiar estado de los baños a EN_MANTENIMIENTO
