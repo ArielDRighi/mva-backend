@@ -14,8 +14,7 @@ export class VehicleMaintenanceRecord {
 
   @Column({ name: 'vehiculo_id' })
   vehiculoId: number;
-
-  @Column({ name: 'fecha_mantenimiento', type: 'timestamp' })
+  @Column({ name: 'fecha_mantenimiento', type: 'timestamp', nullable: true })
   fechaMantenimiento: Date;
 
   @Column({ name: 'tipo_mantenimiento' })
