@@ -7,6 +7,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { ToiletMaintenance } from './entities/toilet_maintenance.entity';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ChemicalToilet } from '../chemical_toilets/entities/chemical_toilet.entity';
+import { Empleado } from '../employees/entities/employee.entity';
 import { ChemicalToiletsService } from '../chemical_toilets/chemical_toilets.service';
 import { Repository, Between } from 'typeorm';
 import { CreateToiletMaintenanceDto } from './dto/create_toilet_maintenance.dto';
@@ -34,8 +35,11 @@ describe('ToiletMaintenanceService', () => {
       return mockQueryBuilder;
     }),
   };
-
   const mockToiletsRepository = {
+    findOne: jest.fn(),
+  };
+
+  const mockEmpleadoRepository = {
     findOne: jest.fn(),
   };
 
@@ -135,7 +139,8 @@ describe('ToiletMaintenanceService', () => {
       expect(result.length).toBe(4); // 15, 16, 17, 18 May
       expect(result[0]).toEqual(new Date(startDate));
       expect(result[3]).toEqual(new Date('2025-05-18'));
-    });    it('should calculate maintenance days for weekly periodicity', () => {
+    });
+    it('should calculate maintenance days for weekly periodicity', () => {
       console.log(
         '🧪 TEST: Debe calcular días de mantenimiento para periodicidad semanal',
       );

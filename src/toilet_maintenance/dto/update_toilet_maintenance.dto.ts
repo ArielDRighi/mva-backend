@@ -15,16 +15,14 @@ export class UpdateToiletMaintenanceDto {
   @IsString()
   @IsNotEmpty()
   tipo_mantenimiento?: string;
-
   @IsOptional()
   @IsString()
   @IsNotEmpty()
   descripcion?: string;
 
   @IsOptional()
-  @IsString()
-  @IsNotEmpty()
-  tecnico_responsable?: string;
+  @IsNumber()
+  empleado_id?: number;
 
   @IsOptional()
   @IsNumber()
