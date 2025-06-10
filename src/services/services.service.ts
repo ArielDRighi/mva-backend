@@ -297,20 +297,20 @@ export class ServicesService {
         (dto.asignacionesManual?.length
           ? dto.asignacionesManual.flatMap((a) => a.banosIds || [])
           : []);
-
       Object.assign(newService, {
         fechaProgramada: dto.fechaProgramada,
-        tipoServicio: dto.tipoServicio,
+        tipoServicio: newService.tipoServicio || dto.tipoServicio,
         estado: dto.estado || ServiceState.PROGRAMADO,
-        cantidadBanos: dto.cantidadBanos,
-        cantidadEmpleados: this.getDefaultCantidadEmpleados(dto.tipoServicio),
+        cantidadBanos: newService.cantidadBanos || dto.cantidadBanos,
+        cantidadEmpleados: this.getDefaultCantidadEmpleados(
+          newService.tipoServicio || dto.tipoServicio,
+        ),
         cantidadVehiculos: dto.cantidadVehiculos,
         ubicacion: dto.ubicacion,
         notas: dto.notas,
         banosInstalados: banosInstaladosFromManual,
         asignacionAutomatica: false,
       });
-
       this.validateServiceTypeSpecificRequirements(dto);
       // Handle forzar property without unsafe any casting
       if (dto.forzar !== undefined) {
@@ -956,9 +956,7 @@ export class ServicesService {
         assignments.push(assignment);
         vehiculosProcesados.add(vehiculo.id);
         console.log('Asignación creada para vehículo:', assignment);
-      }
-
-      // Baños
+      } // Baños
       if (dto.banosIds?.length) {
         const banos = await this.toiletsRepository.find({
           where: { baño_id: In(dto.banosIds) },
@@ -975,8 +973,33 @@ export class ServicesService {
           );
         }
 
+        // Validar que los baños no estén ya asignados a otros servicios activos
         for (const bano of banos) {
           if (!banosProcesados.has(bano.baño_id)) {
+            // Verificar si el baño ya está asignado a otro servicio activo
+            const existingAssignment = await manager
+              .createQueryBuilder()
+              .select('asig.servicio_id', 'servicioId')
+              .from('asignacion_recursos', 'asig')
+              .innerJoin(
+                'servicios',
+                'servicio',
+                'servicio.id = asig.servicio_id',
+              )
+              .where('asig.bano_id = :banoId', { banoId: bano.baño_id })
+              .andWhere('servicio.estado IN (:...estados)', {
+                estados: [ServiceState.PROGRAMADO, ServiceState.EN_PROGRESO],
+              })
+              .andWhere('asig.servicio_id != :currentServiceId', {
+                currentServiceId: serviceId,
+              })
+              .getRawOne();
+            if (existingAssignment) {
+              throw new BadRequestException(
+                `El baño ${bano.baño_id} (${bano.codigo_interno}) ya está asignado a otro servicio activo (ID: ${existingAssignment.servicioId})`,
+              );
+            }
+
             const assignment = new ResourceAssignment();
             assignment.servicioId = serviceId;
             assignment.banoId = bano.baño_id;
@@ -1272,9 +1295,7 @@ export class ServicesService {
             `No hay suficientes empleados disponibles. Se necesitan ${employeesNeeded}, hay ${disponibles.length}`,
           );
         }
-      }
-
-      // ✅ VEHICULOS
+      } // ✅ VEHICULOS
       if (vehiclesNeeded > 0) {
         const vehicles = await this.vehiclesRepository.find({
           where: [
@@ -1288,14 +1309,15 @@ export class ServicesService {
         for (const vehicle of vehicles) {
           const conflicto = await this.serviceRepository
             .createQueryBuilder('servicio')
-            .innerJoin('servicio.asignaciones', 'veh')
+            .innerJoin('servicio.asignaciones', 'asig')
+            .innerJoin('asig.vehiculo', 'veh')
             .where('veh.id = :id', { id: vehicle.id })
             .andWhere('servicio.fechaProgramada = :fecha', {
               fecha: fechaServicio,
             })
             .andWhere(
               incremental && existingService
-                ? 'servicio.servicioId != :servicioId'
+                ? 'servicio.id != :servicioId'
                 : '1=1',
               { servicioId: existingService?.id },
             )
@@ -1327,6 +1349,36 @@ export class ServicesService {
           throw new BadRequestException(
             `No hay suficientes baños disponibles. Se necesitan ${toiletsNeeded}, hay ${disponibles.length}`,
           );
+        }
+      }
+
+      // ✅ VALIDAR BAÑOS INSTALADOS - Verificar que no estén asignados a otros servicios
+      if (requiereBanosInstalados && service.banosInstalados?.length) {
+        for (const banoId of service.banosInstalados) {
+          const conflicto = await this.serviceRepository
+            .createQueryBuilder('servicio')
+            .innerJoin('servicio.asignaciones', 'asig')
+            .innerJoin('asig.bano', 'bano')
+            .where('bano.baño_id = :banoId', { banoId })
+            .andWhere('servicio.fechaProgramada = :fecha', {
+              fecha: fechaServicio,
+            })
+            .andWhere('servicio.estado IN (:...estados)', {
+              estados: [ServiceState.PROGRAMADO, ServiceState.EN_PROGRESO],
+            })
+            .andWhere(
+              incremental && existingService
+                ? 'servicio.id != :servicioId'
+                : '1=1',
+              { servicioId: existingService?.id },
+            )
+            .getOne();
+
+          if (conflicto) {
+            throw new BadRequestException(
+              `El baño ${banoId} ya está asignado al servicio ${conflicto.id} en la fecha ${fechaServicio.toLocaleDateString()}`,
+            );
+          }
         }
       }
 
