@@ -117,7 +117,9 @@ export class ServicesService {
             };
 
             // Usar el servicio de Future Cleanings para crear los recordatorios
-            await this.futureCleaningsService.createFutureCleaning(createFutureCleaningDto);
+            await this.futureCleaningsService.createFutureCleaning(
+              createFutureCleaningDto,
+            );
             this.logger.log(
               `Recordatorio de limpieza #${i + 1} programado para: ${dias[i].toISOString()}`,
             );
@@ -252,20 +254,20 @@ export class ServicesService {
         (dto.asignacionesManual?.length
           ? dto.asignacionesManual.flatMap((a) => a.banosIds || [])
           : []);
-
       Object.assign(newService, {
         fechaProgramada: dto.fechaProgramada,
-        tipoServicio: dto.tipoServicio,
+        tipoServicio: newService.tipoServicio || dto.tipoServicio,
         estado: dto.estado || ServiceState.PROGRAMADO,
-        cantidadBanos: dto.cantidadBanos,
-        cantidadEmpleados: this.getDefaultCantidadEmpleados(dto.tipoServicio),
+        cantidadBanos: newService.cantidadBanos || dto.cantidadBanos,
+        cantidadEmpleados: this.getDefaultCantidadEmpleados(
+          newService.tipoServicio || dto.tipoServicio,
+        ),
         cantidadVehiculos: dto.cantidadVehiculos,
         ubicacion: dto.ubicacion,
         notas: dto.notas,
         banosInstalados: banosInstaladosFromManual,
         asignacionAutomatica: false,
       });
-
       this.validateServiceTypeSpecificRequirements(dto);
       // Handle forzar property without unsafe any casting
       if (dto.forzar !== undefined) {
@@ -911,9 +913,7 @@ export class ServicesService {
         assignments.push(assignment);
         vehiculosProcesados.add(vehiculo.id);
         console.log('Asignación creada para vehículo:', assignment);
-      }
-
-      // Baños
+      } // Baños
       if (dto.banosIds?.length) {
         const banos = await this.toiletsRepository.find({
           where: { baño_id: In(dto.banosIds) },
@@ -928,10 +928,47 @@ export class ServicesService {
           throw new NotFoundException(
             `Baños no encontrados con IDs: ${noEncontrados.join(', ')}`,
           );
-        }
-
+        } // Validar estado de baños y generar advertencias
         for (const bano of banos) {
           if (!banosProcesados.has(bano.baño_id)) {
+            // Si el baño está ASIGNADO, no permitir la asignación
+            if (bano.estado === ResourceState.ASIGNADO) {
+              throw new BadRequestException(
+                `El baño ${bano.baño_id} (${bano.codigo_interno}) está en estado ASIGNADO y no puede ser asignado a otro servicio`,
+              );
+            }
+
+            // Verificar si el baño ya está asignado a otros servicios PROGRAMADOS
+            const existingAssignment = await manager
+              .createQueryBuilder()
+              .select([
+                'asig.servicio_id as "servicioId"',
+                'servicio.fecha_programada as "fechaProgramada"',
+              ])
+              .from('asignacion_recursos', 'asig')
+              .innerJoin(
+                'servicios',
+                'servicio',
+                'servicio.id = asig.servicio_id',
+              )
+              .where('asig.bano_id = :banoId', { banoId: bano.baño_id })
+              .andWhere('servicio.estado = :estado', {
+                estado: ServiceState.PROGRAMADO,
+              })
+              .andWhere('asig.servicio_id != :currentServiceId', {
+                currentServiceId: serviceId,
+              })
+              .getRawOne();
+
+            if (existingAssignment) {
+              const fechaServicio = new Date(
+                existingAssignment.fechaProgramada,
+              );
+              console.log(
+                `⚠️ ADVERTENCIA: Baño ${bano.baño_id} (${bano.codigo_interno}) ya está seleccionado para el servicio ${existingAssignment.servicioId} programado para ${fechaServicio.toLocaleDateString()}`,
+              );
+            }
+
             const assignment = new ResourceAssignment();
             assignment.servicioId = serviceId;
             assignment.banoId = bano.baño_id;
@@ -943,10 +980,64 @@ export class ServicesService {
         }
       }
     }
-
     console.log('Total de asignaciones a guardar:', assignments.length);
     const saved = await manager.save(assignments);
     console.log('Asignaciones guardadas:', saved.length);
+
+    // Obtener el servicio para verificar su estado
+    const service = await manager.findOne(Service, {
+      where: { id: serviceId },
+      select: ['id', 'estado'],
+    });
+
+    // Solo actualizar estados de recursos si el servicio está EN_PROGRESO
+    if (service?.estado === ServiceState.EN_PROGRESO) {
+      console.log(
+        'Servicio EN_PROGRESO - Actualizando estados de recursos a ASIGNADO',
+      );
+
+      // Actualizar estados de empleados únicos
+      const empleadosIds = Array.from(empleadosProcesados);
+      if (empleadosIds.length > 0) {
+        await manager.update(
+          'empleados',
+          { id: In(empleadosIds) },
+          { estado: ResourceState.ASIGNADO },
+        );
+        console.log(
+          `Estados actualizados para empleados: ${empleadosIds.join(', ')}`,
+        );
+      }
+
+      // Actualizar estados de vehículos únicos
+      const vehiculosIds = Array.from(vehiculosProcesados);
+      if (vehiculosIds.length > 0) {
+        await manager.update(
+          'vehicles',
+          { id: In(vehiculosIds) },
+          { estado: ResourceState.ASIGNADO },
+        );
+        console.log(
+          `Estados actualizados para vehículos: ${vehiculosIds.join(', ')}`,
+        );
+      }
+
+      // Actualizar estados de baños únicos
+      const banosIds = Array.from(banosProcesados);
+      if (banosIds.length > 0) {
+        await manager.update(
+          'chemical_toilets',
+          { baño_id: In(banosIds) },
+          { estado: ResourceState.ASIGNADO },
+        );
+        console.log(`Estados actualizados para baños: ${banosIds.join(', ')}`);
+      }
+    } else {
+      console.log(
+        `Servicio en estado ${service?.estado} - No se actualizan estados de recursos`,
+      );
+    }
+
     console.log('--- Fin assignResourcesManually ---');
 
     return saved;
@@ -1227,9 +1318,7 @@ export class ServicesService {
             `No hay suficientes empleados disponibles. Se necesitan ${employeesNeeded}, hay ${disponibles.length}`,
           );
         }
-      }
-
-      // ✅ VEHICULOS
+      } // ✅ VEHICULOS
       if (vehiclesNeeded > 0) {
         const vehicles = await this.vehiclesRepository.find({
           where: [
@@ -1243,14 +1332,15 @@ export class ServicesService {
         for (const vehicle of vehicles) {
           const conflicto = await this.serviceRepository
             .createQueryBuilder('servicio')
-            .innerJoin('servicio.asignaciones', 'veh')
+            .innerJoin('servicio.asignaciones', 'asig')
+            .innerJoin('asig.vehiculo', 'veh')
             .where('veh.id = :id', { id: vehicle.id })
             .andWhere('servicio.fechaProgramada = :fecha', {
               fecha: fechaServicio,
             })
             .andWhere(
               incremental && existingService
-                ? 'servicio.servicioId != :servicioId'
+                ? 'servicio.id != :servicioId'
                 : '1=1',
               { servicioId: existingService?.id },
             )
@@ -1282,6 +1372,36 @@ export class ServicesService {
           throw new BadRequestException(
             `No hay suficientes baños disponibles. Se necesitan ${toiletsNeeded}, hay ${disponibles.length}`,
           );
+        }
+      }
+
+      // ✅ VALIDAR BAÑOS INSTALADOS - Verificar que no estén asignados a otros servicios
+      if (requiereBanosInstalados && service.banosInstalados?.length) {
+        for (const banoId of service.banosInstalados) {
+          const conflicto = await this.serviceRepository
+            .createQueryBuilder('servicio')
+            .innerJoin('servicio.asignaciones', 'asig')
+            .innerJoin('asig.bano', 'bano')
+            .where('bano.baño_id = :banoId', { banoId })
+            .andWhere('servicio.fechaProgramada = :fecha', {
+              fecha: fechaServicio,
+            })
+            .andWhere('servicio.estado IN (:...estados)', {
+              estados: [ServiceState.PROGRAMADO, ServiceState.EN_PROGRESO],
+            })
+            .andWhere(
+              incremental && existingService
+                ? 'servicio.id != :servicioId'
+                : '1=1',
+              { servicioId: existingService?.id },
+            )
+            .getOne();
+
+          if (conflicto) {
+            throw new BadRequestException(
+              `El baño ${banoId} ya está asignado al servicio ${conflicto.id} en la fecha ${fechaServicio.toLocaleDateString()}`,
+            );
+          }
         }
       }
 
@@ -1469,316 +1589,96 @@ export class ServicesService {
 
   async getResumenServicios() {
     this.logger.log('Obteniendo resumen de servicios');
-
-    try {
-      // Obtener fecha actual y configurar inicio del día
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      // Calcular el domingo (fin de la semana actual)
-      const endOfWeek = new Date(today);
-      const currentDay = today.getDay(); // 0 = domingo, 6 = sábado
-      const daysUntilSunday = (7 - currentDay) % 7;
-      endOfWeek.setDate(endOfWeek.getDate() + daysUntilSunday);
-      endOfWeek.setHours(23, 59, 59, 999);
-
-      // Calcular inicio de la semana anterior (7 días atrás desde hoy)
-      const startOfLastWeek = new Date(today);
-      startOfLastWeek.setDate(startOfLastWeek.getDate() - 7);
-
-      // 1. Servicios pendientes para esta semana (PROGRAMADOS)
-      const serviciosPendientes = await this.serviceRepository.find({
-        where: {
-          fechaProgramada: Between(today, endOfWeek),
-          estado: ServiceState.PROGRAMADO,
-        },
-        relations: [
-          'cliente',
-          'asignaciones',
-          'asignaciones.empleado',
-          'asignaciones.vehiculo',
-          'asignaciones.bano',
-        ],
-        order: {
-          fechaProgramada: 'ASC',
-        },
-      });
-
-      // 2. Servicios completados en la última semana
-      const serviciosCompletados = await this.serviceRepository.find({
-        where: {
-          fechaFin: Between(startOfLastWeek, today),
-          estado: ServiceState.COMPLETADO,
-        },
-        relations: [
-          'cliente',
-          'asignaciones',
-          'asignaciones.empleado',
-          'asignaciones.vehiculo',
-          'asignaciones.bano',
-        ],
-        order: {
-          fechaFin: 'DESC',
-        },
-      });
-
-      return {
-        pendientes: serviciosPendientes.length,
-        completados: serviciosCompletados.length,
-      };
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Error desconocido';
-      this.logger.error(
-        `Error al obtener resumen de servicios: ${errorMessage}`,
-      );
-      throw new BadRequestException(
-        `Error al obtener resumen de servicios: ${errorMessage}`,
-      );
-    }
   }
 
-  async getAssignedPendings(employeeId: number) {
-    const services = await this.serviceRepository.find({
-      where: {
-        estado: ServiceState.PROGRAMADO,
-        asignaciones: {
-          empleadoId: employeeId,
-        },
-      },
-      relations: [
-        'cliente',
-        'asignaciones',
-        'asignaciones.empleado',
-        'asignaciones.vehiculo',
-        'asignaciones.bano',
-      ],
-    });
-    return services;
-  }
-
-  async getLastServices(employeeId: number) {
-    this.logger.log(
-      `Obteniendo últimos servicios realizados por el empleado ${employeeId}`,
-    );
+  /**
+   * Valida la disponibilidad de recursos para un servicio sin crearlo
+   * Retorna advertencias y errores de disponibilidad
+   */
+  async validateResourcesAvailability(dto: CreateServiceDto): Promise<{
+    valid: boolean;
+    warnings: string[];
+    errors: string[];
+  }> {
+    const warnings: string[] = [];
+    const errors: string[] = [];
 
     try {
-      const services = await this.serviceRepository.find({
-        where: {
-          estado: ServiceState.COMPLETADO,
-          asignaciones: {
-            empleadoId: employeeId,
-          },
-        },
-        relations: [
-          'cliente',
-          'asignaciones',
-          'asignaciones.empleado',
-          'asignaciones.vehiculo',
-          'asignaciones.bano',
-        ],
-        order: {
-          fechaFin: 'DESC',
-        },
-        take: 5, // Limitar a los 5 últimos servicios
-      });
+      // Validar baños si se especifican asignaciones manuales
+      if (dto.asignacionesManual?.length) {
+        for (const assignment of dto.asignacionesManual) {
+          if (assignment.banosIds?.length) {
+            const banos = await this.toiletsRepository.find({
+              where: { baño_id: In(assignment.banosIds) },
+            });
 
-      if (services.length === 0) {
-        this.logger.log(
-          `No se encontraron servicios completados para el empleado ${employeeId}`,
-        );
-      } else {
-        this.logger.log(
-          `Se encontraron ${services.length} servicios completados para el empleado ${employeeId}`,
-        );
+            for (const bano of banos) {
+              // Error: Baño ASIGNADO
+              if (bano.estado === ResourceState.ASIGNADO) {
+                errors.push(
+                  `El baño ${bano.baño_id} (${bano.codigo_interno}) está en estado ASIGNADO y no puede ser asignado a otro servicio`,
+                );
+                continue;
+              }
+
+              // Advertencia: Baño ya asignado a otro servicio PROGRAMADO
+              const existingAssignment = await this.assignmentRepository
+                .createQueryBuilder('asig')
+                .innerJoin('asig.servicio', 'servicio')
+                .select([
+                  'servicio.id as "servicioId"',
+                  'servicio.fecha_programada as "fechaProgramada"',
+                ])
+                .where('asig.bano_id = :banoId', { banoId: bano.baño_id })
+                .andWhere('servicio.estado = :estado', {
+                  estado: ServiceState.PROGRAMADO,
+                })                .getRawOne();
+
+              if (existingAssignment) {
+                const fechaServicio = new Date(
+                  String(existingAssignment.fechaProgramada),
+                );
+                warnings.push(
+                  `El baño ${bano.baño_id} (${bano.codigo_interno}) ya está seleccionado para el servicio ${String(existingAssignment.servicioId)} programado para ${fechaServicio.toLocaleDateString('es-ES')}`,
+                );
+              }
+            }
+          }
+        }
       }
 
-      return services;
+      // Validar disponibilidad general usando el método existente
+      try {
+        const tempService = new Service();
+        Object.assign(tempService, {
+          fechaProgramada: dto.fechaProgramada,
+          tipoServicio: dto.tipoServicio,
+          cantidadBanos: dto.cantidadBanos,
+          cantidadEmpleados: this.getDefaultCantidadEmpleados(dto.tipoServicio),
+          cantidadVehiculos: dto.cantidadVehiculos,
+          banosInstalados: dto.banosInstalados,
+          condicionContractualId: dto.condicionContractualId,
+        });
+
+        await this.verifyResourcesAvailability(tempService);
+      } catch (error) {
+        if (error instanceof BadRequestException) {
+          errors.push(error.message);
+        }
+      }
+
+      return {
+        valid: errors.length === 0,
+        warnings,
+        errors,
+      };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Error desconocido';
-      this.logger.error(
-        `Error al obtener los últimos servicios del empleado ${employeeId}: ${errorMessage}`,
-      );
-      throw new BadRequestException(
-        `Error al obtener los últimos servicios: ${errorMessage}`,
-      );
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      return {
+        valid: false,
+        warnings,
+        errors: [`Error al validar recursos: ${errorMessage}`],
+      };
     }
-  }
-
-  async getAssignedInProgress(employeeId: number) {
-    const services = await this.serviceRepository.find({
-      where: {
-        estado: ServiceState.EN_PROGRESO,
-        asignaciones: {
-          empleadoId: employeeId,
-        },
-      },
-      relations: [
-        'cliente',
-        'asignaciones',
-        'asignaciones.empleado',
-        'asignaciones.vehiculo',
-        'asignaciones.bano',
-      ],
-    });
-    return services;
-  }
-
-  async getCompletedServices(
-    employeeId: number,
-    paginationDto: PaginationDto,
-  ): Promise<any> {
-    const { page = 1, limit = 10, search } = paginationDto;
-
-    const query = this.serviceRepository
-      .createQueryBuilder('service')
-      .leftJoinAndSelect('service.asignaciones', 'asignacion')
-      .leftJoinAndSelect('asignacion.empleado', 'empleado')
-      .leftJoinAndSelect('service.cliente', 'cliente')
-      .where('empleado.id = :employeeId', { employeeId })
-      .andWhere('service.estado = :estado', {
-        estado: ServiceState.COMPLETADO,
-      });
-
-    // Add search functionality if needed
-    if (search) {
-      query.andWhere(
-        '(LOWER(cliente.nombre) LIKE :search OR LOWER(service.ubicacion) LIKE :search)',
-        { search: `%${search.toLowerCase()}%` },
-      );
-    }
-
-    // Add pagination
-    const [servicios, total] = await query
-      .skip((page - 1) * limit)
-      .take(limit)
-      .getManyAndCount();
-
-    return {
-      data: servicios,
-      totalItems: total,
-      currentPage: page,
-      totalPages: Math.ceil(total / limit),
-    };
-  }
-
-  async getInstalacionServices(
-    page: number,
-    limit: number,
-  ): Promise<{
-    data: Service[];
-    totalItems: number;
-    currentPage: number;
-    totalPages: number;
-  }> {
-    const services = await this.serviceRepository.find({
-      where: {
-        tipoServicio: ServiceType.INSTALACION,
-      },
-      relations: [
-        'cliente',
-        'asignaciones',
-        'asignaciones.empleado',
-        'asignaciones.vehiculo',
-        'asignaciones.bano',
-      ],
-      order: {
-        fechaProgramada: 'ASC',
-      },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
-    return {
-      data: services,
-      totalItems: services.length,
-      currentPage: page,
-      totalPages: Math.ceil(services.length / limit),
-    };
-  }
-
-  async getCapacitacionServices(
-    page: number,
-    limit: number,
-    search: string,
-  ): Promise<{
-    data: Service[];
-    totalItems: number;
-    currentPage: number;
-    totalPages: number;
-  }> {
-    const queryBuilder = this.serviceRepository
-      .createQueryBuilder('service')
-      .leftJoinAndSelect('service.cliente', 'cliente')
-      .leftJoinAndSelect('service.asignaciones', 'asignaciones')
-      .leftJoinAndSelect('asignaciones.empleado', 'empleado')
-      .leftJoinAndSelect('asignaciones.vehiculo', 'vehiculo')
-      .leftJoinAndSelect('asignaciones.bano', 'bano')
-      .where('service.tipoServicio = :tipoServicio', {
-        tipoServicio: ServiceType.CAPACITACION,
-      });
-
-    if (search) {
-      const term = `%${search.toLowerCase()}%`;
-      queryBuilder.andWhere(
-        '(LOWER(service.estado::text) LIKE :term OR ' +
-          "COALESCE(LOWER(cliente.nombre_empresa), '') LIKE :term OR " +
-          "COALESCE(LOWER(service.ubicacion), '') LIKE :term OR " +
-          "COALESCE(LOWER(service.notas), '') LIKE :term)",
-        { term },
-      );
-    }
-
-    queryBuilder.orderBy('service.fechaProgramada', 'ASC');
-
-    const [services, total] = await queryBuilder
-      .skip((page - 1) * limit)
-      .take(limit)
-      .getManyAndCount();
-
-    return {
-      data: services,
-      totalItems: total,
-      currentPage: page,
-      totalPages: Math.ceil(total / limit),
-    };
-  }
-
-  async getLimpiezaServices(page: number, limit: number) {
-    const serviceTypes = [
-      ServiceType.LIMPIEZA,
-      ServiceType.MANTENIMIENTO,
-      ServiceType.MANTENIMIENTO_IN_SITU,
-      ServiceType.REPARACION,
-      ServiceType.REEMPLAZO,
-      ServiceType.RETIRO,
-      ServiceType.TRASLADO,
-      ServiceType.REUBICACION,
-    ];
-
-    const services = await this.serviceRepository.find({
-      where: {
-        tipoServicio: In(serviceTypes),
-      },
-      relations: [
-        'cliente',
-        'asignaciones',
-        'asignaciones.empleado',
-        'asignaciones.vehiculo',
-        'asignaciones.bano',
-      ],
-      order: {
-        fechaProgramada: 'ASC',
-      },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
-
-    return {
-      data: services,
-      totalItems: services.length,
-      currentPage: page,
-      totalPages: Math.ceil(services.length / limit),
-    };
   }
 }
