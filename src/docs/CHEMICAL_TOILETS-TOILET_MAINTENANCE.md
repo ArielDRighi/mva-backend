@@ -1,4 +1,18 @@
-# Documentación de los Módulos de Baños Químicos y Mantenimiento (MVA Backend)
+# Documentación de los Módulos de Baños Químicos| Atributo | Tipo | Descripción |
+
+| ------------------- | -------------- | ---------------------------------------------------- |
+| mantenimiento_id | number | Identificador único del mantenimiento |
+| fecha_mantenimie| Campo | Tipo | Requerido | Descripción |
+| ------------------- | ------ | --------- | ----------------------- |
+| toilet_id | number | Sí | ID del baño químico |
+| tipo_mantenimiento | string | Sí | Tipo de mantenimiento |
+| descripcion | string | Sí | Descripción detallada |
+| tecnico_responsable | string | Sí | Nombre del técnico |
+| costo | number | No | Costo del mantenimiento |ate | Fecha en que se realizó o programó el mantenimiento |
+| tipo_mantenimiento | string | Tipo de mantenimiento (Preventivo, Correctivo, etc.) |
+| descripcion | string | Descripción detallada del mantenimiento |
+| tecnico_responsable | string | Nombre del técnico encargado del mantenimiento |
+| costo | number (opcional) | Costo del mantenimiento |nimiento (MVA Backend)
 
 ## Índice
 
@@ -46,17 +60,17 @@ La entidad `ChemicalToilet` está definida con los siguientes campos:
 
 La entidad `ToiletMaintenance` está definida con los siguientes campos:
 
-| Atributo            | Tipo           | Descripción                                          |
-| ------------------- | -------------- | ---------------------------------------------------- |
-| mantenimiento_id    | number         | Identificador único del mantenimiento                |
-| fecha_mantenimiento | Date           | Fecha en que se realizó o programó el mantenimiento  |
-| tipo_mantenimiento  | string         | Tipo de mantenimiento (Preventivo, Correctivo, etc.) |
-| descripcion         | string         | Descripción detallada del mantenimiento              |
-| tecnico_responsable | string         | Nombre del técnico encargado del mantenimiento       |
-| costo               | number         | Costo del mantenimiento                              |
-| toilet              | ChemicalToilet | Relación con el baño químico                         |
-| completado          | boolean        | Indica si el mantenimiento ha sido completado        |
-| fechaCompletado     | Date           | Fecha en que se completó el mantenimiento            |
+| Atributo            | Tipo              | Descripción                                          |
+| ------------------- | ----------------- | ---------------------------------------------------- |
+| mantenimiento_id    | number            | Identificador único del mantenimiento                |
+| fecha_mantenimiento | Date              | Fecha en que se realizó o programó el mantenimiento  |
+| tipo_mantenimiento  | string            | Tipo de mantenimiento (Preventivo, Correctivo, etc.) |
+| descripcion         | string            | Descripción detallada del mantenimiento              |
+| tecnico_responsable | string            | Nombre del técnico encargado del mantenimiento       |
+| costo               | number (opcional) | Costo del mantenimiento                              |
+| toilet              | ChemicalToilet    | Relación con el baño químico                         |
+| completado          | boolean           | Indica si el mantenimiento ha sido completado        |
+| fechaCompletado     | Date              | Fecha en que se completó el mantenimiento            |
 
 ## 3. Endpoints de Baños Químicos
 
@@ -354,7 +368,7 @@ GET /api/chemical_toilets/by-client/5
 | tipo_mantenimiento  | string | Sí        | Tipo de mantenimiento   |
 | descripcion         | string | Sí        | Descripción detallada   |
 | tecnico_responsable | string | Sí        | Nombre del técnico      |
-| costo               | number | Sí        | Costo del mantenimiento |
+| costo               | number | No        | Costo del mantenimiento |
 
 **Respuesta Exitosa (201 Created):**
 

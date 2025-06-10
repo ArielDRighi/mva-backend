@@ -69,17 +69,19 @@ async function createAdminUser() {
     ]);
 
     const adminUser = result[0];
-
     console.log('¡Usuario administrador creado exitosamente!');
     console.log('-------------------------------------');
-    console.log('nombre: admin');
+    console.log('Email: admin@mva.com (usar para iniciar sesión)');
     console.log('Password: admin123');
-    console.log('Email: admin@mva.com');
+    console.log('Nombre: admin');
     console.log('Roles: ADMIN');
     console.log('ID:', adminUser.usuario_id);
     console.log('-------------------------------------');
     console.log(
-      '¡IMPORTANTE! Recuerda cambiar esta contraseña después del primer inicio de sesión.',
+      '¡IMPORTANTE! Usa el EMAIL para iniciar sesión, no el nombre de usuario.',
+    );
+    console.log(
+      'Recuerda cambiar esta contraseña después del primer inicio de sesión.',
     );
   } catch (error) {
     console.error('Error al crear el usuario administrador:', error);

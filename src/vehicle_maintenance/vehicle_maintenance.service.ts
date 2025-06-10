@@ -23,7 +23,6 @@ export class VehicleMaintenanceService {
     private maintenanceRepository: Repository<VehicleMaintenanceRecord>,
     private vehiclesService: VehiclesService,
   ) {}
-
   async create(
     createMaintenanceDto: CreateMaintenanceDto,
   ): Promise<VehicleMaintenanceRecord> {
@@ -36,38 +35,50 @@ export class VehicleMaintenanceService {
       createMaintenanceDto.vehiculoId,
     );
 
-    // NUEVO CÓDIGO: Permitir ASIGNADO y DISPONIBLE para mantenimientos futuros
-    // Solo verificamos el estado cuando es para hoy o una fecha pasada
-    const now = new Date();
-    now.setHours(0, 0, 0, 0); // Inicio del día actual
-
-    const maintenanceDate = new Date(createMaintenanceDto.fechaMantenimiento);
-    maintenanceDate.setHours(0, 0, 0, 0); // Inicio del día de mantenimiento
-
-    if (maintenanceDate <= now) {
-      // El mantenimiento es para hoy o una fecha pasada, verificamos que esté DISPONIBLE
-      if ((vehicle.estado as ResourceState) !== ResourceState.DISPONIBLE) {
-        throw new BadRequestException(
-          `El vehículo no está disponible para mantenimiento inmediato. Estado actual: ${vehicle.estado}`,
-        );
-      }
-
-      // Cambiar estado inmediatamente
-      await this.vehiclesService.changeStatus(
-        vehicle.id,
-        ResourceState.MANTENIMIENTO,
-      );
-      // Actualizar también el estado en el objeto en memoria
-      vehicle.estado = ResourceState.MANTENIMIENTO.toString();
-    } else {
-      // Es un mantenimiento futuro, verificar que el vehículo esté DISPONIBLE o ASIGNADO
+    // Si no se especifica fecha de mantenimiento, es un mantenimiento sin fecha específica
+    if (!createMaintenanceDto.fechaMantenimiento) {
+      // Para mantenimientos sin fecha específica, el vehículo debe estar DISPONIBLE o ASIGNADO
       if (
         (vehicle.estado as ResourceState) !== ResourceState.DISPONIBLE &&
         (vehicle.estado as ResourceState) !== ResourceState.ASIGNADO
       ) {
         throw new BadRequestException(
-          `Solo vehículos en estado DISPONIBLE o ASIGNADO pueden programar mantenimientos futuros. Estado actual: ${vehicle.estado}`,
+          `Solo vehículos en estado DISPONIBLE o ASIGNADO pueden tener mantenimientos sin fecha específica. Estado actual: ${vehicle.estado}`,
         );
+      }
+    } else {
+      // Si se especifica fecha, aplicar la lógica original
+      const now = new Date();
+      now.setHours(0, 0, 0, 0); // Inicio del día actual
+
+      const maintenanceDate = new Date(createMaintenanceDto.fechaMantenimiento);
+      maintenanceDate.setHours(0, 0, 0, 0); // Inicio del día de mantenimiento
+
+      if (maintenanceDate <= now) {
+        // El mantenimiento es para hoy o una fecha pasada, verificamos que esté DISPONIBLE
+        if ((vehicle.estado as ResourceState) !== ResourceState.DISPONIBLE) {
+          throw new BadRequestException(
+            `El vehículo no está disponible para mantenimiento inmediato. Estado actual: ${vehicle.estado}`,
+          );
+        }
+
+        // Cambiar estado inmediatamente
+        await this.vehiclesService.changeStatus(
+          vehicle.id,
+          ResourceState.MANTENIMIENTO,
+        );
+        // Actualizar también el estado en el objeto en memoria
+        vehicle.estado = ResourceState.MANTENIMIENTO.toString();
+      } else {
+        // Es un mantenimiento futuro, verificar que el vehículo esté DISPONIBLE o ASIGNADO
+        if (
+          (vehicle.estado as ResourceState) !== ResourceState.DISPONIBLE &&
+          (vehicle.estado as ResourceState) !== ResourceState.ASIGNADO
+        ) {
+          throw new BadRequestException(
+            `Solo vehículos en estado DISPONIBLE o ASIGNADO pueden programar mantenimientos futuros. Estado actual: ${vehicle.estado}`,
+          );
+        }
       }
     }
 
@@ -124,60 +135,58 @@ export class VehicleMaintenanceService {
 
     return maintenanceCount > 0;
   }
-
   async findAll(
-  paginationDto: PaginationDto,
-  search?: string,
-): Promise<{
-  data: VehicleMaintenanceRecord[];
-  total: number;
-  page: number;
-  limit: number;
-  pages: number;
-}> {
-  const { page = 1, limit = 10 } = paginationDto;
-  const skip = (page - 1) * limit;
+    paginationDto: PaginationDto,
+    search?: string,
+  ): Promise<{
+    data: VehicleMaintenanceRecord[];
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+  }> {
+    const { page = 1, limit = 10 } = paginationDto;
+    const skip = (page - 1) * limit;
 
-  const query = this.maintenanceRepository
-    .createQueryBuilder('maintenance')
-    .leftJoinAndSelect('maintenance.vehicle', 'vehicle')
-    .orderBy('maintenance.fechaMantenimiento', 'DESC')
-    .skip(skip)
-    .take(limit);
+    const query = this.maintenanceRepository
+      .createQueryBuilder('maintenance')
+      .leftJoinAndSelect('maintenance.vehicle', 'vehicle')
+      .orderBy('maintenance.fechaMantenimiento', 'DESC', 'NULLS LAST')
+      .skip(skip)
+      .take(limit);
 
-  if (search) {
-    const searchTerms = search.toLowerCase().split(' ');
+    if (search) {
+      const searchTerms = search.toLowerCase().split(' ');
 
-    // Primer término con WHERE
-    query.where(
-      `(LOWER(vehicle.modelo) LIKE :term0 OR
-        LOWER(vehicle.placa) LIKE :term0 OR
-        LOWER(maintenance.descripcion) LIKE :term0)`,
-      { term0: `%${searchTerms[0]}%` },
-    );
-
-    // Términos adicionales con AND + OR
-    for (let i = 1; i < searchTerms.length; i++) {
-      query.andWhere(
-        `(LOWER(vehicle.modelo) LIKE :term${i} OR
-          LOWER(vehicle.placa) LIKE :term${i} OR
-          LOWER(maintenance.descripcion) LIKE :term${i})`,
-        { [`term${i}`]: `%${searchTerms[i]}%` },
+      // Primer término con WHERE
+      query.where(
+        `(LOWER(vehicle.modelo) LIKE :term0 OR
+          LOWER(vehicle.placa) LIKE :term0 OR
+          LOWER(maintenance.descripcion) LIKE :term0)`,
+        { term0: `%${searchTerms[0]}%` },
       );
+
+      // Términos adicionales con AND + OR
+      for (let i = 1; i < searchTerms.length; i++) {
+        query.andWhere(
+          `(LOWER(vehicle.modelo) LIKE :term${i} OR
+            LOWER(vehicle.placa) LIKE :term${i} OR
+            LOWER(maintenance.descripcion) LIKE :term${i})`,
+          { [`term${i}`]: `%${searchTerms[i]}%` },
+        );
+      }
     }
+
+    const [data, total] = await query.getManyAndCount();
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      pages: Math.ceil(total / limit),
+    };
   }
-
-  const [data, total] = await query.getManyAndCount();
-
-  return {
-    data,
-    total,
-    page,
-    limit,
-    pages: Math.ceil(total / limit),
-  };
-}
-
 
   async findOne(id: number): Promise<VehicleMaintenanceRecord> {
     this.logger.log(`Buscando registro de mantenimiento con id: ${id}`);
@@ -194,7 +203,6 @@ export class VehicleMaintenanceService {
 
     return maintenanceRecord;
   }
-
   async findByVehicle(vehiculoId: number): Promise<VehicleMaintenanceRecord[]> {
     this.logger.log(
       `Buscando registros de mantenimiento para vehículo: ${vehiculoId}`,
@@ -203,11 +211,13 @@ export class VehicleMaintenanceService {
     // Verificar que el vehículo existe
     await this.vehiclesService.findOne(vehiculoId);
 
-    return this.maintenanceRepository.find({
-      where: { vehiculoId },
-      relations: ['vehicle'],
-      order: { fechaMantenimiento: 'DESC' },
-    });
+    // Usar query builder para manejar correctamente el ordenamiento con valores null
+    return this.maintenanceRepository
+      .createQueryBuilder('maintenance')
+      .leftJoinAndSelect('maintenance.vehicle', 'vehicle')
+      .where('maintenance.vehiculoId = :vehiculoId', { vehiculoId })
+      .orderBy('maintenance.fechaMantenimiento', 'DESC', 'NULLS LAST')
+      .getMany();
   }
 
   async findUpcomingMaintenances(): Promise<VehicleMaintenanceRecord[]> {

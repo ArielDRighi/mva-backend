@@ -10,7 +10,6 @@ import { Transform } from 'class-transformer';
 import {
   EstadoContrato,
   Periodicidad,
-  TipoContrato,
 } from '../entities/contractual_conditions.entity';
 import { ServiceType } from 'src/common/enums/resource-states.enum';
 
@@ -18,10 +17,6 @@ export class ModifyCondicionContractualDto {
   @IsOptional()
   @IsNumber()
   clienteId?: number;
-
-  @IsOptional()
-  @IsEnum(TipoContrato)
-  tipo_de_contrato?: TipoContrato;
 
   @IsOptional()
   @IsDate()
