@@ -26,10 +26,9 @@ export class FutureCleaningsController {
   constructor(
     private readonly futureCleaningsService: FutureCleaningsService,
   ) {}
-
   @Get()
   @HttpCode(HttpStatus.OK)
-  async getAllFutureClenaings(
+  async getAllFutureCleanings(
     @Query('page') page = '1',
     @Query('limit') limit = '5',
   ) {
@@ -45,13 +44,59 @@ export class FutureCleaningsController {
       );
     }
   }
-
   @Roles(Role.ADMIN)
   @Delete('delete/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteFutureCleaning(@Param('id') id: number) {
     try {
       return await this.futureCleaningsService.deleteFutureCleaning(id);
+    } catch (error) {
+      throw new BadRequestException(
+        error instanceof Error ? error.message : 'Error desconocido ocurrido',
+      );
+    }
+  }
+  @Get('/by-date-range')
+  @HttpCode(HttpStatus.OK)
+  async getFutureCleaningsByDateRange(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Query('page') page = '1',
+    @Query('limit') limit = '10',
+  ) {
+    try {
+      const paginationDto: PaginationDto = {
+        page: Number(page),
+        limit: Number(limit),
+      };
+      return await this.futureCleaningsService.getByDateRange(
+        new Date(startDate),
+        new Date(endDate),
+        paginationDto,
+      );
+    } catch (error) {
+      throw new BadRequestException(
+        error instanceof Error ? error.message : 'Error desconocido ocurrido',
+      );
+    }
+  }
+
+  @Get('/upcoming')
+  @HttpCode(HttpStatus.OK)
+  async getUpcomingCleanings(
+    @Query('days') days = '7',
+    @Query('page') page = '1',
+    @Query('limit') limit = '10',
+  ) {
+    try {
+      const paginationDto: PaginationDto = {
+        page: Number(page),
+        limit: Number(limit),
+      };
+      return await this.futureCleaningsService.getUpcomingCleanings(
+        Number(days),
+        paginationDto,
+      );
     } catch (error) {
       throw new BadRequestException(
         error instanceof Error ? error.message : 'Error desconocido ocurrido',
@@ -81,8 +126,7 @@ export class FutureCleaningsController {
         error instanceof Error ? error.message : 'Error desconocido ocurrido',
       );
     }
-  }
-  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  }  @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Put('modify/:id')
   @HttpCode(HttpStatus.OK)
   async updateFutureCleaning(
