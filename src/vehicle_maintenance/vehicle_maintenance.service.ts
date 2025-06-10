@@ -126,58 +126,59 @@ export class VehicleMaintenanceService {
   }
 
   async findAll(
-  paginationDto: PaginationDto,
-  search?: string,
-): Promise<{
-  data: VehicleMaintenanceRecord[];
-  total: number;
-  page: number;
-  limit: number;
-  pages: number;
-}> {
-  const { page = 1, limit = 10 } = paginationDto;
-  const skip = (page - 1) * limit;
+    paginationDto: PaginationDto,
+    search?: string,
+  ): Promise<{
+    data: VehicleMaintenanceRecord[];
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+  }> {
+    const { page = 1, limit = 10 } = paginationDto;
+    const skip = (page - 1) * limit;
 
-  const query = this.maintenanceRepository
-    .createQueryBuilder('maintenance')
-    .leftJoinAndSelect('maintenance.vehicle', 'vehicle')
-    .orderBy('maintenance.fechaMantenimiento', 'DESC')
-    .skip(skip)
-    .take(limit);
+    const query = this.maintenanceRepository
+      .createQueryBuilder('maintenance')
+      .leftJoinAndSelect('maintenance.vehicle', 'vehicle')
+      .orderBy('maintenance.fechaMantenimiento', 'DESC')
+      .skip(skip)
+      .take(limit);
 
-  if (search) {
-    const searchTerms = search.toLowerCase().split(' ');
+    if (search) {
+      const searchTerms = search.toLowerCase().split(' ');
 
-    // Primer término con WHERE
-    query.where(
-      `(LOWER(vehicle.modelo) LIKE :term0 OR
+      // Primer término con WHERE
+      query.where(
+        `(LOWER(vehicle.modelo) LIKE :term0 OR
         LOWER(vehicle.placa) LIKE :term0 OR
+        LOWER(vehicle.marca) LIKE :term0 OR
         LOWER(maintenance.descripcion) LIKE :term0)`,
-      { term0: `%${searchTerms[0]}%` },
-    );
-
-    // Términos adicionales con AND + OR
-    for (let i = 1; i < searchTerms.length; i++) {
-      query.andWhere(
-        `(LOWER(vehicle.modelo) LIKE :term${i} OR
-          LOWER(vehicle.placa) LIKE :term${i} OR
-          LOWER(maintenance.descripcion) LIKE :term${i})`,
-        { [`term${i}`]: `%${searchTerms[i]}%` },
+        { term0: `%${searchTerms[0]}%` },
       );
+
+      // Términos adicionales con AND + OR
+      for (let i = 1; i < searchTerms.length; i++) {
+        query.andWhere(
+          `(LOWER(vehicle.modelo) LIKE :term${i} OR
+          LOWER(vehicle.placa) LIKE :term${i} OR
+          LOWER(vehicle.marca) LIKE :term${i} OR
+          LOWER(maintenance.descripcion) LIKE :term${i})`,
+          { [`term${i}`]: `%${searchTerms[i]}%` },
+        );
+      }
     }
+
+    const [data, total] = await query.getManyAndCount();
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      pages: Math.ceil(total / limit),
+    };
   }
-
-  const [data, total] = await query.getManyAndCount();
-
-  return {
-    data,
-    total,
-    page,
-    limit,
-    pages: Math.ceil(total / limit),
-  };
-}
-
 
   async findOne(id: number): Promise<VehicleMaintenanceRecord> {
     this.logger.log(`Buscando registro de mantenimiento con id: ${id}`);
