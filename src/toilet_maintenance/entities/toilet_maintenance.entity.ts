@@ -33,7 +33,7 @@ export class ToiletMaintenance {
   @JoinColumn({ name: 'empleado_id' })
   tecnicoResponsable: Empleado;
 
-  @Column({ type: 'numeric', precision: 10, scale: 2 })
+  @Column({ type: 'numeric', precision: 10, scale: 2, nullable: true })
   costo: number;
 
   @ManyToOne(() => ChemicalToilet, (toilet) => toilet.maintenances)
