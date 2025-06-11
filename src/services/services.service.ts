@@ -213,6 +213,16 @@ export class ServicesService {
           if (!cliente) cliente = contrato.cliente;
 
           if (contrato.fecha_inicio && contrato.fecha_fin) {
+            // Validar que las fechas del contrato sean válidas
+            const contratoFechaInicio = new Date(contrato.fecha_inicio);
+            const contratoFechaFin = new Date(contrato.fecha_fin);
+
+            if (contratoFechaInicio >= contratoFechaFin) {
+              throw new BadRequestException(
+                'El contrato asociado tiene fechas inválidas: la fecha de inicio debe ser anterior a la fecha de fin',
+              );
+            }
+
             const fechaInicio = new Date(contrato.fecha_inicio);
             const fechaFin = new Date(contrato.fecha_fin);
             fechaInicio.setDate(fechaInicio.getDate() + 1);
