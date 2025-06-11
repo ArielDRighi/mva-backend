@@ -81,7 +81,14 @@ async findAll(
   ): Promise<ChemicalToilet> {
     return this.chemicalToiletsService.findById(id);
   }
-
+ @Get(':id/services')
+  @UseGuards(RolesGuard)
+ @Roles(Role.ADMIN, Role.SUPERVISOR)
+ async findServicesByToilet(
+  @Param('id', ParseIntPipe) id: number,
+ ): Promise<any[]> {
+  return this.chemicalToiletsService.findServicesByToiletId(id);
+ }
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Put(':id')
