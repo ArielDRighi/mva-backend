@@ -329,7 +329,7 @@ export class ServicesService {
         return 1; // o 0 si no necesitás ninguno
       case ServiceType.INSTALACION:
       case ServiceType.LIMPIEZA:
-        return 2;
+        return 1;
       default:
         return 1;
     }
