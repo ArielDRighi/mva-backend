@@ -106,6 +106,7 @@ export class ContractualConditionsService {
     }
     return contractualConditions;
   }
+
   async createContractualCondition(
     createContractualConditionDto: CreateContractualConditionDto,
   ) {
@@ -123,6 +124,13 @@ export class ContractualConditionsService {
       tarifa_instalacion,
       tarifa_limpieza,
     } = createContractualConditionDto;
+
+    // Validar fechas
+    if (fecha_inicio >= fecha_fin) {
+      throw new BadRequestException(
+        'La fecha de inicio debe ser anterior a la fecha de fin',
+      );
+    }
 
     const client = await this.clientRepository.findOne({
       where: { clienteId: clientId },
