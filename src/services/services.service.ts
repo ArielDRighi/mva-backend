@@ -348,12 +348,12 @@ export class ServicesService {
 
     for (const empleadoId of empleados) {
       await this.dataSource.manager.query(
-        `INSERT INTO scheduled_employee_statuses (empleado_id, nuevo_estado, fecha_cambio, servicio_id) VALUES ($1, $2, $3, $4)`,
+        `INSERT INTO scheduled_employee_statuses (id, nuevo_estado, fecha_cambio, servicio_id) VALUES ($1, $2, $3, $4)`,
         [empleadoId, 'EN_CAPACITACION', service.fechaInicio, service.id],
       );
 
       await this.dataSource.manager.query(
-        `INSERT INTO scheduled_employee_statuses (empleado_id, nuevo_estado, fecha_cambio, servicio_id) VALUES ($1, $2, $3, $4)`,
+        `INSERT INTO scheduled_employee_statuses (id, nuevo_estado, fecha_cambio, servicio_id) VALUES ($1, $2, $3, $4)`,
         [empleadoId, 'DISPONIBLE', service.fechaFin, service.id],
       );
     }
@@ -548,7 +548,7 @@ export class ServicesService {
       );
       for (const empleadoId of empleadosAsignados) {
         await this.dataSource.manager.update(
-          'empleados',
+          'employees',
           { id: empleadoId },
           { estado: nuevoEstado },
         );
@@ -679,40 +679,17 @@ export class ServicesService {
       throw new BadRequestException(
         'Para cambiar un servicio a estado INCOMPLETO, debe proporcionar un comentario explicando el motivo',
       );
-    }
-
-    // Al iniciar servicio
+    } // Al iniciar servicio
     if (nuevoEstado === ServiceState.EN_PROGRESO) {
       if (!service.fechaInicio) {
         service.fechaInicio = new Date();
       }
 
-      // Cambiar estado recursos asignados a ASIGNADO
-      const assignments = await this.assignmentRepository.find({
-        where: { servicio: { id: service.id } },
-        relations: ['empleado', 'vehiculo', 'bano'],
-      });
-
-      for (const assignment of assignments) {
-        if (assignment.empleado) {
-          await this.employeesService.update(assignment.empleado.id, {
-            estado: ResourceState.ASIGNADO,
-          });
-        }
-        if (assignment.vehiculo) {
-          await this.vehiclesService.update(assignment.vehiculo.id, {
-            estado: ResourceState.ASIGNADO,
-          });
-        }
-        if (
-          assignment.bano &&
-          !service.banosInstalados?.includes(assignment.bano.baño_id)
-        ) {
-          await this.toiletsService.update(assignment.bano.baño_id, {
-            estado: ResourceState.ASIGNADO,
-          });
-        }
-      }
+      // Los recursos ya están en estado ASIGNADO desde la creación del servicio
+      // Ya no es necesario cambiar su estado aquí
+      this.logger.log(
+        'Servicio iniciado - Los recursos ya están en estado ASIGNADO',
+      );
     }
 
     // Al completar servicio
@@ -981,58 +958,44 @@ export class ServicesService {
     const saved = await manager.save(assignments);
     console.log('Asignaciones guardadas:', saved.length);
 
-    // Obtener el servicio para verificar su estado
-    const service = await manager.findOne(Service, {
-      where: { id: serviceId },
-      select: ['id', 'estado'],
-    });
-
-    // Solo actualizar estados de recursos si el servicio está EN_PROGRESO
-    if (service?.estado === ServiceState.EN_PROGRESO) {
-      console.log(
-        'Servicio EN_PROGRESO - Actualizando estados de recursos a ASIGNADO',
+    // Actualizar estados de recursos a ASIGNADO inmediatamente al crear las asignaciones
+    console.log(
+      'Actualizando estados de recursos a ASIGNADO tras crear las asignaciones',
+    ); // Actualizar estados de empleados únicos
+    const empleadosIds = Array.from(empleadosProcesados);
+    if (empleadosIds.length > 0) {
+      await manager.update(
+        'employees',
+        { id: In(empleadosIds) },
+        { estado: ResourceState.ASIGNADO },
       );
-
-      // Actualizar estados de empleados únicos
-      const empleadosIds = Array.from(empleadosProcesados);
-      if (empleadosIds.length > 0) {
-        await manager.update(
-          'empleados',
-          { id: In(empleadosIds) },
-          { estado: ResourceState.ASIGNADO },
-        );
-        console.log(
-          `Estados actualizados para empleados: ${empleadosIds.join(', ')}`,
-        );
-      }
-
-      // Actualizar estados de vehículos únicos
-      const vehiculosIds = Array.from(vehiculosProcesados);
-      if (vehiculosIds.length > 0) {
-        await manager.update(
-          'vehicles',
-          { id: In(vehiculosIds) },
-          { estado: ResourceState.ASIGNADO },
-        );
-        console.log(
-          `Estados actualizados para vehículos: ${vehiculosIds.join(', ')}`,
-        );
-      }
-
-      // Actualizar estados de baños únicos
-      const banosIds = Array.from(banosProcesados);
-      if (banosIds.length > 0) {
-        await manager.update(
-          'chemical_toilets',
-          { baño_id: In(banosIds) },
-          { estado: ResourceState.ASIGNADO },
-        );
-        console.log(`Estados actualizados para baños: ${banosIds.join(', ')}`);
-      }
-    } else {
       console.log(
-        `Servicio en estado ${service?.estado} - No se actualizan estados de recursos`,
+        `Estados actualizados para empleados: ${empleadosIds.join(', ')}`,
       );
+    }
+
+    // Actualizar estados de vehículos únicos
+    const vehiculosIds = Array.from(vehiculosProcesados);
+    if (vehiculosIds.length > 0) {
+      await manager.update(
+        'vehicles',
+        { id: In(vehiculosIds) },
+        { estado: ResourceState.ASIGNADO },
+      );
+      console.log(
+        `Estados actualizados para vehículos: ${vehiculosIds.join(', ')}`,
+      );
+    }
+
+    // Actualizar estados de baños únicos
+    const banosIds = Array.from(banosProcesados);
+    if (banosIds.length > 0) {
+      await manager.update(
+        'chemical_toilets',
+        { baño_id: In(banosIds) },
+        { estado: ResourceState.ASIGNADO },
+      );
+      console.log(`Estados actualizados para baños: ${banosIds.join(', ')}`);
     }
 
     console.log('--- Fin assignResourcesManually ---');
