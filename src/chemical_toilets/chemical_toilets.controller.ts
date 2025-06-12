@@ -28,6 +28,15 @@ export class ChemicalToiletsController {
     private readonly chemicalToiletsService: ChemicalToiletsService,
   ) {}
 
+  @Get(':id/services')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  async findServicesByToilet(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<any[]> {
+    return this.chemicalToiletsService.findServicesByToiletId(id);
+  }
+
   @Get('total_chemical_toilets')
   async getTotalChemicalToilets(): Promise<{
     total: number;
@@ -47,18 +56,18 @@ export class ChemicalToiletsController {
   }
 
   @Get()
-async findAll(
-  @Query('page') page = '1',
-  @Query('limit') limit = '10',
-  @Query('search') search?: string,
-): Promise<Pagination<ChemicalToilet>> {
-  const paginationDto = {
-    page: Number(page),
-    limit: Number(limit),
-  };
+  async findAll(
+    @Query('page') page = '1',
+    @Query('limit') limit = '10',
+    @Query('search') search?: string,
+  ): Promise<Pagination<ChemicalToilet>> {
+    const paginationDto = {
+      page: Number(page),
+      limit: Number(limit),
+    };
 
-  return this.chemicalToiletsService.findAll(paginationDto, search);
-}
+    return this.chemicalToiletsService.findAll(paginationDto, search);
+  }
 
   // @Get('search')
   // async search(
@@ -81,14 +90,7 @@ async findAll(
   ): Promise<ChemicalToilet> {
     return this.chemicalToiletsService.findById(id);
   }
- @Get(':id/services')
-  @UseGuards(RolesGuard)
- @Roles(Role.ADMIN, Role.SUPERVISOR)
- async findServicesByToilet(
-  @Param('id', ParseIntPipe) id: number,
- ): Promise<any[]> {
-  return this.chemicalToiletsService.findServicesByToiletId(id);
- }
+
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR)
   @Put(':id')

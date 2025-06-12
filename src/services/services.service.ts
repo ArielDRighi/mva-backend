@@ -348,12 +348,12 @@ export class ServicesService {
 
     for (const empleadoId of empleados) {
       await this.dataSource.manager.query(
-        `INSERT INTO scheduled_employee_statuses (empleado_id, nuevo_estado, fecha_cambio, servicio_id) VALUES ($1, $2, $3, $4)`,
+        `INSERT INTO scheduled_employee_statuses (id, nuevo_estado, fecha_cambio, servicio_id) VALUES ($1, $2, $3, $4)`,
         [empleadoId, 'EN_CAPACITACION', service.fechaInicio, service.id],
       );
 
       await this.dataSource.manager.query(
-        `INSERT INTO scheduled_employee_statuses (empleado_id, nuevo_estado, fecha_cambio, servicio_id) VALUES ($1, $2, $3, $4)`,
+        `INSERT INTO scheduled_employee_statuses (id, nuevo_estado, fecha_cambio, servicio_id) VALUES ($1, $2, $3, $4)`,
         [empleadoId, 'DISPONIBLE', service.fechaFin, service.id],
       );
     }
@@ -548,7 +548,7 @@ export class ServicesService {
       );
       for (const empleadoId of empleadosAsignados) {
         await this.dataSource.manager.update(
-          'empleados',
+          'employees',
           { id: empleadoId },
           { estado: nuevoEstado },
         );
@@ -679,7 +679,7 @@ export class ServicesService {
       throw new BadRequestException(
         'Para cambiar un servicio a estado INCOMPLETO, debe proporcionar un comentario explicando el motivo',
       );
-    }    // Al iniciar servicio
+    } // Al iniciar servicio
     if (nuevoEstado === ServiceState.EN_PROGRESO) {
       if (!service.fechaInicio) {
         service.fechaInicio = new Date();
@@ -687,7 +687,9 @@ export class ServicesService {
 
       // Los recursos ya están en estado ASIGNADO desde la creación del servicio
       // Ya no es necesario cambiar su estado aquí
-      this.logger.log('Servicio iniciado - Los recursos ya están en estado ASIGNADO');
+      this.logger.log(
+        'Servicio iniciado - Los recursos ya están en estado ASIGNADO',
+      );
     }
 
     // Al completar servicio
@@ -951,20 +953,19 @@ export class ServicesService {
           }
         }
       }
-    }    console.log('Total de asignaciones a guardar:', assignments.length);
+    }
+    console.log('Total de asignaciones a guardar:', assignments.length);
     const saved = await manager.save(assignments);
     console.log('Asignaciones guardadas:', saved.length);
 
     // Actualizar estados de recursos a ASIGNADO inmediatamente al crear las asignaciones
     console.log(
       'Actualizando estados de recursos a ASIGNADO tras crear las asignaciones',
-    );
-
-    // Actualizar estados de empleados únicos
+    ); // Actualizar estados de empleados únicos
     const empleadosIds = Array.from(empleadosProcesados);
     if (empleadosIds.length > 0) {
       await manager.update(
-        'empleados',
+        'employees',
         { id: In(empleadosIds) },
         { estado: ResourceState.ASIGNADO },
       );

@@ -327,41 +327,39 @@ export class ChemicalToiletsService {
     return toilets;
   }
   async findServicesByToiletId(toiletId: number): Promise<any[]> {
-  const services = await this.chemicalToiletRepository
-    .createQueryBuilder('bano')
-    .innerJoin(
-      'asignacion_recursos',
-      'asignacion',
-      'asignacion.bano_id = bano.baño_id',
-    )
-    .innerJoin(
-      'servicios',
-      'service',
-      'service.servicio_id = asignacion.servicio_id',
-    )
-    .innerJoin(
-      'clientes',
-      'client',
-      'client.cliente_id = service.cliente_id',
-    )
-    .select([
-      'service.servicio_id as servicioId',
-      'service.nombre as servicioNombre',
-      'service.descripcion as servicioDescripcion',
-      'service.fecha_inicio as fechaInicio',
-      'service.fecha_fin as fechaFin',
-      'service.estado as estadoServicio',
-      'client.cliente_id as clienteId',
-      'client.nombre as clienteNombre',
-      'client.email as clienteEmail',
-      'client.telefono as clienteTelefono',
-      'client.direccion as clienteDireccion',
-    ])
-    .where('bano.baño_id = :toiletId', { toiletId })
-    .getRawMany();
+    const services = await this.chemicalToiletRepository
+      .createQueryBuilder('bano')
+      .innerJoin(
+        'asignacion_recursos',
+        'asignacion',
+        'asignacion.bano_id = bano.baño_id',
+      )
+      .innerJoin(
+        'servicios',
+        'service',
+        'service.servicio_id = asignacion.servicio_id',
+      )
+      .innerJoin('clients', 'client', 'client.cliente_id = service.cliente_id')
+      .select([
+        'service.servicio_id as servicioId',
+        'service.tipo_servicio as tipoServicio',
+        'service.ubicacion as ubicacionServicio',
+        'service.notas as notasServicio',
+        'service.fecha_programada as fechaProgramada',
+        'service.fecha_inicio as fechaInicio',
+        'service.fecha_fin as fechaFin',
+        'service.estado as estadoServicio',
+        'client.cliente_id as clienteId',
+        'client.nombre_empresa as clienteNombre',
+        'client.email as clienteEmail',
+        'client.telefono as clienteTelefono',
+        'client.direccion as clienteDireccion',
+      ])
+      .where('bano.baño_id = :toiletId', { toiletId })
+      .getRawMany();
 
-  return services;
-}
+    return services;
+  }
 
   async getTotalChemicalToilets(): Promise<{
     total: number;
