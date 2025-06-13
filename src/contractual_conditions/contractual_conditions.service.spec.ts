@@ -6,7 +6,6 @@ import {
   CondicionesContractuales,
   EstadoContrato,
   Periodicidad,
-  TipoContrato,
 } from './entities/__mocks__/contractual_conditions.entity';
 import { CreateContractualConditionDto } from './dto/create_contractual_conditions.dto';
 import { ModifyCondicionContractualDto } from './dto/modify_contractual_conditions.dto';
@@ -39,11 +38,9 @@ describe('ContractualConditionsService', () => {
     nombre: 'Constructora ABC',
     cuit: '30-71234567-0',
   };
-
   const mockContractualCondition = {
     condicionContractualId: 1,
     cliente: mockClient as any, // Use 'any' to avoid typing issues
-    tipo_de_contrato: TipoContrato.PERMANENTE,
     fecha_inicio: new Date('2025-01-01'),
     fecha_fin: new Date('2025-12-31'),
     condiciones_especificas:
@@ -59,11 +56,9 @@ describe('ContractualConditionsService', () => {
   };
 
   const mockContractualConditionsList = [
-    mockContractualCondition,
-    {
+    mockContractualCondition,    {
       ...mockContractualCondition,
       condicionContractualId: 2,
-      tipo_de_contrato: TipoContrato.TEMPORAL,
       fecha_inicio: new Date('2025-05-01'),
       fecha_fin: new Date('2025-05-31'),
     },
@@ -236,14 +231,12 @@ describe('ContractualConditionsService', () => {
   });
 
   describe('createContractualCondition', () => {
-    it('should create and return a new contractual condition', async () => {
-      console.log(
+    it('should create and return a new contractual condition', async () => {      console.log(
         '🧪 TEST: Debe crear y retornar una nueva condición contractual',
       );
       // Arrange
       const createDto: CreateContractualConditionDto = {
         clientId: 1,
-        tipo_de_contrato: TipoContrato.PERMANENTE,
         fecha_inicio: new Date('2025-01-01'),
         fecha_fin: new Date('2025-12-31'),
         condiciones_especificas:
@@ -272,11 +265,9 @@ describe('ContractualConditionsService', () => {
       // Assert
       expect(mockClientRepository.findOne).toHaveBeenCalledWith({
         where: { clienteId: 1 },
-      });
-      expect(mockContractualConditionsRepository.create).toHaveBeenCalledWith(
+      });      expect(mockContractualConditionsRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
           cliente: mockClient,
-          tipo_de_contrato: TipoContrato.PERMANENTE,
           fecha_inicio: new Date('2025-01-01'),
           fecha_fin: new Date('2025-12-31'),
         }),
@@ -291,10 +282,8 @@ describe('ContractualConditionsService', () => {
       console.log(
         '🧪 TEST: Debe lanzar NotFoundException si el cliente no se encuentra',
       );
-      // Arrange
-      const createDto: CreateContractualConditionDto = {
+      // Arrange      const createDto: CreateContractualConditionDto = {
         clientId: 999,
-        tipo_de_contrato: TipoContrato.PERMANENTE,
         fecha_inicio: new Date('2025-01-01'),
         fecha_fin: new Date('2025-12-31'),
         condiciones_especificas:

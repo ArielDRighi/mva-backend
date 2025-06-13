@@ -42,12 +42,27 @@ async function bootstrap() {
     }),
   );
   // Configuración de CORS con opciones más específicas para HTTPS
-  app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000'|| 'http://localhost:3001',
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  });
+ app.enableCors({
+  origin: (origin, callback) => {
+    const allowedOrigins = [
+      process.env.FRONTEND_URL,
+      'http://localhost:3000',
+      'http://localhost:3001'
+    ].filter(Boolean);
+    
+    // Permitir requests sin origin (como Postman, aplicaciones móviles)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error('No permitido por CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+});
 
   // Configuración de prefijo global para la API
   app.setGlobalPrefix('api');
