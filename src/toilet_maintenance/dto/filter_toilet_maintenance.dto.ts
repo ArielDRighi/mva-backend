@@ -19,8 +19,8 @@ export class FilterToiletMaintenanceDto {
   tipo_mantenimiento?: string;
 
   @IsOptional()
-  @IsString()
-  tecnico_responsable?: string;
+  @IsNumber()
+  empleado_id?: string;
 
   @IsOptional()
   @IsDateString()
