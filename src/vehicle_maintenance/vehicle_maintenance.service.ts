@@ -158,20 +158,24 @@ export class VehicleMaintenanceService {
     if (search) {
       const searchTerms = search.toLowerCase().split(' ');
 
-      // Primer término con WHERE
+      // Primer término con WHERE - incluir marca del vehículo
       query.where(
         `(LOWER(vehicle.modelo) LIKE :term0 OR
           LOWER(vehicle.placa) LIKE :term0 OR
-          LOWER(maintenance.descripcion) LIKE :term0)`,
+          LOWER(vehicle.marca) LIKE :term0 OR
+          LOWER(maintenance.descripcion) LIKE :term0 OR
+          LOWER(maintenance.tipoMantenimiento) LIKE :term0)`,
         { term0: `%${searchTerms[0]}%` },
       );
 
-      // Términos adicionales con AND + OR
+      // Términos adicionales con AND + OR - incluir marca del vehículo
       for (let i = 1; i < searchTerms.length; i++) {
         query.andWhere(
           `(LOWER(vehicle.modelo) LIKE :term${i} OR
             LOWER(vehicle.placa) LIKE :term${i} OR
-            LOWER(maintenance.descripcion) LIKE :term${i})`,
+            LOWER(vehicle.marca) LIKE :term${i} OR
+            LOWER(maintenance.descripcion) LIKE :term${i} OR
+            LOWER(maintenance.tipoMantenimiento) LIKE :term${i})`,
           { [`term${i}`]: `%${searchTerms[i]}%` },
         );
       }

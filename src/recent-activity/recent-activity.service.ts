@@ -104,7 +104,7 @@ export class RecentActivityService {
     // Usamos createQueryBuilder para obtener el vehículo más reciente
     return this.vehiclesRepository
       .createQueryBuilder('vehiculo')
-      .orderBy('vehiculo.id', 'DESC')
+      .orderBy('vehiculo.vehiculo_id', 'DESC')
       .getOne();
   }
 }

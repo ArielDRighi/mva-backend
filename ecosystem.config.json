@@ -2,12 +2,12 @@
   "apps": [
     {
       "name": "mva-backend",
-      "script": "dist/src/main.js",
+      "script": "dist/main.js",
       "instances": 1,
       "exec_mode": "cluster",
       "env": {
-        "NODE_ENV": "production",
-        "PORT": "3000"
+        "NODE_ENV": "development",
+        "PORT": "3002"
       },
       "env_production": {
         "NODE_ENV": "production",
