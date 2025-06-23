@@ -58,7 +58,7 @@ export class Empleado {
   @Column({ name: 'CUIL', length: 20, unique: true, nullable: true })
   cuil: string;
 
-  @Column({ name: 'CBU', length: 20, unique: true, nullable: true })
+  @Column({ name: 'CBU', length: 22, unique: true, nullable: true })
   cbu: string;
 
   @OneToMany(() => ContactosEmergencia, (contact) => contact.empleado, {
