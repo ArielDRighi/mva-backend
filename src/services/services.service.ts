@@ -163,6 +163,12 @@ export class ServicesService {
 
       if (ultimoServicioInstalacion?.banosInstalados?.length) {
         service.banosInstalados = ultimoServicioInstalacion.banosInstalados;
+        
+        // Guardar los baños asignados en la base de datos
+        await this.serviceRepository.save(service);
+        this.logger.log(
+          `Baños asignados automáticamente al servicio de limpieza ${service.id}: ${service.banosInstalados.join(', ')}`,
+        );
       } else {
         this.logger.warn(
           `No se encontraron baños instalados para cliente ${dto.clienteId}`,

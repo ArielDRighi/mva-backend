@@ -8,6 +8,7 @@ import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { groupBy } from 'lodash';
 import { Reflector } from '@nestjs/core';
+import { DataSource } from 'typeorm';
 import { MailerService } from '../mailer.service';
 import { Service } from 'src/services/entities/service.entity';
 import { ServiceState } from 'src/common/enums/resource-states.enum';
@@ -38,6 +39,7 @@ export class MailerInterceptor implements NestInterceptor {
   constructor(
     private readonly mailerService: MailerService,
     private readonly reflector: Reflector,
+    private readonly dataSource: DataSource,
   ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
@@ -119,7 +121,14 @@ export class MailerInterceptor implements NestInterceptor {
     servicio: Service,
     asignaciones: any[],
   ): Promise<void> {
+    console.log('=== DEBUG INTERCEPTOR - handleServiceCreation INICIO ===');
+    console.log('method:', method);
+    console.log('path:', path);
+    console.log('servicio.banosInstalados:', servicio.banosInstalados);
+    console.log('asignaciones:', asignaciones);
+    
     if (method !== 'POST' || !path.includes('/services')) {
+      console.log('No es POST o no incluye /services, saliendo...');
       return;
     }
 
@@ -153,7 +162,10 @@ export class MailerInterceptor implements NestInterceptor {
         : 'No hay vehículos asignados';
 
     // Obtener todos los baños asignados al servicio
-    const banos = asignaciones
+    let banos: string[] = [];
+    
+    // Primero intentar obtener baños desde las asignaciones (para instalaciones, retiros, etc.)
+    const banosDesdeAsignaciones = asignaciones
       .filter((a) => a?.bano !== null && a?.bano !== undefined)
       .map((a) => {
         const bano = a.bano!;
@@ -163,6 +175,32 @@ export class MailerInterceptor implements NestInterceptor {
       })
       .filter((b, i, self) => self.indexOf(b) === i); // Eliminar duplicados
 
+    // Si no hay baños en asignaciones, usar banosInstalados del servicio (para limpiezas)
+    if (banosDesdeAsignaciones.length === 0 && servicio.banosInstalados?.length) {
+      console.log('DEBUG CREATION: Consultando baños con repository, IDs:', servicio.banosInstalados);
+      // Obtener la información completa de los baños desde la base de datos usando TypeORM
+      try {
+        const toiletEntities = await this.dataSource.query(
+          `SELECT baño_id, codigo_interno FROM chemical_toilets WHERE baño_id = ANY($1)`,
+          [servicio.banosInstalados]
+        );
+        
+        console.log('DEBUG CREATION: toiletEntities encontradas:', toiletEntities);
+        
+        banos = toiletEntities.map((toilet: any) => 
+          toilet.codigo_interno || `Baño ID: ${toilet.baño_id}`
+        );
+        
+        console.log('DEBUG CREATION: banos mapeados:', banos);
+      } catch (error) {
+        console.error('Error al obtener información de baños:', error);
+        banos = servicio.banosInstalados.map(id => `Baño ID: ${id}`);
+      }
+    } else {
+      banos = banosDesdeAsignaciones;
+    }
+
+    console.log('DEBUG CREATION: Baños finales para email:', banos);
     const toilets = banos.length > 0 ? banos : ['No hay baños asignados'];
 
     // Información del cliente
@@ -248,7 +286,10 @@ export class MailerInterceptor implements NestInterceptor {
         : 'No hay vehículos asignados';
 
     // Obtener todos los baños asignados al servicio
-    const banos = asignaciones
+    let banos: string[] = [];
+    
+    // Primero intentar obtener baños desde las asignaciones (para instalaciones, retiros, etc.)
+    const banosDesdeAsignaciones = asignaciones
       .filter((a) => a?.bano !== null && a?.bano !== undefined)
       .map((a) => {
         const bano = a.bano!;
@@ -257,6 +298,26 @@ export class MailerInterceptor implements NestInterceptor {
         );
       })
       .filter((b, i, self) => self.indexOf(b) === i); // Eliminar duplicados
+
+    // Si no hay baños en asignaciones, usar banosInstalados del servicio (para limpiezas)
+    if (banosDesdeAsignaciones.length === 0 && servicio.banosInstalados?.length) {
+      // Obtener la información completa de los baños desde la base de datos
+      try {
+        const toiletEntities = await this.dataSource.query(
+          `SELECT bano_id, codigo_interno FROM chemical_toilets WHERE bano_id = ANY($1)`,
+          [servicio.banosInstalados]
+        );
+        
+        banos = toiletEntities.map((toilet: any) => 
+          toilet.codigo_interno || `Baño ID: ${toilet.bano_id}`
+        );
+      } catch (error) {
+        console.error('Error al obtener información de baños:', error);
+        banos = servicio.banosInstalados.map(id => `Baño ID: ${id}`);
+      }
+    } else {
+      banos = banosDesdeAsignaciones;
+    }
 
     const toilets = banos.length > 0 ? banos : ['No hay baños asignados'];
 
@@ -363,7 +424,10 @@ export class MailerInterceptor implements NestInterceptor {
         : 'No hay vehículos asignados';
 
     // Obtener todos los baños del servicio
-    const banos = asignaciones
+    let banos: string[] = [];
+    
+    // Primero intentar obtener baños desde las asignaciones (para instalaciones, retiros, etc.)
+    const banosDesdeAsignaciones = asignaciones
       .filter((a) => a?.bano !== null && a?.bano !== undefined)
       .map((a) => {
         const bano = a.bano!;
@@ -372,6 +436,26 @@ export class MailerInterceptor implements NestInterceptor {
         );
       })
       .filter((b, i, self) => self.indexOf(b) === i); // Eliminar duplicados
+
+    // Si no hay baños en asignaciones, usar banosInstalados del servicio (para limpiezas)
+    if (banosDesdeAsignaciones.length === 0 && servicio.banosInstalados?.length) {
+      // Obtener la información completa de los baños desde la base de datos
+      try {
+        const toiletEntities = await this.dataSource.query(
+          `SELECT bano_id, codigo_interno FROM chemical_toilets WHERE bano_id = ANY($1)`,
+          [servicio.banosInstalados]
+        );
+        
+        banos = toiletEntities.map((toilet: any) => 
+          toilet.codigo_interno || `Baño ID: ${toilet.bano_id}`
+        );
+      } catch (error) {
+        console.error('Error al obtener información de baños:', error);
+        banos = servicio.banosInstalados.map(id => `Baño ID: ${id}`);
+      }
+    } else {
+      banos = banosDesdeAsignaciones;
+    }
 
     const toilets = banos.length > 0 ? banos : ['No hay baños asignados'];
 
