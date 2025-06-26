@@ -80,7 +80,7 @@ export class CreateEmployeeDto {
 
   @IsNotEmpty()
   @IsString()
-  @Length(11, 20, { message: 'El CBU debe tener entre 11 y 20 caracteres' })
+  @Length(22, 22, { message: 'El CBU debe tener exactamente 22 dígitos' })
   cbu: string;
 }
 
