@@ -25,7 +25,8 @@
     "deploy:https": "bash scripts/deploy-https.sh",
     "seed:clients": "ts-node -r tsconfig-paths/register src/scripts/seed-clients.ts",
     "seed:test-data": "ts-node -r tsconfig-paths/register src/scripts/seed-test-data.ts",
-    "seed:admin": "ts-node -r tsconfig-paths/register src/scripts/create-admin-standalone.ts"
+    "seed:admin": "ts-node -r tsconfig-paths/register src/scripts/create-admin-standalone.ts",
+    "migrate:cbu": "ts-node -r tsconfig-paths/register src/scripts/migrate-cbu-length.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
