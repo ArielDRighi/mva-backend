@@ -20,6 +20,9 @@ import { UpdateContactEmergencyDto } from './dto/update_contact_emergency.dto';
 import { ExamenPreocupacional } from './entities/examenPreocupacional.entity';
 import { CreateExamenPreocupacionalDto } from './dto/create_examen.dto';
 import { UpdateExamenPreocupacionalDto } from './dto/modify_examen.dto';
+import { FamilyMember } from './entities/familyMembers.entity';
+import { CreateFamilyMemberDto } from './dto/create_family_member.dto';
+import { UpdateFamilyMemberDto } from './dto/update_family_member.dto';
 import { DataSource } from 'typeorm';
 import { Service } from 'src/services/entities/service.entity';
 import { ServiceState } from 'src/common/enums/resource-states.enum';
@@ -41,6 +44,8 @@ export class EmployeesService {
     private readonly emergencyContactRepository: Repository<ContactosEmergencia>,
     @InjectRepository(ExamenPreocupacional)
     private readonly examenPreocupacionalRepository: Repository<ExamenPreocupacional>,
+    @InjectRepository(FamilyMember)
+    private readonly familyMemberRepository: Repository<FamilyMember>,
     private usersService: UsersService, // Inyecta el servicio de usuarios
   ) {}
 
@@ -153,6 +158,7 @@ export class EmployeesService {
         'emergencyContacts',
         'examenesPreocupacionales',
         'talleRopa',
+        'familyMembers',
       ],
     });
 
@@ -600,8 +606,11 @@ export class EmployeesService {
       );
     }
     return employee.examenesPreocupacionales;
-  }  async findProximosServiciosPorEmpleadoId(empleadoId: number) {
-    this.logger.log(`Obteniendo servicios activos asignados al empleado ${empleadoId}`);
+  }
+  async findProximosServiciosPorEmpleadoId(empleadoId: number) {
+    this.logger.log(
+      `Obteniendo servicios activos asignados al empleado ${empleadoId}`,
+    );
 
     return this.dataSource
       .getRepository(Service)
@@ -613,8 +622,8 @@ export class EmployeesService {
       .leftJoinAndSelect('asignaciones.vehiculo', 'vehiculo')
       .leftJoinAndSelect('asignaciones.bano', 'bano')
       .where('asignacion.empleadoId = :empleadoId', { empleadoId })
-      .andWhere('service.estado IN (:...estados)', { 
-        estados: [ServiceState.PROGRAMADO, ServiceState.EN_PROGRESO] 
+      .andWhere('service.estado IN (:...estados)', {
+        estados: [ServiceState.PROGRAMADO, ServiceState.EN_PROGRESO],
       })
       .orderBy('service.fechaProgramada', 'ASC')
       .getMany();
@@ -725,5 +734,73 @@ export class EmployeesService {
     }
 
     return employee;
+  }
+
+  // Métodos para manejar miembros de familia
+  async addFamilyMember(
+    empleadoId: number,
+    createFamilyMemberDto: CreateFamilyMemberDto,
+  ): Promise<FamilyMember> {
+    this.logger.log(`Agregando familiar al empleado: ${empleadoId}`);
+
+    const employee = await this.findOne(empleadoId);
+
+    const familyMember = this.familyMemberRepository.create({
+      ...createFamilyMemberDto,
+      empleado: employee,
+    });
+
+    return this.familyMemberRepository.save(familyMember);
+  }
+
+  async updateFamilyMember(
+    familyMemberId: number,
+    updateFamilyMemberDto: UpdateFamilyMemberDto,
+  ): Promise<FamilyMember> {
+    this.logger.log(`Actualizando familiar: ${familyMemberId}`);
+
+    const familyMember = await this.familyMemberRepository.findOne({
+      where: { id: familyMemberId },
+    });
+
+    if (!familyMember) {
+      throw new NotFoundException(
+        `Familiar con id ${familyMemberId} no encontrado`,
+      );
+    }
+
+    Object.assign(familyMember, updateFamilyMemberDto);
+    return this.familyMemberRepository.save(familyMember);
+  }
+
+  async deleteFamilyMember(familyMemberId: number): Promise<void> {
+    this.logger.log(`Eliminando familiar: ${familyMemberId}`);
+
+    const result = await this.familyMemberRepository.delete(familyMemberId);
+
+    if (result.affected === 0) {
+      throw new NotFoundException(
+        `Familiar con id ${familyMemberId} no encontrado`,
+      );
+    }
+  }
+
+  async findFamilyMembersByEmpleadoId(
+    empleadoId: number,
+  ): Promise<FamilyMember[]> {
+    this.logger.log(`Buscando familiares del empleado: ${empleadoId}`);
+
+    const employee = await this.employeeRepository.findOne({
+      where: { id: empleadoId },
+      relations: ['familyMembers'],
+    });
+
+    if (!employee) {
+      throw new NotFoundException(
+        `Empleado con id ${empleadoId} no encontrado`,
+      );
+    }
+
+    return employee.familyMembers;
   }
 }

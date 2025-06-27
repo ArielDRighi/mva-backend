@@ -10,7 +10,13 @@ export default registerAs('database', () => {
     database: process.env.DB_DATABASE,
     schema: process.env.DB_SCHEMA,
     entities: ['dist/**/*.entity.js'],
-    synchronize: true,
+    migrations: ['dist/migrations/*.js'],
+    migrationsTableName: 'migrations',
+    // Cambiar synchronize basado en si estamos en producción o no
+    synchronize:
+      process.env.NODE_ENV !== 'production' &&
+      process.env.USE_MIGRATIONS !== 'true',
+    migrationsRun: process.env.USE_MIGRATIONS === 'true',
     logging: ['error', 'warn', 'info', 'log', 'schema'],
     dropSchema: false,
 
@@ -22,12 +28,12 @@ export default registerAs('database', () => {
       writeDatesAsUTC: false,
     },
   };
-  
+
   console.log('=== CONFIGURACIÓN TYPEORM ===');
   console.log('NODE_ENV:', process.env.NODE_ENV);
   console.log('synchronize:', config.synchronize);
   console.log('entities:', config.entities);
   console.log('===============================');
-  
+
   return config;
 });
