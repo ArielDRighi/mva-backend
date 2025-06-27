@@ -14,6 +14,20 @@ Esta migración agrega la funcionalidad para almacenar datos familiares de los e
 
 ## 🚀 Pasos para Aplicar en Producción
 
+### ⚠️ **ATENCIÓN: Diferencias Desarrollo vs Producción**
+
+**En DESARROLLO** (con `synchronize: true`):
+
+- TypeORM modifica automáticamente la base de datos
+- Los cambios en entidades se aplican al reiniciar la aplicación
+- No necesita ejecutar migraciones manualmente
+
+**En PRODUCCIÓN** (con `USE_MIGRATIONS=true`):
+
+- TypeORM NO modifica automáticamente la base de datos
+- Los cambios SOLO se aplican mediante migraciones controladas
+- Debe ejecutar migraciones manualmente
+
 ### 1. Preparación
 
 ```bash
@@ -42,12 +56,43 @@ npm run migration:show
 
 ## 🔧 Configuración de Base de Datos
 
-Para cambiar de `synchronize: true` a migraciones, actualizar variables de entorno:
+### ⚠️ **IMPORTANTE PARA PRODUCCIÓN**
+
+En **desarrollo**, TypeORM usa `synchronize: true` que automáticamente modifica la base de datos según las entidades. **En producción esto es PELIGROSO** ya que puede modificar o eliminar datos sin control.
+
+### Variables de Entorno para Producción
 
 ```env
-# Agregar esta variable para usar migraciones en producción
+# ✅ OBLIGATORIO: Usar migraciones en producción
 USE_MIGRATIONS=true
+
+# ✅ OBLIGATORIO: Configurar entorno de producción
+NODE_ENV=production
+
+# Configuración de base de datos
+DB_HOST=your_production_host
+DB_PORT=5432
+DB_USERNAME=your_production_user
+DB_PASSWORD=your_production_password
+DB_DATABASE=your_production_database
+DB_SCHEMA=public
 ```
+
+### 🔒 Diferencias Desarrollo vs Producción
+
+| Entorno        | synchronize | migrationsRun | Comportamiento                           |
+| -------------- | ----------- | ------------- | ---------------------------------------- |
+| **Desarrollo** | `true`      | `false`       | Cambios automáticos según entidades      |
+| **Producción** | `false`     | `true`        | Solo cambios vía migraciones controladas |
+
+### 📋 Lista de Verificación Pre-Producción
+
+Antes de desplegar, verificar que el archivo `.env` de producción contenga:
+
+- [ ] `USE_MIGRATIONS=true`
+- [ ] `NODE_ENV=production`
+- [ ] Variables de DB correctas
+- [ ] **NO** debe tener `synchronize=true` explícito
 
 ## 📊 Estructura de la Nueva Tabla
 
@@ -59,14 +104,24 @@ CREATE TABLE "family_members" (
     "parentesco" character varying(50) NOT NULL,
     "dni" character varying(20) NOT NULL,
     "fecha_nacimiento" date NOT NULL,
-    "empleadoEmpleadoId" integer,
+    "empleado_id" integer,
     CONSTRAINT "PK_family_members_id" PRIMARY KEY ("id"),
     CONSTRAINT "FK_family_members_empleado"
-        FOREIGN KEY ("empleadoEmpleadoId")
+        FOREIGN KEY ("empleado_id")
         REFERENCES "employees"("empleado_id")
         ON DELETE CASCADE ON UPDATE CASCADE
 );
+
+-- Índice para optimizar consultas
+CREATE INDEX "IDX_family_members_empleado" ON "family_members" ("empleado_id");
 ```
+
+### 🔑 Convenciones de Nombres
+
+- **Columna FK**: `empleado_id` (no `empleadoEmpleadoId`)
+- **Constraint FK**: `FK_family_members_empleado`
+- **Índice**: `IDX_family_members_empleado`
+- **Entidad TypeORM**: Usa `@JoinColumn({ name: 'empleado_id' })` explícitamente
 
 ## 🌐 Nuevos Endpoints API
 
@@ -158,9 +213,30 @@ psql -h [host] -U [usuario] -d [base_datos] < backup_antes_migracion.sql
 
 ## 📞 Soporte
 
-Si hay problemas durante la migración:
+### 🔧 Troubleshooting Común
 
-1. No aplicar más cambios
+**Error: "no existe el índice"** al hacer revert:
+
+- Esto puede ocurrir si `synchronize: true` modificó la estructura
+- Verificar manualmente qué índices existen antes del revert
+
+**Error: "table already exists"** al aplicar migración:
+
+- Verificar si `synchronize: true` ya creó la tabla
+- Marcar migración como aplicada: `npm run migration:run -- --fake`
+
+**Error: "column does not exist"** en API:
+
+- Verificar que la migración se aplicó correctamente
+- Confirmar que `USE_MIGRATIONS=true` en producción
+
+### 🆘 Si hay problemas durante la migración:
+
+1. **No aplicar más cambios**
 2. Revisar logs de la aplicación
 3. Verificar conexión a base de datos
-4. Contactar al equipo de desarrollo con detalles del error
+4. Verificar variables de entorno (especialmente `USE_MIGRATIONS` y `NODE_ENV`)
+5. Contactar al equipo de desarrollo con:
+   - Logs completos del error
+   - Estado actual de `npm run migration:show`
+   - Variables de entorno utilizadas (sin contraseñas)

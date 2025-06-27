@@ -13,7 +13,7 @@ export class AddFamilyMembers1751037933275 implements MigrationInterface {
                 "parentesco" character varying(50) NOT NULL,
                 "dni" character varying(20) NOT NULL,
                 "fecha_nacimiento" date NOT NULL,
-                "empleadoEmpleadoId" integer,
+                "empleado_id" integer,
                 CONSTRAINT "PK_family_members_id" PRIMARY KEY ("id")
             )
         `);
@@ -22,7 +22,7 @@ export class AddFamilyMembers1751037933275 implements MigrationInterface {
     await queryRunner.query(`
             ALTER TABLE "family_members" 
             ADD CONSTRAINT "FK_family_members_empleado" 
-            FOREIGN KEY ("empleadoEmpleadoId") 
+            FOREIGN KEY ("empleado_id") 
             REFERENCES "employees"("empleado_id") 
             ON DELETE CASCADE 
             ON UPDATE CASCADE
@@ -31,7 +31,7 @@ export class AddFamilyMembers1751037933275 implements MigrationInterface {
     // Crear índice para mejorar performance
     await queryRunner.query(`
             CREATE INDEX "IDX_family_members_empleado" 
-            ON "family_members" ("empleadoEmpleadoId")
+            ON "family_members" ("empleado_id")
         `);
   }
 

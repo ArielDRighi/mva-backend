@@ -1,4 +1,10 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { Empleado } from './employee.entity';
 
 @Entity({ name: 'family_members' })
@@ -25,5 +31,6 @@ export class FamilyMember {
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE',
   })
+  @JoinColumn({ name: 'empleado_id' })
   empleado: Empleado;
 }
