@@ -21,6 +21,7 @@ import { Pagination } from 'src/common/interfaces/paginations.interface';
 import { CondicionesContractuales } from './entities/contractual_conditions.entity';
 import { Roles } from 'src/roles/decorators/roles.decorator';
 import { Role } from 'src/roles/enums/role.enum';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Controller('contractual_conditions')
 @UseGuards(JwtAuthGuard)
@@ -72,10 +73,16 @@ export class ContractualConditionsController {
   @HttpCode(HttpStatus.OK)
   async getContractualConditionsByClient(
     @Param('clientId', ParseIntPipe) clientId: number,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+    @Query('search') search?: string,
   ) {
     try {
       return await this.contractualConditionsService.getContractualConditionsByClient(
         clientId,
+        page,
+        limit,
+        search,
       );
     } catch (error: unknown) {
       const message =
