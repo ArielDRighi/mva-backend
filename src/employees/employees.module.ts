@@ -10,6 +10,7 @@ import { LicenseAlertService } from './LicenseAlert.service';
 import { MailerModule } from 'src/mailer/mailer.module';
 import { ExamenPreocupacional } from './entities/examenPreocupacional.entity';
 import { UsersModule } from 'src/users/users.module';
+import { FamilyMember } from './entities/familyMembers.entity';
 
 @Module({
   imports: [
@@ -17,8 +18,8 @@ import { UsersModule } from 'src/users/users.module';
       Empleado,
       Licencias,
       ContactosEmergencia,
-      Licencias,
       ExamenPreocupacional,
+      FamilyMember,
     ]),
     RolesModule,
     MailerModule,

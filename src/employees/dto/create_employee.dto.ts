@@ -11,6 +11,7 @@ import {
 import { CreateContactEmergencyDto } from './create_contact_emergency.dto';
 import { CreateLicenseDto } from './create_license.dto';
 import { CreateExamenPreocupacionalDto } from './create_examen.dto';
+import { CreateFamilyMemberDto } from './create_family_member.dto';
 
 export class CreateEmployeeDto {
   @IsString()
@@ -99,4 +100,9 @@ export class CreateFullEmployeeDto extends CreateEmployeeDto {
   @ValidateNested()
   @Type(() => CreateExamenPreocupacionalDto)
   examenPreocupacional?: CreateExamenPreocupacionalDto;
+
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => CreateFamilyMemberDto)
+  familyMembers?: CreateFamilyMemberDto[];
 }

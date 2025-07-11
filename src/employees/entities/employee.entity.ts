@@ -12,6 +12,7 @@ import { RopaTalles } from 'src/clothing/entities/clothing.entity';
 import { ContactosEmergencia } from './emergencyContacts.entity';
 import { Licencias } from './license.entity';
 import { ExamenPreocupacional } from './examenPreocupacional.entity';
+import { FamilyMember } from './familyMembers.entity';
 
 @Entity({ name: 'employees' })
 export class Empleado {
@@ -92,9 +93,16 @@ export class Empleado {
 
   @OneToOne(() => RopaTalles, (talleRopa) => talleRopa.empleado)
   talleRopa: RopaTalles;
+
   @OneToMany(
     () => ExamenPreocupacional,
     (examenPreocupacional) => examenPreocupacional.empleado,
   )
   examenesPreocupacionales: ExamenPreocupacional[];
+
+  @OneToMany(() => FamilyMember, (familyMember) => familyMember.empleado, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  familyMembers: FamilyMember[];
 }

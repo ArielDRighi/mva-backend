@@ -29,6 +29,9 @@ import { UpdateContactEmergencyDto } from './dto/update_contact_emergency.dto';
 import { UpdateLicenseDto } from './dto/update_license.dto';
 import { CreateExamenPreocupacionalDto } from './dto/create_examen.dto';
 import { UpdateExamenPreocupacionalDto } from './dto/modify_examen.dto';
+import { CreateFamilyMemberDto } from './dto/create_family_member.dto';
+import { UpdateFamilyMemberDto } from './dto/update_family_member.dto';
+import { FamilyMember } from './entities/familyMembers.entity';
 
 @Controller('employees')
 @UseGuards(JwtAuthGuard)
@@ -172,10 +175,11 @@ export class EmployeesController {
     console.log('Empleado ID:', empleadoId);
     console.log('Create License DTO:', createEmployeeDto);
     return await this.employeesService.createLicencia(
-      createEmployeeDto,    empleadoId,
+      createEmployeeDto,
+      empleadoId,
     );
   }
-  
+
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
   @Get('licencia/:empleadoId')
@@ -269,5 +273,51 @@ export class EmployeesController {
     @Body('estado') estado: string,
   ): Promise<Empleado> {
     return this.employeesService.changeStatus(id, estado);
+  }
+
+  // Endpoints para manejo de familiares
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Post(':id/family-members')
+  async addFamilyMember(
+    @Param('id', ParseIntPipe) empleadoId: number,
+    @Body() createFamilyMemberDto: CreateFamilyMemberDto,
+  ): Promise<FamilyMember> {
+    return this.employeesService.addFamilyMember(
+      empleadoId,
+      createFamilyMemberDto,
+    );
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Get(':id/family-members')
+  async getFamilyMembers(
+    @Param('id', ParseIntPipe) empleadoId: number,
+  ): Promise<FamilyMember[]> {
+    return this.employeesService.findFamilyMembersByEmpleadoId(empleadoId);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Put('family-members/:familyId')
+  async updateFamilyMember(
+    @Param('familyId', ParseIntPipe) familyId: number,
+    @Body() updateFamilyMemberDto: UpdateFamilyMemberDto,
+  ): Promise<FamilyMember> {
+    return this.employeesService.updateFamilyMember(
+      familyId,
+      updateFamilyMemberDto,
+    );
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR)
+  @Delete('family-members/:familyId')
+  async deleteFamilyMember(
+    @Param('familyId', ParseIntPipe) familyId: number,
+  ): Promise<{ message: string }> {
+    await this.employeesService.deleteFamilyMember(familyId);
+    return { message: 'Familiar eliminado correctamente' };
   }
 }
