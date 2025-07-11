@@ -13,6 +13,7 @@ import { CreateContractualConditionDto } from './dto/create_contractual_conditio
 import { ModifyCondicionContractualDto } from './dto/modify_contractual_conditions.dto';
 import { Cliente } from 'src/clients/entities/client.entity';
 import { Pagination } from 'src/common/interfaces/paginations.interface';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Injectable()
 export class ContractualConditionsService {
@@ -42,13 +43,27 @@ export class ContractualConditionsService {
 
     // Aplicamos filtro de búsqueda si se proporciona el parámetro search
     if (search) {
-      queryBuilder.where(
-        '(condicion.condiciones_especificas LIKE :search OR ' +
-          'condicion.tipo_servicio LIKE :search OR ' +
-          'cliente.nombre LIKE :search OR ' +
-          'cliente.razon_social LIKE :search)',
-        { search: `%${search}%` },
-      );
+      // Dividir el search en palabras
+      const words = search.trim().split(/\s+/);
+      // Generar condiciones para cada palabra
+      const orConditions: string[] = [];
+      const parameters: Record<string, string> = {};
+      words.forEach((word, idx) => {
+        const param = `search${idx}`;
+        parameters[param] = `%${word}%`;
+        orConditions.push(`condicion.condiciones_especificas LIKE :${param}`);
+        orConditions.push(
+          `CAST(condicion.tipo_servicio AS TEXT) LIKE :${param}`,
+        );
+        orConditions.push(
+          `CAST(condicion.periodicidad AS TEXT) LIKE :${param}`,
+        );
+        orConditions.push(`CAST(condicion.estado AS TEXT) LIKE :${param}`);
+        orConditions.push(`cliente.nombre_empresa LIKE :${param}`);
+        orConditions.push(`cliente.cuit LIKE :${param}`);
+        orConditions.push(`cliente.direccion LIKE :${param}`);
+      });
+      queryBuilder.where('(' + orConditions.join(' OR ') + ')', parameters);
     }
 
     // Aplicamos la paginación
@@ -81,7 +96,12 @@ export class ContractualConditionsService {
     return contractualCondition;
   }
 
-  async getContractualConditionsByClient(clientId: number) {
+  async getContractualConditionsByClient(
+    clientId: number,
+    page: number = 1,
+    limit: number = 10,
+    search?: string,
+  ) {
     const client = await this.clientRepository.findOne({
       where: { clienteId: clientId },
     });
@@ -89,22 +109,50 @@ export class ContractualConditionsService {
       throw new NotFoundException(`Cliente con ID: ${clientId} no encontrado`);
     }
 
-    // Modificar la consulta para usar las relaciones explícitamente
-    const contractualConditions =
-      await this.contractualConditionsRepository.find({
-        relations: ['cliente'],
-        where: {
-          cliente: {
-            clienteId: clientId,
-          },
-        },
+    if (page < 1 || limit < 1) {
+      throw new BadRequestException('Parámetros de paginación inválidos.');
+    }
+
+    const queryBuilder = this.contractualConditionsRepository
+      .createQueryBuilder('condicion')
+      .leftJoinAndSelect('condicion.cliente', 'cliente')
+      .where('cliente.clienteId = :clientId', { clientId });
+
+    if (search) {
+      // Dividir el search en palabras
+      const words = search.trim().split(/\s+/);
+      // Generar condiciones para cada palabra
+      const orConditions: string[] = [];
+      const parameters: Record<string, string> = {};
+      words.forEach((word, idx) => {
+        const param = `search${idx}`;
+        parameters[param] = `%${word}%`;
+        orConditions.push(`condicion.condiciones_especificas LIKE :${param}`);
+        orConditions.push(
+          `CAST(condicion.tipo_servicio AS TEXT) LIKE :${param}`,
+        );
+        orConditions.push(`cliente.nombre LIKE :${param}`);
       });
-    if (!contractualConditions || contractualConditions.length === 0) {
+      queryBuilder.andWhere('(' + orConditions.join(' OR ') + ')', parameters);
+    }
+
+    queryBuilder.skip((page - 1) * limit).take(limit);
+
+    const [items, total] = await queryBuilder.getManyAndCount();
+
+    if (!items || items.length === 0) {
       throw new NotFoundException(
         `El cliente con ID: ${clientId} no tiene Condiciones Contractuales`,
       );
     }
-    return contractualConditions;
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async createContractualCondition(

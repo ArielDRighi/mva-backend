@@ -22,12 +22,12 @@ export default registerAs('database', () => {
       writeDatesAsUTC: false,
     },
   };
-  
+
   console.log('=== CONFIGURACIÓN TYPEORM ===');
   console.log('NODE_ENV:', process.env.NODE_ENV);
   console.log('synchronize:', config.synchronize);
   console.log('entities:', config.entities);
   console.log('===============================');
-  
+
   return config;
 });

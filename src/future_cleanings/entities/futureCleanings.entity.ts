@@ -26,6 +26,8 @@ export class FuturasLimpiezas {
   numero_de_limpieza: number;
 
   // Relacion con Servicio de instalacion
-  @ManyToOne(() => Service, (service) => service.futurasLimpiezas)
+  @ManyToOne(() => Service, (service) => service.futurasLimpiezas, {
+    onDelete: 'CASCADE',
+  })
   servicio: Service;
 }
