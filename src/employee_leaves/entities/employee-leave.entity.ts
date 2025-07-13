@@ -42,9 +42,10 @@ export class EmployeeLeave {
 
   @Column({ type: 'text', nullable: true })
   notas: string;
+
   @Column({ type: 'text', nullable: true })
   comentarioRechazo?: string;
 
-  @Column({ default: false })
-  aprobado: boolean;
+  @Column({ default: null, nullable: true })
+  aprobado: boolean | null = null;
 }
