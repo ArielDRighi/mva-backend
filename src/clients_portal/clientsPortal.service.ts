@@ -60,7 +60,7 @@ export class ClientsPortalService {
   }
 
   async createSatisfactionSurvey(surveyData: CreateSatisfactionSurveyDto) {
-    const survey = this.satisfactionSurveyRepository.create(surveyData);
+    const survey = this.satisfactionSurveyRepository.create(surveyData as Partial<SatisfactionSurvey>);
     try {
       await this.satisfactionSurveyRepository.save(survey);
       return survey;
