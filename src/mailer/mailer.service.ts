@@ -392,7 +392,7 @@ export class MailerService {
     const safeAdminEmails = adminsEmails || [];
     const safeSupervisorEmails = supervisorsEmails || [];
 
-    // Usamos array como destino para ser consistentes
+    // Redirigir todos los reclamos a info@mvasrl.com
     const mailOptions: MailOptions = {
       from: process.env.EMAIL_USER || 'notificacion@mva.com',
       to: 'info@mvasrl.com',
@@ -541,7 +541,7 @@ export class MailerService {
     const safeAdminEmails = adminsEmails || [];
     const safeSupervisorEmails = supervisorsEmails || [];
 
-    // Usamos array como destino para ser consistentes
+    // Redirigir todas las solicitudes de servicio a info@mvasrl.com
     const mailOptions: MailOptions = {
       from: process.env.EMAIL_USER || 'notificacion@mva.com',
       to: 'info@mvasrl.com',
