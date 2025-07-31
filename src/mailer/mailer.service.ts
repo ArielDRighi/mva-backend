@@ -395,7 +395,7 @@ export class MailerService {
     // Usamos array como destino para ser consistentes
     const mailOptions: MailOptions = {
       from: process.env.EMAIL_USER || 'notificacion@mva.com',
-      to: [...safeAdminEmails, ...safeSupervisorEmails],
+      to: 'info@mvasrl.com',
       subject,
       html: htmlContent,
     };
@@ -471,7 +471,7 @@ export class MailerService {
     // Usamos array como destino para ser consistentes
     const mailOptions: MailOptions = {
       from: process.env.EMAIL_USER || 'notificacion@mva.com',
-      to: [...safeAdminEmails, ...safeSupervisorEmails],
+      to: 'info@mvasrl.com',
       subject,
       html: htmlContent,
     };
@@ -544,7 +544,7 @@ export class MailerService {
     // Usamos array como destino para ser consistentes
     const mailOptions: MailOptions = {
       from: process.env.EMAIL_USER || 'notificacion@mva.com',
-      to: [...safeAdminEmails, ...safeSupervisorEmails],
+      to: 'info@mvasrl.com',
       subject,
       html: htmlContent,
     };
