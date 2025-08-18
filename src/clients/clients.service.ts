@@ -31,70 +31,69 @@ export class ClientService {
 
   async create(createClientDto: CreateClientDto): Promise<Cliente> {
     this.logger.log(`Creando cliente: ${createClientDto.nombre}`);
-    // Verificar si ya existe un cliente con el mismo CUIT
-    const existingClient = await this.clientRepository.findOne({
-      where: { cuit: createClientDto.cuit },
-    });
-
-    if (existingClient) {
-      throw new ConflictException(
-        `Ya existe un cliente con el CUIT ${createClientDto.cuit}`,
-      );
+    try {
+      // Verificar si ya existe un cliente con el mismo CUIT
+      const existingClient = await this.clientRepository.findOne({
+        where: { cuit: createClientDto.cuit },
+      });
+      if (existingClient) {
+        throw new ConflictException(
+          `Ya existe un cliente con el CUIT ${createClientDto.cuit}`,
+        );
+      }
+      const client = this.clientRepository.create(createClientDto);
+      return await this.clientRepository.save(client);
+    } catch (error) {
+      this.logger.error('Error al crear el cliente', error.stack);
+      throw new InternalServerErrorException('Error al crear el cliente. Intente nuevamente o contacte al administrador.');
     }
-
-    const client = this.clientRepository.create(createClientDto);
-    return this.clientRepository.save(client);
   }
 
   async findAll(paginationDto: PaginationDto): Promise<Pagination<Cliente>> {
     const { page = 1, limit = 10, search } = paginationDto;
-
     this.logger.log(
       `Recuperando clientes - Página: ${page}, Límite: ${limit}, Búsqueda: ${search}`,
     );
-
-    const query = this.clientRepository.createQueryBuilder('cliente');
-
-    if (search) {
-      const searchTerms = search.toLowerCase().split(' ');
-
-      // Usar primera palabra con WHERE
-      query.where(
-        `LOWER(UNACCENT(cliente.nombre)) LIKE :term
-        OR LOWER(UNACCENT(cliente.cuit)) LIKE :term
-        OR LOWER(UNACCENT(cliente.email)) LIKE :term
-        OR LOWER(UNACCENT(cliente.estado)) LIKE :term
-        OR LOWER(UNACCENT(cliente.direccion)) LIKE :term
-        OR LOWER(UNACCENT(cliente.contacto_principal)) LIKE :term`,
-        { term: `%${searchTerms[0]}%` },
-      );
-
-      // Palabras adicionales con AND
-      for (let i = 1; i < searchTerms.length; i++) {
-        query.andWhere(
-          `LOWER(UNACCENT(cliente.nombre)) LIKE :term${i}
-          OR LOWER(UNACCENT(cliente.cuit)) LIKE :term${i}
-          OR LOWER(UNACCENT(cliente.email)) LIKE :term${i}
-          OR LOWER(UNACCENT(cliente.estado)) LIKE :term${i}
-          OR LOWER(UNACCENT(cliente.direccion)) LIKE :term${i}
-          OR LOWER(UNACCENT(cliente.contacto_principal)) LIKE :term${i}`,
-          { [`term${i}`]: `%${searchTerms[i]}%` },
+    try {
+      const query = this.clientRepository.createQueryBuilder('cliente');
+      if (search) {
+        const searchTerms = search.toLowerCase().split(' ');
+        query.where(
+          `LOWER(UNACCENT(cliente.nombre)) LIKE :term
+          OR LOWER(UNACCENT(cliente.cuit)) LIKE :term
+          OR LOWER(UNACCENT(cliente.email)) LIKE :term
+          OR LOWER(UNACCENT(cliente.estado)) LIKE :term
+          OR LOWER(UNACCENT(cliente.direccion)) LIKE :term
+          OR LOWER(UNACCENT(cliente.contacto_principal)) LIKE :term`,
+          { term: `%${searchTerms[0]}%` },
         );
+        for (let i = 1; i < searchTerms.length; i++) {
+          query.andWhere(
+            `LOWER(UNACCENT(cliente.nombre)) LIKE :term${i}
+            OR LOWER(UNACCENT(cliente.cuit)) LIKE :term${i}
+            OR LOWER(UNACCENT(cliente.email)) LIKE :term${i}
+            OR LOWER(UNACCENT(cliente.estado)) LIKE :term${i}
+            OR LOWER(UNACCENT(cliente.direccion)) LIKE :term${i}
+            OR LOWER(UNACCENT(cliente.contacto_principal)) LIKE :term${i}`,
+            { [`term${i}`]: `%${searchTerms[i]}%` },
+          );
+        }
       }
+      const [items, total] = await query
+        .skip((page - 1) * limit)
+        .take(limit)
+        .getManyAndCount();
+      return {
+        items,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      };
+    } catch (error) {
+      this.logger.error('Error al obtener la lista de clientes', error.stack);
+      throw new InternalServerErrorException('Error al obtener la lista de clientes. Intente nuevamente o contacte al administrador.');
     }
-
-    const [items, total] = await query
-      .skip((page - 1) * limit)
-      .take(limit)
-      .getManyAndCount();
-
-    return {
-      items,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
   }
 
   //Desde el Front esta es la forma de obtener el GETall
@@ -102,15 +101,18 @@ export class ClientService {
 
   async findOneClient(clienteId: number): Promise<Cliente> {
     this.logger.log(`Buscando cliente con id: ${clienteId}`);
-    const client = await this.clientRepository.findOne({
-      where: { clienteId },
-    });
-
-    if (!client) {
-      throw new NotFoundException(`Client with id ${clienteId} not found`);
+    try {
+      const client = await this.clientRepository.findOne({
+        where: { clienteId },
+      });
+      if (!client) {
+        throw new NotFoundException(`Cliente con id ${clienteId} no encontrado`);
+      }
+      return client;
+    } catch (error) {
+      this.logger.error('Error al buscar el cliente', error.stack);
+      throw new InternalServerErrorException('Error al buscar el cliente. Intente nuevamente o contacte al administrador.');
     }
-
-    return client;
   }
 
   async updateClient(
@@ -173,27 +175,29 @@ export class ClientService {
   }
 
   async getActiveContract(clientId: number) {
-    const client = await this.findOneClient(clientId);
-
-    const contratos = await this.condicionesContractualesRepository.find({
-      where: {
-        cliente: { clienteId: clientId },
-        estado: EstadoContrato.ACTIVO,
-        fecha_fin: MoreThan(new Date()),
-      },
-      order: { fecha_fin: 'DESC' },
-    });
-
-    if (!contratos || contratos.length === 0) {
-      throw new NotFoundException(
-        `No hay contratos activos para el cliente ${client.nombre}`,
-      );
+    try {
+      const client = await this.findOneClient(clientId);
+      const contratos = await this.condicionesContractualesRepository.find({
+        where: {
+          cliente: { clienteId: clientId },
+          estado: EstadoContrato.ACTIVO,
+          fecha_fin: MoreThan(new Date()),
+        },
+        order: { fecha_fin: 'DESC' },
+      });
+      if (!contratos || contratos.length === 0) {
+        throw new NotFoundException(
+          `No hay contratos activos para el cliente ${client.nombre}`,
+        );
+      }
+      return {
+        contrato: contratos[0],
+        banosAsignados:
+          await this.chemicalToiletsService.findByClientId(clientId),
+      };
+    } catch (error) {
+      this.logger.error('Error al obtener el contrato activo del cliente', error.stack);
+      throw new InternalServerErrorException('Error al obtener el contrato activo del cliente. Intente nuevamente o contacte al administrador.');
     }
-
-    return {
-      contrato: contratos[0],
-      banosAsignados:
-        await this.chemicalToiletsService.findByClientId(clientId),
-    };
   }
 }

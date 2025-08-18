@@ -50,43 +50,40 @@ export class ChemicalToiletsService {
     paginationDto: PaginationDto,
     search?: string,
   ): Promise<Pagination<ChemicalToilet>> {
-    const { limit = 10, page = 1 } = paginationDto;
-
-    const query = this.chemicalToiletRepository.createQueryBuilder('toilet');
-
-    if (search) {
-      const searchTerms = search.toLowerCase().split(' ');
-
-      // Primera condición con CAST en estado
-      query.where(
-        `LOWER(UNACCENT(CAST(toilet.estado AS TEXT))) LIKE :searchTerm
-      OR LOWER(UNACCENT(toilet.modelo)) LIKE :searchTerm
-      OR LOWER(UNACCENT(toilet.codigo_interno)) LIKE :searchTerm`,
-        { searchTerm: `%${searchTerms[0]}%` },
-      );
-
-      // Términos adicionales
-      for (let i = 1; i < searchTerms.length; i++) {
-        query.andWhere(
-          `LOWER(UNACCENT(CAST(toilet.estado AS TEXT))) LIKE :searchTerm${i}
-        OR LOWER(UNACCENT(toilet.modelo)) LIKE :searchTerm${i}
-        OR LOWER(UNACCENT(toilet.codigo_interno)) LIKE :searchTerm${i}`,
-          { [`searchTerm${i}`]: `%${searchTerms[i]}%` },
+    try {
+      const { limit = 10, page = 1 } = paginationDto;
+      const query = this.chemicalToiletRepository.createQueryBuilder('toilet');
+      if (search) {
+        const searchTerms = search.toLowerCase().split(' ');
+        query.where(
+          `LOWER(UNACCENT(CAST(toilet.estado AS TEXT))) LIKE :searchTerm
+        OR LOWER(UNACCENT(toilet.modelo)) LIKE :searchTerm
+        OR LOWER(UNACCENT(toilet.codigo_interno)) LIKE :searchTerm`,
+          { searchTerm: `%${searchTerms[0]}%` },
         );
+        for (let i = 1; i < searchTerms.length; i++) {
+          query.andWhere(
+            `LOWER(UNACCENT(CAST(toilet.estado AS TEXT))) LIKE :searchTerm${i}
+          OR LOWER(UNACCENT(toilet.modelo)) LIKE :searchTerm${i}
+          OR LOWER(UNACCENT(toilet.codigo_interno)) LIKE :searchTerm${i}`,
+            { [`searchTerm${i}`]: `%${searchTerms[i]}%` },
+          );
+        }
       }
+      query.skip((page - 1) * limit).take(limit);
+      const [items, total] = await query.getManyAndCount();
+      return {
+        items,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      };
+    } catch (error) {
+      throw new BadRequestException(
+        'Error al obtener la lista de baños químicos. Intente nuevamente o contacte al administrador.',
+      );
     }
-
-    query.skip((page - 1) * limit).take(limit);
-
-    const [items, total] = await query.getManyAndCount();
-
-    return {
-      items,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
   }
 
   async findAllWithFilters(
@@ -327,38 +324,43 @@ export class ChemicalToiletsService {
     return toilets;
   }
   async findServicesByToiletId(toiletId: number): Promise<any[]> {
-    const services = await this.chemicalToiletRepository
-      .createQueryBuilder('bano')
-      .innerJoin(
-        'asignacion_recursos',
-        'asignacion',
-        'asignacion.bano_id = bano.baño_id',
-      )
-      .innerJoin(
-        'servicios',
-        'service',
-        'service.servicio_id = asignacion.servicio_id',
-      )
-      .innerJoin('clients', 'client', 'client.cliente_id = service.cliente_id')
-      .select([
-        'service.servicio_id as servicioId',
-        'service.tipo_servicio as tipoServicio',
-        'service.ubicacion as ubicacionServicio',
-        'service.notas as notasServicio',
-        'service.fecha_programada as fechaProgramada',
-        'service.fecha_inicio as fechaInicio',
-        'service.fecha_fin as fechaFin',
-        'service.estado as estadoServicio',
-        'client.cliente_id as clienteId',
-        'client.nombre_empresa as clienteNombre',
-        'client.email as clienteEmail',
-        'client.telefono as clienteTelefono',
-        'client.direccion as clienteDireccion',
-      ])
-      .where('bano.baño_id = :toiletId', { toiletId })
-      .getRawMany();
-
-    return services;
+    try {
+      const services = await this.chemicalToiletRepository
+        .createQueryBuilder('bano')
+        .innerJoin(
+          'asignacion_recursos',
+          'asignacion',
+          'asignacion.bano_id = bano.baño_id',
+        )
+        .innerJoin(
+          'servicios',
+          'service',
+          'service.servicio_id = asignacion.servicio_id',
+        )
+        .innerJoin('clients', 'client', 'client.cliente_id = service.cliente_id')
+        .select([
+          'service.servicio_id as servicioId',
+          'service.tipo_servicio as tipoServicio',
+          'service.ubicacion as ubicacionServicio',
+          'service.notas as notasServicio',
+          'service.fecha_programada as fechaProgramada',
+          'service.fecha_inicio as fechaInicio',
+          'service.fecha_fin as fechaFin',
+          'service.estado as estadoServicio',
+          'client.cliente_id as clienteId',
+          'client.nombre_empresa as clienteNombre',
+          'client.email as clienteEmail',
+          'client.telefono as clienteTelefono',
+          'client.direccion as clienteDireccion',
+        ])
+        .where('bano.baño_id = :toiletId', { toiletId })
+        .getRawMany();
+      return services;
+    } catch (error) {
+      throw new BadRequestException(
+        'Error al buscar los servicios asociados al baño químico. Intente nuevamente o contacte al administrador.',
+      );
+    }
   }
 
   async getTotalChemicalToilets(): Promise<{
