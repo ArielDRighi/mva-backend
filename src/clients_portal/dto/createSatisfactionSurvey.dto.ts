@@ -7,7 +7,6 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 
 export class CreateSatisfactionSurveyDto {
   @IsNotEmpty()
