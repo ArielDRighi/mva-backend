@@ -1,5 +1,4 @@
 import {
-  IsDate,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -7,33 +6,47 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 
 export class CreateSatisfactionSurveyDto {
   @IsNotEmpty()
   @IsString()
-  cliente: string;
+  nombre_empresa: string;
 
   @IsNotEmpty()
-  @IsDate()
-  @Type(() => Date)
-  fecha_mantenimiento: Date;
+  @IsString()
+  lugar_proyecto: string;
+
+  @IsOptional()
+  @IsString()
+  contacto?: string;
+
+  @IsNotEmpty()
+  @IsString()
+  medio_contacto: string;
+
+  @IsNotEmpty()
+  @IsString()
+  tiempo_respuesta: string;
 
   @IsNotEmpty()
   @IsInt()
   @Min(1)
-  @Max(5) // Asumiendo que la calificación es del 1 al 5, ajústalo según tu escala
-  calificacion: number;
+  @Max(5)
+  calificacion_atencion: number;
+
+  @IsNotEmpty()
+  @IsString()
+  accesibilidad_comercial: string;
+
+  @IsNotEmpty()
+  @IsString()
+  relacion_precio_valor: string;
+
+  @IsNotEmpty()
+  @IsString()
+  recomendaria: string;
 
   @IsOptional()
   @IsString()
-  comentario: string;
-
-  @IsOptional()
-  @IsString()
-  asunto: string;
-
-  @IsOptional()
-  @IsString()
-  aspecto_evaluado: string;
+  comentario_adicional?: string;
 }
