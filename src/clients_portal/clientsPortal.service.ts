@@ -17,60 +17,36 @@ export class ClientsPortalService {
     private readonly claimRepository: Repository<Claim>,
   ) {}
   async getSatisfactionSurveys() {
-    try {
-      const surveys = await this.satisfactionSurveyRepository.find();
-      if (!surveys || surveys.length === 0) {
-        throw new BadRequestException('No se encontraron encuestas');
-      }
-      return surveys;
-    } catch (error) {
-      throw new BadRequestException(
-        'Error al obtener las encuestas de satisfacción. Intente nuevamente o contacte al administrador.',
-      );
+    const surveys = await this.satisfactionSurveyRepository.find();
+    if (!surveys) {
+      throw new BadRequestException('No se encontraron encuestas');
     }
+    return surveys;
   }
   async getSatisfactionSurveyById(id: number) {
-    try {
-      const survey = await this.satisfactionSurveyRepository.findOne({
-        where: { encuesta_id: id },
-      });
-      if (!survey) {
-        throw new BadRequestException('Encuesta no encontrada');
-      }
-      return survey;
-    } catch (error) {
-      throw new BadRequestException(
-        'Error al buscar la encuesta de satisfacción. Intente nuevamente o contacte al administrador.',
-      );
+    const survey = await this.satisfactionSurveyRepository.findOne({
+      where: { encuesta_id: id },
+    });
+    if (!survey) {
+      throw new BadRequestException('Encuesta no encontrada');
     }
+    return survey;
   }
   async getClaims() {
-    try {
-      const claims = await this.claimRepository.find();
-      if (!claims || claims.length === 0) {
-        throw new BadRequestException('No se encontraron reclamos');
-      }
-      return claims;
-    } catch (error) {
-      throw new BadRequestException(
-        'Error al obtener los reclamos. Intente nuevamente o contacte al administrador.',
-      );
+    const claims = await this.claimRepository.find();
+    if (!claims) {
+      throw new BadRequestException('No se encontraron reclamos');
     }
+    return claims;
   }
   async getClaimById(id: number) {
-    try {
-      const claim = await this.claimRepository.findOne({
-        where: { reclamo_id: id },
-      });
-      if (!claim) {
-        throw new BadRequestException('Reclamo no encontrado');
-      }
-      return claim;
-    } catch (error) {
-      throw new BadRequestException(
-        'Error al buscar el reclamo. Intente nuevamente o contacte al administrador.',
-      );
+    const claim = await this.claimRepository.findOne({
+      where: { reclamo_id: id },
+    });
+    if (!claim) {
+      throw new BadRequestException('Reclamo no encontrado');
     }
+    return claim;
   }
 
   async createClaim(claimData: CreateClaimDto) {
@@ -156,21 +132,15 @@ export class ClientsPortalService {
   }
 
   async getStats() {
-    try {
-      const totalSurveys = await this.satisfactionSurveyRepository.count();
-      const totalClaims = await this.claimRepository.count();
-      const surveys = await this.satisfactionSurveyRepository.find();
-      const claims = await this.claimRepository.find();
-      return {
-        totalSurveys,
-        totalClaims,
-        surveys,
-        claims,
-      };
-    } catch (error) {
-      throw new BadRequestException(
-        'Error al obtener estadísticas del portal de clientes. Intente nuevamente o contacte al administrador.',
-      );
-    }
+    const totalSurveys = await this.satisfactionSurveyRepository.count();
+    const totalClaims = await this.claimRepository.count();
+    const surveys = await this.satisfactionSurveyRepository.find();
+    const claims = await this.claimRepository.find();
+    return {
+      totalSurveys,
+      totalClaims,
+      surveys,
+      claims,
+    };
   }
 }
