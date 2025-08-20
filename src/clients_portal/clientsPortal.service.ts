@@ -61,6 +61,20 @@ export class ClientsPortalService {
 
   async createSatisfactionSurvey(surveyData: CreateSatisfactionSurveyDto) {
     const survey = this.satisfactionSurveyRepository.create(surveyData as Partial<SatisfactionSurvey>);
+    // Mapear los campos del DTO a la entidad
+    const survey = this.satisfactionSurveyRepository.create({
+      nombre_empresa: surveyData.nombre_empresa,
+      lugar_proyecto: surveyData.lugar_proyecto,
+      contacto: surveyData.contacto, // opcional
+      medio_contacto: surveyData.medio_contacto,
+      tiempo_respuesta: surveyData.tiempo_respuesta,
+      calificacion_atencion: surveyData.calificacion_atencion,
+      accesibilidad_comercial: surveyData.accesibilidad_comercial,
+      relacion_precio_valor: surveyData.relacion_precio_valor,
+      recomendaria: surveyData.recomendaria,
+      comentario_adicional: surveyData.comentario_adicional,
+      // createdAt se autogenera
+    });
     try {
       await this.satisfactionSurveyRepository.save(survey);
       return survey;
