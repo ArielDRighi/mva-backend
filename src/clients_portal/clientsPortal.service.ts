@@ -60,8 +60,6 @@ export class ClientsPortalService {
   }
 
   async createSatisfactionSurvey(surveyData: CreateSatisfactionSurveyDto) {
-    const survey = this.satisfactionSurveyRepository.create(surveyData as Partial<SatisfactionSurvey>);
-    // Mapear los campos del DTO a la entidad
     const survey = this.satisfactionSurveyRepository.create({
       nombre_empresa: surveyData.nombre_empresa,
       lugar_proyecto: surveyData.lugar_proyecto,
