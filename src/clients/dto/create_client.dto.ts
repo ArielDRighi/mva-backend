@@ -13,7 +13,7 @@ export class CreateClientDto {
   nombre: string;
 
   @IsEmail()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'El email no tiene un formato válido' })
   email: string;
 
   @IsString()
