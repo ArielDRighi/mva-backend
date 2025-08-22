@@ -4,6 +4,7 @@ import {
   ConflictException,
   Logger,
   InternalServerErrorException,
+  BadRequestException,
 } from '@nestjs/common';
 import { CreateClientDto } from './dto/create_client.dto';
 import { UpdateClientDto } from './dto/update_client.dto';
@@ -30,21 +31,37 @@ export class ClientService {
   ) {}
 
   async create(createClientDto: CreateClientDto): Promise<Cliente> {
-    this.logger.log(`Creando cliente: ${createClientDto.nombre}`);
-    // Verificar si ya existe un cliente con el mismo CUIT
-    const existingClient = await this.clientRepository.findOne({
-      where: { cuit: createClientDto.cuit },
-    });
+  this.logger.log(`Creando cliente: ${createClientDto.nombre}`);
+  // Verificar si ya existe un cliente con el mismo CUIT
+  const existingClient = await this.clientRepository.findOne({
+    where: { cuit: createClientDto.cuit },
+  });
 
-    if (existingClient) {
-      throw new ConflictException(
-        `Ya existe un cliente con el CUIT ${createClientDto.cuit}`,
-      );
-    }
-
-    const client = this.clientRepository.create(createClientDto);
-    return this.clientRepository.save(client);
+  if (existingClient) {
+    throw new ConflictException(
+      `Ya existe un cliente con el CUIT ${createClientDto.cuit}`,
+    );
   }
+
+  try {
+    const client = this.clientRepository.create(createClientDto);
+    return await this.clientRepository.save(client);
+  } catch (error) {
+    // Validación de email inválido u otros errores de validación
+    if (error instanceof BadRequestException) {
+      throw error;
+    }
+    // Si el error es de validación de class-validator
+    if (error.getResponse && typeof error.getResponse === 'function') {
+      const response = error.getResponse();
+      if (response && response.message) {
+        throw new BadRequestException(response.message);
+      }
+    }
+    // Otros errores de base de datos
+    throw new InternalServerErrorException('Error interno al crear el cliente');
+  }
+}
 
   async findAll(paginationDto: PaginationDto): Promise<Pagination<Cliente>> {
     const { page = 1, limit = 10, search } = paginationDto;

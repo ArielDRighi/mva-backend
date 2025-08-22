@@ -50,7 +50,8 @@ async function bootstrap() {
         'http://localhost:3001',
         'http://145.79.1.115:3001',
         'https://145.79.1.115:3001',
-        'https://mvasrl.com'
+        'https://mvasrl.com',
+        'https://admin.mvasrl.com'
       ].filter(Boolean);
       
       // Permitir requests sin origin (como Postman, aplicaciones móviles)
