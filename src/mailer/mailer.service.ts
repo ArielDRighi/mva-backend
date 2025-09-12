@@ -821,13 +821,19 @@ export class MailerService {
 
     const htmlContent = this.generateEmailContent(subject, body);
 
-    // Combinar destinatarios
+    // Combinar destinatarios evitando duplicados
     const safeAdminEmails = adminsEmails || [];
     const safeSupervisorEmails = supervisorsEmails || [];
+    
+    // Crear un Set para evitar emails duplicados
+    const uniqueEmails = new Set([...safeAdminEmails, ...safeSupervisorEmails]);
+    const finalEmailList = Array.from(uniqueEmails);
+
+    console.log(`📧 Enviando alerta de licencias a ${finalEmailList.length} destinatarios únicos:`, finalEmailList);
 
     const mailOptions: MailOptions = {
       from: process.env.EMAIL_USER || 'notificacion@mva.com',
-      to: [...safeAdminEmails, ...safeSupervisorEmails],
+      to: finalEmailList,
       subject,
       html: htmlContent,
     };
