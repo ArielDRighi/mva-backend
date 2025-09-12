@@ -6,7 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, QueryFailedError } from 'typeorm';
 import { Empleado } from './entities/employee.entity';
 import { CreateFullEmployeeDto } from './dto/create_employee.dto';
 import { UpdateEmployeeDto } from './dto/update_employee.dto';
@@ -224,34 +224,151 @@ export class EmployeesService {
 
   async remove(id: number): Promise<{ message: string }> {
     this.logger.log(`Eliminando empleado con id: ${id}`);
-    const employee = await this.findOne(id);
-
-    // Check if the employee is assigned to any active service
-    const employeeWithAssignments = await this.employeeRepository
-      .createQueryBuilder('empleado')
-      .leftJoinAndSelect(
-        'asignacion_recursos',
-        'asignacion',
-        'asignacion.empleado_id = empleado.id',
-      )
-      .leftJoinAndSelect(
-        'servicios',
-        'servicio',
-        'asignacion.servicio_id = servicio.servicio_id',
-      )
-      .where('empleado.id = :id', { id })
-      .andWhere('asignacion.empleado_id IS NOT NULL')
-      .getOne();
-
-    if (employeeWithAssignments) {
-      throw new BadRequestException(
-        `El empleado no puede ser eliminado ya que se encuentra asignado a uno o más servicios.`,
-      );
+    
+    // Simplificamos la búsqueda del empleado sin relaciones para evitar bloqueos
+    const employee = await this.employeeRepository.findOne({
+      where: { id }
+    });
+    
+    if (!employee) {
+      throw new NotFoundException(`Empleado con id ${id} no encontrado`);
     }
+    
+    this.logger.log(`Empleado encontrado: ${employee.nombre} ${employee.apellido}`);
+
+      try {
+        // Check if the employee is assigned to any active service using raw query
+        this.logger.log(`Verificando servicios activos para empleado ${id}`);
+        const result = await this.employeeRepository.query(
+          `SELECT COUNT(*) as count 
+           FROM asignacion_recursos ar
+           INNER JOIN servicios s ON ar.servicio_id = s.servicio_id
+           WHERE ar.empleado_id = $1 
+           AND s.estado != 'COMPLETADO'`,
+          [id]
+        );
+
+        const assignmentCount = parseInt(result[0]?.count || '0');
+        this.logger.log(`Servicios activos encontrados: ${assignmentCount}`);
+
+        if (assignmentCount > 0) {
+          this.logger.warn(`Intento de eliminar empleado ${id} con ${assignmentCount} servicio(s) activo(s)`);
+          throw new BadRequestException(
+            `El empleado no puede ser eliminado ya que se encuentra asignado a ${assignmentCount} servicio(s) activo(s). Debe completar o reasignar estos servicios antes de eliminarlo.`,
+          );
+        }
+      } catch (error) {
+        // Si es BadRequestException, la re-lanzamos para que llegue al frontend
+        if (error instanceof BadRequestException) {
+          throw error;
+        }
+        // Si hay otro tipo de error en la consulta, lo registramos pero continuamos
+        this.logger.error(`Error inesperado al verificar asignaciones del empleado ${id}: ${error.message}`);
+      }
+
+      // Check additional constraints before attempting deletion
+      this.logger.log(`Verificando dependencias adicionales para empleado ${id}`);
+      await this.checkEmployeeDependencies(id, employee.nombre, employee.apellido);
 
     const nombre = `${employee.nombre} ${employee.apellido}`;
-    await this.employeeRepository.remove(employee);
-    return { message: `Empleado ${nombre} eliminado correctamente` };
+    
+    try {
+      await this.employeeRepository.remove(employee);
+      this.logger.log(`Empleado ${nombre} (ID: ${id}) eliminado correctamente`);
+      return { message: `Empleado ${nombre} eliminado correctamente` };
+    } catch (error) {
+      this.logger.error(`Error al eliminar empleado ${nombre} (ID: ${id}): ${error.message}`);
+      
+      // Manejo específico de violaciones de clave foránea de PostgreSQL
+      if (error instanceof QueryFailedError && (error as any).code === '23503') {
+        const errorMessage = error.message || '';
+        
+        if (errorMessage.includes('toilet_maintenance')) {
+          throw new BadRequestException(
+            `No se puede eliminar el empleado ${nombre} porque tiene registros de mantenimiento de baños asociados. Debe reasignar estos mantenimientos a otro empleado primero.`
+          );
+
+        } else if (errorMessage.includes('users')) {
+          throw new BadRequestException(
+            `No se puede eliminar el empleado ${nombre} porque tiene una cuenta de usuario asociada. Debe eliminar el usuario primero.`
+          );
+        } else {
+          throw new BadRequestException(
+            `No se puede eliminar el empleado ${nombre} porque tiene registros asociados en el sistema. Verifique mantenimientos, servicios o usuarios relacionados.`
+          );
+        }
+      }
+      
+      // Para violaciones de clave foránea que no sean de PostgreSQL
+      if (error.message && error.message.includes('foreign key constraint')) {
+        if (error.message.includes('toilet_maintenance')) {
+          throw new BadRequestException(
+            `No se puede eliminar el empleado ${nombre} porque tiene registros de mantenimiento de baños asociados. Debe reasignar estos mantenimientos a otro empleado primero.`
+          );
+
+        } else {
+          throw new BadRequestException(
+            `No se puede eliminar el empleado ${nombre} porque tiene datos relacionados en el sistema que dependen de él.`
+          );
+        }
+      }
+      
+      // Para otros tipos de errores
+      throw new BadRequestException(
+        `Error inesperado al eliminar el empleado ${nombre}. Contacte al administrador del sistema.`
+      );
+    }
+  }
+
+  /**
+   * Verifica las dependencias del empleado antes de eliminarlo
+   */
+  private async checkEmployeeDependencies(employeeId: number, nombre: string, apellido: string): Promise<void> {
+    const nombreCompleto = `${nombre} ${apellido}`;
+    
+    try {
+      // Verificar registros de mantenimiento de baños
+      this.logger.log(`Verificando mantenimientos de baños para empleado ${employeeId}`);
+      const toiletMaintenanceCount = await this.employeeRepository.query(
+        `SELECT COUNT(*) as count FROM toilet_maintenance WHERE empleado_id = $1`,
+        [employeeId]
+      );
+
+      const toiletCount = parseInt(toiletMaintenanceCount[0]?.count || '0');
+      this.logger.log(`Mantenimientos de baños encontrados: ${toiletCount}`);
+
+      if (toiletCount > 0) {
+        const message = `No se puede eliminar el empleado ${nombreCompleto} porque tiene ${toiletCount} registro(s) de mantenimiento de baños asociados. Debe reasignar estos mantenimientos a otro empleado primero.`;
+        this.logger.warn(message);
+        throw new BadRequestException(message);
+      }
+
+      // Verificar si tiene cuenta de usuario asociada
+      this.logger.log(`Verificando cuenta de usuario para empleado ${employeeId}`);
+      const userCount = await this.employeeRepository.query(
+        `SELECT COUNT(*) as count FROM users WHERE empleado_id = $1`,
+        [employeeId]
+      );
+
+      const userCountNum = parseInt(userCount[0]?.count || '0');
+      this.logger.log(`Cuentas de usuario encontradas: ${userCountNum}`);
+
+      if (userCountNum > 0) {
+        const message = `No se puede eliminar el empleado ${nombreCompleto} porque tiene una cuenta de usuario asociada. Debe eliminar la cuenta de usuario primero.`;
+        this.logger.warn(message);
+        throw new BadRequestException(message);
+      }
+
+      this.logger.log(`No se encontraron dependencias para el empleado ${employeeId}`);
+
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      this.logger.error(`Error al verificar dependencias del empleado ${employeeId}: ${error.message}`);
+      // Re-lanzamos el error para que no se ignore
+      throw error;
+    }
   }
 
   async changeStatus(id: number, estado: string): Promise<Empleado> {

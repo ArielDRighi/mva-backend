@@ -15,9 +15,9 @@ export class LicenseAlertService {
     private readonly mailerService: MailerService,
   ) {}
 
-  @Cron(CronExpression.EVERY_DAY_AT_8AM) // Ejecutar diariamente a las 8am
+  @Cron('0 11 * * *') // Ejecutar diariamente a las 11 AM UTC (8 AM Buenos Aires UTC-3)
   async checkExpiringLicenses() {
-    this.logger.log('Verificando licencias próximas a vencer...');
+    this.logger.log('Verificando licencias próximas a vencer (8 AM Buenos Aires)...');
 
     // Calcular fechas para alertas (30 días antes del vencimiento)
     const today = new Date();

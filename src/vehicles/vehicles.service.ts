@@ -138,44 +138,89 @@ export class VehiclesService {
 
   async remove(id: number): Promise<{ message: string }> {
     this.logger.log(`Eliminando vehículo con id: ${id}`);
-    const vehicle = await this.findOne(id);
+    
+    try {
+      // Simplificamos la búsqueda del vehículo sin relaciones para evitar bloqueos
+      const vehicle = await this.vehicleRepository.findOne({
+        where: { id }
+      });
+      
+      if (!vehicle) {
+        throw new NotFoundException(`Vehículo con id ${id} no encontrado`);
+      }
+      
+      this.logger.log(`Vehículo encontrado: ${vehicle.placa}`);
 
-    // Check if the vehicle is assigned to any active service
-    const vehicleWithAssignments = await this.vehicleRepository
-      .createQueryBuilder('vehicle')
-      .leftJoinAndSelect(
-        'asignacion_recursos',
-        'asignacion',
-        'asignacion.vehiculo_id = vehicle.id',
-      )
-      .leftJoinAndSelect(
-        'servicios',
-        'servicio',
-        'asignacion.servicio_id = servicio.servicio_id',
-      )
-      .where('vehicle.id = :id', { id })
-      .andWhere('asignacion.vehiculo_id IS NOT NULL')
-      .getOne();
+      // Verificar si está asignado a servicios activos usando consulta SQL directa
+      try {
+        this.logger.log(`Verificando servicios activos para vehículo ${id}`);
+        const result = await this.vehicleRepository.query(
+          `SELECT COUNT(*) as count 
+           FROM asignacion_recursos ar
+           INNER JOIN servicios s ON ar.servicio_id = s.servicio_id
+           WHERE ar.vehiculo_id = $1 
+           AND s.estado != 'COMPLETADO'`,
+          [id]
+        );
 
-    if (vehicleWithAssignments) {
+        const assignmentCount = parseInt(result[0]?.count || '0');
+        this.logger.log(`Servicios activos encontrados: ${assignmentCount}`);
+
+        if (assignmentCount > 0) {
+          throw new BadRequestException(
+            `El vehículo ${vehicle.placa} no puede ser eliminado ya que se encuentra asignado a ${assignmentCount} servicio(s) activo(s). Debe completar o reasignar estos servicios antes de eliminarlo.`,
+          );
+        }
+      } catch (error) {
+        if (error instanceof BadRequestException) {
+          throw error;
+        }
+        this.logger.error(`Error al verificar servicios activos del vehículo ${id}: ${error.message}`);
+      }
+
+      // Verificar mantenimientos pendientes
+      try {
+        this.logger.log(`Verificando mantenimientos pendientes para vehículo ${id}`);
+        const maintenanceResult = await this.vehicleRepository.query(
+          `SELECT COUNT(*) as count FROM vehicle_maintenance WHERE vehiculo_id = $1 AND completado = false`,
+          [id]
+        );
+
+        const pendingMaintenanceCount = parseInt(maintenanceResult[0]?.count || '0');
+        this.logger.log(`Mantenimientos pendientes encontrados: ${pendingMaintenanceCount}`);
+
+        if (pendingMaintenanceCount > 0) {
+          throw new BadRequestException(
+            `El vehículo ${vehicle.placa} no puede ser eliminado porque tiene ${pendingMaintenanceCount} mantenimiento(s) pendiente(s). Debe completar estos mantenimientos primero.`,
+          );
+        }
+      } catch (error) {
+        if (error instanceof BadRequestException) {
+          throw error;
+        }
+        this.logger.error(`Error al verificar mantenimientos del vehículo ${id}: ${error.message}`);
+      }
+
+      // Intentar eliminar
+      this.logger.log(`Intentando eliminar vehículo ${vehicle.placa} (ID: ${id})`);
+      await this.vehicleRepository.remove(vehicle);
+      this.logger.log(`Vehículo ${vehicle.placa} (ID: ${id}) eliminado correctamente`);
+
+      return { message: `El vehículo ${vehicle.placa} ha sido eliminado correctamente` };
+
+    } catch (error) {
+      this.logger.error(`Error al eliminar vehículo ID ${id}: ${error.message}`);
+      
+      // Si ya es una BadRequestException, la re-lanzamos
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
+      }
+      
+      // Para otros tipos de errores
       throw new BadRequestException(
-        `El vehículo no puede ser eliminado ya que se encuentra asignado a uno o más servicios.`,
+        `Error inesperado al eliminar el vehículo. Contacte al administrador del sistema.`
       );
     }
-
-    // Check if the vehicle has scheduled maintenance
-    if (
-      vehicle.maintenanceRecords &&
-      vehicle.maintenanceRecords.some((record) => !record.completado)
-    ) {
-      throw new BadRequestException(
-        `El vehículo no puede ser eliminado ya que tiene mantenimientos programados pendientes.`,
-      );
-    }
-
-    await this.vehicleRepository.remove(vehicle);
-
-    return { message: `El vehículo id: ${id} ha sido eliminado correctamente` };
   }
 
   async changeStatus(id: number, estado: string): Promise<Vehicle> {
