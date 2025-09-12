@@ -444,17 +444,20 @@ export class MailerService {
       ? new Date(maintenanceDate).toLocaleDateString('es-CL')
       : 'No especificada';
 
+    // Generar estrellas para la calificación visual
+    const stars = '⭐'.repeat(Math.max(0, Math.min(5, surveyRating))) + 
+                  '☆'.repeat(Math.max(0, 5 - Math.max(0, Math.min(5, surveyRating))));
+
     const body = `
       <p style="font-size: 16px;">¡Hola!</p>
       <p style="font-size: 16px;">Se ha recibido una nueva encuesta de satisfacción de <strong>${clientName || 'Cliente'}</strong>.</p>
       <p style="font-size: 16px;">Detalles de la encuesta:</p>
       <ul>
-        <li><strong>Nombre del cliente:</strong> ${clientName || 'No especificado'}</li>
-        <li><strong>Fecha de Mantenimiento:</strong> ${formattedDate}</li>
-        <li><strong>Calificación general:</strong> ${surveyRating || 'No especificada'}</li>
-        <li><strong>Comentarios:</strong> ${surveyComments || 'Sin comentarios'}</li>
-        <li><strong>Asunto:</strong> ${surveyAsunto || 'Sin asunto'}</li>
-        <li><strong>Aspecto Evaluado:</strong> ${evaluatedAspects || 'No especificado'}</li>
+        <li><strong>Empresa:</strong> ${clientName || 'No especificado'}</li>
+        <li><strong>Proyecto/Lugar:</strong> ${surveyAsunto || 'No especificado'}</li>
+        <li><strong>Calificación de atención:</strong> ${surveyRating || 'No especificada'}/5 ${stars}</li>
+        <li><strong>Comentarios adicionales:</strong> ${surveyComments || 'Sin comentarios'}</li>
+        <li><strong>Detalles de contacto y evaluación:</strong> ${evaluatedAspects || 'No especificado'}</li>
       </ul>
       <p style="font-size: 16px;">Gracias por tu atención.</p>
     `;
@@ -505,31 +508,32 @@ export class MailerService {
   ): Promise<void> {
     const subject = '🛠️ ¡Nueva solicitud de servicio recibida!';
 
+    // Solo mostrar campos que realmente vienen del formulario del frontend
     const body = `
       <p style="font-size: 16px;">¡Hola!</p>
       <p style="font-size: 16px;">Se ha recibido una nueva solicitud de servicio.</p>
-      <p style="font-size: 16px;">Detalles del cliente:</p>
+      
+      <p style="font-size: 16px;"><strong>📋 Información de contacto:</strong></p>
       <ul>
-        <li><strong>Nombre de la persona:</strong> ${nombrePersona || 'No especificado'}</li>
-        <li><strong>Rol de la persona:</strong> ${rolPersona || 'No especificado'}</li>
+        <li><strong>Nombre:</strong> ${nombrePersona || 'No especificado'}</li>
         <li><strong>Email:</strong> ${email || 'No especificado'}</li>
         <li><strong>Teléfono:</strong> ${telefono || 'No especificado'}</li>
       </ul>
-      <p style="font-size: 16px;">Detalles de la empresa:</p>
+      
+      <p style="font-size: 16px;"><strong>🏢 Información de la empresa:</strong></p>
       <ul>
         <li><strong>Nombre de la empresa:</strong> ${nombreEmpresa || 'No especificado'}</li>
-        <li><strong>CUIT:</strong> ${cuit || 'No especificado'}</li>
-        <li><strong>Rubro de la empresa:</strong> ${rubroEmpresa || 'No especificado'}</li>
-        <li><strong>Zona de dirección:</strong> ${zonaDireccion || 'No especificada'}</li>
+        ${cuit && cuit.trim() ? `<li><strong>CUIT:</strong> ${cuit}</li>` : ''}
+        <li><strong>Ubicación:</strong> ${zonaDireccion || 'No especificada'}</li>
       </ul>
-      <p style="font-size: 16px;">Detalles del servicio:</p>
-      <ul>
-        <li><strong>Cantidad de baños:</strong> ${cantidadBaños || 'No especificado'}</li>
-        <li><strong>Tipo de evento:</strong> ${tipoEvento || 'No especificado'}</li>
-        <li><strong>Duración del alquiler:</strong> ${duracionAlquiler || 'No especificada'}</li>
-        <li><strong>Comentarios:</strong> ${comentarios || 'Sin comentarios'}</li>
-      </ul>
-      <p style="font-size: 16px;">Gracias por tu atención.</p>
+      
+      ${comentarios && comentarios.trim() ? `
+      <p style="font-size: 16px;"><strong>💬 Comentarios adicionales:</strong></p>
+      <p style="font-size: 14px; background-color: #f8f9fa; padding: 10px; border-left: 3px solid #007bff; margin: 10px 0;">${comentarios}</p>
+      ` : ''}
+      
+      <p style="font-size: 16px; margin-top: 20px;">Por favor, contacta al cliente lo antes posible para coordinar los detalles del servicio.</p>
+      <p style="font-size: 16px;">¡Gracias por tu atención!</p>
     `;
 
     const htmlContent = this.generateEmailContent(

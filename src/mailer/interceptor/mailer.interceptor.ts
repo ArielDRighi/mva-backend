@@ -534,17 +534,14 @@ export class MailerInterceptor implements NestInterceptor {
         return;
       }
 
-      const adminsEmails = await this.mailerService.getAdminEmails();
-      const supervisorsEmails = await this.mailerService.getSupervisorEmails();
+      // Enviar únicamente a info@mvasrl.com
+      const targetEmail = ['info@mvasrl.com'];
 
-      console.log('[MailerInterceptor] Correos obtenidos:', {
-        adminsEmails,
-        supervisorsEmails,
-      });
+      console.log('[MailerInterceptor] Enviando reclamo a:', targetEmail);
 
       await this.mailerService.sendClaimNotification(
-        adminsEmails,
-        supervisorsEmails,
+        targetEmail,
+        [], // No enviar a supervisors
         claimData.cliente || 'Cliente desconocido',
         claimData.titulo || 'Sin título',
         claimData.descripcion || 'Sin descripción',
@@ -584,18 +581,32 @@ export class MailerInterceptor implements NestInterceptor {
         return;
       }
 
-      const adminsEmails = await this.mailerService.getAdminEmails();
-      const supervisorsEmails = await this.mailerService.getSupervisorEmails();
+      console.log('[MailerInterceptor] Datos de encuesta recibidos:', surveyData);
+
+      // Enviar únicamente a info@mvasrl.com
+      const targetEmail = ['info@mvasrl.com'];
+
+      console.log('[MailerInterceptor] Enviando encuesta a:', targetEmail);
+
+      // Mapear correctamente los campos del formulario frontend
+      const detallesCompletos = `
+        Contacto: ${surveyData.contacto || 'No especificado'}
+        Medio de contacto: ${surveyData.medio_contacto || 'No especificado'}
+        Tiempo de respuesta: ${surveyData.tiempo_respuesta || 'No especificado'}
+        Accesibilidad comercial: ${surveyData.accesibilidad_comercial || 'No especificado'}
+        Relación precio-valor: ${surveyData.relacion_precio_valor || 'No especificado'}
+        ¿Nos recomendaría?: ${surveyData.recomendaria || 'No especificado'}
+      `.trim();
 
       await this.mailerService.sendSurveyNotification(
-        adminsEmails,
-        supervisorsEmails,
-        surveyData.cliente || 'Cliente desconocido',
-        surveyData.fecha_mantenimiento || null,
-        surveyData.calificacion || 0,
-        surveyData.comentario || 'Sin comentarios',
-        surveyData.asunto || 'Sin asunto',
-        surveyData.aspecto_evaluado || 'No especificado',
+        targetEmail,
+        [], // No enviar a supervisors
+        surveyData.nombre_empresa || 'Cliente desconocido',        // Correcto: nombre_empresa del frontend
+        null,                                                      // No hay fecha de mantenimiento en este formulario
+        surveyData.calificacion_atencion || 0,                     // Correcto: calificacion_atencion del frontend
+        surveyData.comentario_adicional || 'Sin comentarios',     // Correcto: comentario_adicional del frontend
+        surveyData.lugar_proyecto || 'Sin proyecto especificado', // Usar lugar_proyecto como asunto
+        detallesCompletos, // Todos los detalles de la evaluación
       );
     } catch (err) {
       console.error(
@@ -633,24 +644,27 @@ export class MailerInterceptor implements NestInterceptor {
         formData,
       );
 
-      const adminsEmails = await this.mailerService.getAdminEmails();
-      const supervisorsEmails = await this.mailerService.getSupervisorEmails();
+      // Enviar únicamente a info@mvasrl.com
+      const targetEmail = ['info@mvasrl.com'];
 
+      console.log('[MailerInterceptor] Enviando solicitud de servicio a:', targetEmail);
+
+      // Solo pasar los campos que realmente vienen del formulario
       await this.mailerService.sendServiceNotification(
-        adminsEmails,
-        supervisorsEmails,
+        targetEmail,
+        [], // No enviar a supervisors
         formData.nombrePersona || 'No especificado',
-        formData.rolPersona || 'No especificado',
+        formData.rolPersona || 'Contacto', // Valor por defecto del frontend
         formData.email || 'No especificado',
         formData.telefono || 'No especificado',
         formData.nombreEmpresa || 'No especificada',
-        formData.cuit || 'No especificado',
-        formData.rubroEmpresa || 'No especificado',
+        formData.cuit || '', // Solo si existe, sino cadena vacía
+        '', // rubroEmpresa - no usado en el nuevo template
         formData.zonaDireccion || 'No especificada',
-        formData.cantidadBaños || 'No especificada',
-        formData.tipoEvento || 'No especificado',
-        formData.duracionAlquiler || 'No especificada',
-        formData.comentarios || 'Sin comentarios',
+        '', // cantidadBaños - no usado en el nuevo template
+        '', // tipoEvento - no usado en el nuevo template
+        '', // duracionAlquiler - no usado en el nuevo template
+        formData.comentarios || '',
       );
     } catch (err) {
       console.error(
