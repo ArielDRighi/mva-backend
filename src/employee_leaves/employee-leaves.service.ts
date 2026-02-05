@@ -67,7 +67,16 @@ export class EmployeeLeavesService {
       ...createLeaveDto,
       employeeId, // Use the converted numeric employeeId
     } as Partial<EmployeeLeave>);
-    return this.leaveRepository.save(leave);
+    
+    const savedLeave = await this.leaveRepository.save(leave);
+    
+    // Cargar la relación del empleado para el email
+    const leaveWithEmployee = await this.leaveRepository.findOne({
+      where: { id: savedLeave.id },
+      relations: ['employee'],
+    });
+    
+    return leaveWithEmployee || savedLeave;
   }
 
   async findAll(

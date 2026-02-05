@@ -23,11 +23,13 @@ import {
 import { FilterServicesDto } from './dto/filter-service.dto';
 import { Vehicle } from '../vehicles/entities/vehicle.entity';
 import { ChemicalToilet } from '../chemical_toilets/entities/chemical_toilet.entity';
+import { Empleado } from '../employees/entities/employee.entity';
+import { Cliente } from '../clients/entities/client.entity';
+import { MailerService } from '../mailer/mailer.service';
 import {
   CondicionesContractuales,
   EstadoContrato,
   Periodicidad,
-  TipoContrato,
 } from '../contractual_conditions/entities/contractual_conditions.entity';
 
 describe('ServicesService', () => {
@@ -139,7 +141,6 @@ describe('ServicesService', () => {
   const mockContrato = {
     condicionContractualId: 1,
     cliente: mockCliente,
-    tipo_de_contrato: TipoContrato.PERMANENTE,
     fecha_inicio: new Date('2025-01-01'),
     fecha_fin: new Date('2025-12-31'),
     condiciones_especificas: 'Mantenimiento semanal',
@@ -202,6 +203,18 @@ describe('ServicesService', () => {
     find: jest.fn(),
   };
 
+  const mockEmpleadosRepository = {
+    findOne: jest.fn(),
+    find: jest.fn(),
+    save: jest.fn(),
+  };
+
+  const mockClientesRepository = {
+    findOne: jest.fn(),
+    find: jest.fn(),
+    save: jest.fn(),
+  };
+
   // Mock services
   const mockClientService = {
     findOneClient: jest.fn(),
@@ -245,6 +258,11 @@ describe('ServicesService', () => {
 
   const mockFutureCleaningsService = {
     createFutureCleaning: jest.fn(),
+  };
+
+  const mockMailerService = {
+    sendMail: jest.fn(),
+    sendEmail: jest.fn(),
   };
 
   // Mock DataSource
@@ -291,6 +309,14 @@ describe('ServicesService', () => {
           useValue: mockCondicionesContractualesRepository,
         },
         {
+          provide: getRepositoryToken(Empleado),
+          useValue: mockEmpleadosRepository,
+        },
+        {
+          provide: getRepositoryToken(Cliente),
+          useValue: mockClientesRepository,
+        },
+        {
           provide: ClientService,
           useValue: mockClientService,
         },
@@ -321,6 +347,10 @@ describe('ServicesService', () => {
         {
           provide: FutureCleaningsService,
           useValue: mockFutureCleaningsService,
+        },
+        {
+          provide: MailerService,
+          useValue: mockMailerService,
         },
         {
           provide: DataSource,
@@ -362,9 +392,6 @@ describe('ServicesService', () => {
     mockServiceRepository.save.mockResolvedValue(mockService);
     mockServiceRepository.create.mockReturnValue(mockService);
     mockServiceRepository.find.mockResolvedValue([mockService]);
-    mockServiceRepository
-      .createQueryBuilder()
-      .getManyAndCount.mockResolvedValue([[mockService], 1]);
 
     mockEmployeesService.getAvailableEmployees.mockResolvedValue([
       mockEmpleado,
@@ -607,6 +634,86 @@ describe('ServicesService', () => {
       expect(service.findAll).toHaveBeenCalled();
     });
   });
+
+  describe('getCurrentWeekServices', () => {
+    it('should return services for the current week (Monday to Sunday)', async () => {
+      console.log('🧪 TEST: Debe retornar servicios de la semana actual (Lunes a Domingo)');
+      
+      // Arrange
+      const mockServices = [
+        {
+          ...mockService,
+          id: 1,
+          fechaProgramada: new Date('2026-02-02T10:00:00'), // Lunes
+        },
+        {
+          ...mockService,
+          id: 2,
+          fechaProgramada: new Date('2026-02-04T14:00:00'), // Miércoles
+        },
+        {
+          ...mockService,
+          id: 3,
+          fechaProgramada: new Date('2026-02-08T09:00:00'), // Domingo
+        },
+      ];
+
+      const queryBuilder: any = {
+        createQueryBuilder: jest.fn().mockReturnThis(),
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue(mockServices),
+      };
+
+      jest.spyOn(serviceRepository, 'createQueryBuilder').mockReturnValue(queryBuilder);
+
+      // Act
+      const result = await service.getCurrentWeekServices();
+
+      // Assert
+      expect(result).toEqual(mockServices);
+      expect(result).toHaveLength(3);
+      expect(serviceRepository.createQueryBuilder).toHaveBeenCalledWith('service');
+      expect(queryBuilder.leftJoinAndSelect).toHaveBeenCalledWith('service.asignaciones', 'asignacion');
+      expect(queryBuilder.leftJoinAndSelect).toHaveBeenCalledWith('service.cliente', 'cliente');
+      expect(queryBuilder.where).toHaveBeenCalled();
+      expect(queryBuilder.andWhere).toHaveBeenCalled();
+      expect(queryBuilder.orderBy).toHaveBeenCalledWith('service.fechaProgramada', 'ASC');
+      expect(queryBuilder.getMany).toHaveBeenCalled();
+    });
+
+    it('should handle Sunday as day 0 correctly', async () => {
+      console.log('🧪 TEST: Debe manejar el domingo (día 0) correctamente');
+      
+      // Arrange - Mock simple para servicios
+      const queryBuilder: any = {
+        createQueryBuilder: jest.fn().mockReturnThis(),
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue([]),
+      };
+
+      jest.spyOn(serviceRepository, 'createQueryBuilder').mockReturnValue(queryBuilder);
+
+      // Act
+      await service.getCurrentWeekServices();
+
+      // Assert - Verificar que se llamó correctamente al query builder
+      expect(queryBuilder.where).toHaveBeenCalled();
+      expect(queryBuilder.andWhere).toHaveBeenCalled();
+      
+      // Verificar que se están buscando servicios entre lunes y domingo
+      const whereCall = queryBuilder.where.mock.calls[0];
+      const andWhereCall = queryBuilder.andWhere.mock.calls[0];
+      expect(whereCall[0]).toContain('fechaProgramada >= :monday');
+      expect(andWhereCall[0]).toContain('fechaProgramada <= :sunday');
+    });
+  });
+
   describe('findToday', () => {
     it('should return services for today', async () => {
       console.log('🧪 TEST: Debe retornar servicios para hoy');

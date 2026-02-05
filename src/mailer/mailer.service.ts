@@ -851,4 +851,88 @@ export class MailerService {
       console.error('❌ Error al enviar correo de alerta de licencias', error);
     }
   }
+
+  async sendEmployeeLeaveRequestToAdmins(data: any): Promise<void> {
+    console.log('[MailerService] Datos recibidos para solicitud de licencia:', data);
+    const { employee, fechaInicio, fechaFin, tipoLicencia, motivo, createdAt } = data;
+    const adminEmails = await this.getAdminEmails();
+    console.log('[MailerService] Correos de administradores:', adminEmails);
+    
+    if (!adminEmails || adminEmails.length === 0) {
+      console.warn(
+        '[MailerService] No se encontraron correos de administradores',
+      );
+      return;
+    }
+
+    if (
+      !employee?.nombre ||
+      !employee?.apellido ||
+      !employee?.email ||
+      !fechaInicio ||
+      !fechaFin ||
+      !tipoLicencia
+    ) {
+      console.warn(
+        '[MailerService] Datos insuficientes para enviar solicitud de licencia',
+      );
+      return;
+    }
+
+    const subject = 'Nueva solicitud de licencia/vacaciones 🏖️';
+    const formattedCreatedAt = new Date(createdAt || new Date()).toLocaleString('es-AR', {
+      dateStyle: 'long',
+      timeStyle: 'short',
+    });
+    const formattedFechaInicio = new Date(fechaInicio).toLocaleDateString('es-AR', {
+      dateStyle: 'long',
+    });
+    const formattedFechaFin = new Date(fechaFin).toLocaleDateString('es-AR', {
+      dateStyle: 'long',
+    });
+
+    // Calcular días solicitados
+    const inicio = new Date(fechaInicio);
+    const fin = new Date(fechaFin);
+    const diasSolicitados = Math.ceil((fin.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+    const body = `
+      <p>Hola equipo,</p>
+      <p>El empleado <strong>${employee.nombre} ${employee.apellido}</strong> (<a href="mailto:${employee.email}">${employee.email}</a>) ha solicitado una licencia/vacaciones.</p>
+      <ul>
+        <li><strong>Tipo de licencia:</strong> ${tipoLicencia}</li>
+        <li><strong>Fecha de inicio:</strong> ${formattedFechaInicio}</li>
+        <li><strong>Fecha de fin:</strong> ${formattedFechaFin}</li>
+        <li><strong>Días solicitados:</strong> ${diasSolicitados} días</li>
+        ${motivo ? `<li><strong>Motivo:</strong> ${motivo}</li>` : ''}
+        <li><strong>Fecha de solicitud:</strong> ${formattedCreatedAt}</li>
+      </ul>
+      <p>Por favor, gestionen esta solicitud a la brevedad.</p>
+      <p>Saludos,<br>El sistema de notificaciones</p>
+    `;
+
+    const htmlContent = this.generateEmailContent(subject, body);
+    console.log('[MailerService] Contenido del correo:', htmlContent);
+    
+    const mailOptions: MailOptions = {
+      from: process.env.EMAIL_USER || 'notificacion@mva.com',
+      to: adminEmails.join(','),
+      subject,
+      html: htmlContent,
+    };
+    
+    console.log('[MailerService] Opciones de correo:', mailOptions);
+    
+    try {
+      console.log(
+        '📧 Enviando correo de solicitud de licencia a administradores...',
+      );
+      await this.sendMail(mailOptions);
+    } catch (error) {
+      console.error(
+        '❌ Error al enviar correo de solicitud de licencia a administradores',
+        error,
+      );
+    }
+  }
 }

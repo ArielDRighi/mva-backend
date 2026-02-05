@@ -1116,6 +1116,45 @@ export class ServicesService {
     return this.findByDateRange(today.toISOString(), sunday.toISOString());
   }
 
+  async getCurrentWeekServices(): Promise<Service[]> {
+    const today = new Date();
+    
+    // Calcular el lunes de la semana actual
+    const monday = new Date(today);
+    const currentDay = today.getDay(); // 0 = domingo, 1 = lunes, ..., 6 = sábado
+    
+    // Si es domingo (0), retroceder 6 días para llegar al lunes
+    // Si es lunes (1), retroceder 0 días
+    // Si es martes (2), retroceder 1 día, etc.
+    const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
+    monday.setDate(today.getDate() - daysFromMonday);
+    monday.setHours(0, 0, 0, 0); // Inicio del lunes
+
+    // Calcular el domingo de la semana actual
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6); // 6 días después del lunes
+    sunday.setHours(23, 59, 59, 999); // Fin del domingo
+
+    this.logger.log(
+      `Obteniendo servicios de la semana actual: ${monday.toISOString()} a ${sunday.toISOString()}`,
+    );
+
+    // Consulta directa sin paginación para obtener todos los servicios de la semana
+    const services = await this.serviceRepository
+      .createQueryBuilder('service')
+      .leftJoinAndSelect('service.asignaciones', 'asignacion')
+      .leftJoinAndSelect('service.cliente', 'cliente')
+      .leftJoinAndSelect('asignacion.empleado', 'empleado')
+      .leftJoinAndSelect('asignacion.vehiculo', 'vehiculo')
+      .leftJoinAndSelect('asignacion.bano', 'bano')
+      .where('service.fechaProgramada >= :monday', { monday })
+      .andWhere('service.fechaProgramada <= :sunday', { sunday })
+      .orderBy('service.fechaProgramada', 'ASC')
+      .getMany();
+
+    return services;
+  }
+
   async findToday(): Promise<Service[]> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);

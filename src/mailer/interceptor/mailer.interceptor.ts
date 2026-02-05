@@ -101,12 +101,18 @@ export class MailerInterceptor implements NestInterceptor {
         // 7. Reseteo de contraseña → POST /auth/forgot-password
         await this.handlePasswordReset(method, path, data);
 
+        // 8. Adelanto salarial → POST /salary-advances
         if (method === 'POST' && path.includes('/salary-advances')) {
           await this.handleSalaryAdvanceRequest(data);
         }
 
         if (method === 'PATCH' && path.includes('/salary-advances')) {
           await this.handleSalaryAdvanceResponse(data);
+        }
+
+        // 9. Solicitud de licencia/vacaciones → POST /employee-leaves
+        if (method === 'POST' && path.includes('/employee-leaves')) {
+          await this.handleEmployeeLeaveRequest(data);
         }
       }),
     );
@@ -784,6 +790,38 @@ export class MailerInterceptor implements NestInterceptor {
     } catch (error) {
       console.error(
         '[MailerInterceptor] Error al enviar correo de respuesta de adelanto:',
+        error,
+      );
+    }
+  }
+
+  /**
+   * Maneja el envío de correos a administradores al recibir una solicitud de licencia/vacaciones
+   */
+  private async handleEmployeeLeaveRequest(data: any): Promise<void> {
+    console.log(
+      '[MailerInterceptor] Datos recibidos en handleEmployeeLeaveRequest:',
+      data,
+    );
+
+    if (!data || !data.id || !data.fechaInicio || !data.fechaFin || !data.employeeId) {
+      console.warn(
+        '[MailerInterceptor] Datos incompletos para solicitud de licencia',
+      );
+      return;
+    }
+
+    try {
+      console.log(
+        '[MailerInterceptor] Llamando a sendEmployeeLeaveRequestToAdmins...',
+      );
+      await this.mailerService.sendEmployeeLeaveRequestToAdmins(data);
+      console.log(
+        '[MailerInterceptor] Correo enviado a administradores por solicitud de licencia',
+      );
+    } catch (error) {
+      console.error(
+        '[MailerInterceptor] Error al enviar correo de solicitud de licencia:',
         error,
       );
     }

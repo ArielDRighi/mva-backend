@@ -197,6 +197,13 @@ export class ServicesController {
     return this.servicesService.getRemainingWeekServices();
   }
 
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN, Role.SUPERVISOR, Role.OPERARIO)
+  @Get('semana-actual')
+  async getCurrentWeekServices() {
+    return this.servicesService.getCurrentWeekServices();
+  }
+
   @Get('today')
   findToday(): Promise<Service[]> {
     return this.servicesService.findToday();

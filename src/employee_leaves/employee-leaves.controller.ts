@@ -10,6 +10,7 @@ import {
   ParseIntPipe,
   Query,
   DefaultValuePipe,
+  UseInterceptors,
 } from '@nestjs/common';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -20,9 +21,11 @@ import { EmployeeLeavesService } from './employee-leaves.service';
 import { CreateEmployeeLeaveDto } from './dto/create-employee-leave.dto';
 import { UpdateEmployeeLeaveDto } from './dto/update-employee-leave.dto';
 import { LeaveType } from './entities/employee-leave.entity';
+import { MailerInterceptor } from '../mailer/interceptor/mailer.interceptor';
 
 @Controller('employee-leaves')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@UseInterceptors(MailerInterceptor)
 export class EmployeeLeavesController {
   constructor(private readonly leavesService: EmployeeLeavesService) {}
 
