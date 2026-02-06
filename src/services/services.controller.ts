@@ -220,9 +220,8 @@ export class ServicesController {
   }
 
   // Esta ruta debe ir después de las rutas específicas
-  // Restringimos el parámetro para que solo acepte IDs numéricos y no
-  // capture rutas literales como 'semana-actual'
-  @Get(':id(\\d+)')
+  // ParseIntPipe validará que sea un número
+  @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number): Promise<Service> {
     return this.servicesService.findOne(id);
   }
