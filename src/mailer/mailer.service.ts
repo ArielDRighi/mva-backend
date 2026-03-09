@@ -154,7 +154,7 @@ export class MailerService {
 
     // Opciones del correo
     const mailOptions: MailOptions = {
-      from: process.env.EMAIL_USER || 'notificacion@mva.com',
+      from: `"MVA SRL" <${process.env.EMAIL_USER || 'notificacion@mva.com'}>`,
       to: email,
       subject,
       html: htmlContent,
@@ -228,7 +228,7 @@ export class MailerService {
     );
 
     const mailOptions: MailOptions = {
-      from: process.env.EMAIL_USER || 'notificacion@mva.com',
+      from: `"MVA SRL" <${process.env.EMAIL_USER || 'notificacion@mva.com'}>`,
       to: email,
       subject,
       html: htmlContent,
@@ -285,7 +285,7 @@ export class MailerService {
     const safeSupervisorEmails = supervisorsEmails || [];
 
     const mailOptions: MailOptions = {
-      from: process.env.EMAIL_USER || 'notificacion@mva.com',
+      from: `"MVA SRL" <${process.env.EMAIL_USER || 'notificacion@mva.com'}>`,
       to: [...safeAdminEmails, ...safeSupervisorEmails],
       subject,
       html: htmlContent,
@@ -342,7 +342,7 @@ export class MailerService {
     const safeSupervisorEmails = supervisorsEmails || [];
 
     const mailOptions: MailOptions = {
-      from: process.env.EMAIL_USER || 'notificacion@mva.com',
+      from: `"MVA SRL" <${process.env.EMAIL_USER || 'notificacion@mva.com'}>`,
       to: [...safeAdminEmails, ...safeSupervisorEmails],
       subject,
       html: htmlContent,
@@ -394,7 +394,7 @@ export class MailerService {
 
     // Redirigir todos los reclamos a info@mvasrl.com
     const mailOptions: MailOptions = {
-      from: process.env.EMAIL_USER || 'notificacion@mva.com',
+      from: `"MVA SRL" <${process.env.EMAIL_USER || 'notificacion@mva.com'}>`,
       to: 'info@mvasrl.com',
       subject,
       html: htmlContent,
@@ -470,7 +470,7 @@ export class MailerService {
     );
 
     const mailOptions: MailOptions = {
-      from: process.env.EMAIL_USER || 'notificacion@mva.com',
+      from: `"MVA SRL" <${process.env.EMAIL_USER || 'notificacion@mva.com'}>`,
       to: clientEmail,
       subject,
       html: htmlContent,
@@ -551,7 +551,7 @@ export class MailerService {
 
     // Usamos array como destino para ser consistentes
     const mailOptions: MailOptions = {
-      from: process.env.EMAIL_USER || 'notificacion@mva.com',
+      from: `"MVA SRL" <${process.env.EMAIL_USER || 'notificacion@mva.com'}>`,
       to: 'info@mvasrl.com',
       subject,
       html: htmlContent,
@@ -625,7 +625,7 @@ export class MailerService {
 
     // Redirigir todas las solicitudes de servicio a info@mvasrl.com
     const mailOptions: MailOptions = {
-      from: process.env.EMAIL_USER || 'notificacion@mva.com',
+      from: `"MVA SRL" <${process.env.EMAIL_USER || 'notificacion@mva.com'}>`,
       to: 'info@mvasrl.com',
       subject,
       html: htmlContent,
@@ -665,7 +665,7 @@ export class MailerService {
 
     // Usamos array como destino para ser consistentes
     const mailOptions: MailOptions = {
-      from: process.env.EMAIL_USER || 'notificacion@mva.com',
+      from: `"MVA SRL" <${process.env.EMAIL_USER || 'notificacion@mva.com'}>`,
       to: [email],
       subject,
       html: htmlContent,
@@ -704,7 +704,7 @@ export class MailerService {
     const htmlContent = this.generateEmailContent(subject, body);
 
     const mailOptions: MailOptions = {
-      from: process.env.EMAIL_USER || 'notificacion@mva.com',
+      from: `"MVA SRL" <${process.env.EMAIL_USER || 'notificacion@mva.com'}>`,
       to: email,
       subject,
       html: htmlContent,
@@ -765,7 +765,7 @@ export class MailerService {
     const htmlContent = this.generateEmailContent(subject, body);
     console.log('[MailerService] Contenido del correo:', htmlContent);
     const mailOptions: MailOptions = {
-      from: process.env.EMAIL_USER || 'notificacion@mva.com',
+      from: `"MVA SRL" <${process.env.EMAIL_USER || 'notificacion@mva.com'}>`,
       to: adminEmails.join(','),
       subject,
       html: htmlContent,
@@ -818,7 +818,7 @@ export class MailerService {
     const htmlContent = this.generateEmailContent(subject, body);
 
     const mailOptions: MailOptions = {
-      from: process.env.EMAIL_USER || 'notificacion@mva.com',
+      from: `"MVA SRL" <${process.env.EMAIL_USER || 'notificacion@mva.com'}>`,
       to: employee.email,
       subject,
       html: htmlContent,
@@ -914,7 +914,7 @@ export class MailerService {
     console.log(`📧 Enviando alerta de licencias a ${finalEmailList.length} destinatarios únicos:`, finalEmailList);
 
     const mailOptions: MailOptions = {
-      from: process.env.EMAIL_USER || 'notificacion@mva.com',
+      from: `"MVA SRL" <${process.env.EMAIL_USER || 'notificacion@mva.com'}>`,
       to: finalEmailList,
       subject,
       html: htmlContent,
@@ -993,7 +993,7 @@ export class MailerService {
     console.log('[MailerService] Contenido del correo:', htmlContent);
     
     const mailOptions: MailOptions = {
-      from: process.env.EMAIL_USER || 'notificacion@mva.com',
+      from: `"MVA SRL" <${process.env.EMAIL_USER || 'notificacion@mva.com'}>`,
       to: adminEmails.join(','),
       subject,
       html: htmlContent,
