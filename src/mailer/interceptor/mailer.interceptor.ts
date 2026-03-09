@@ -556,6 +556,22 @@ export class MailerInterceptor implements NestInterceptor {
       );
 
       console.log('[MailerInterceptor] Notificación de reclamo enviada.');
+
+      // Enviar confirmación al cliente si tenemos su email
+      if (claimData.emailContacto && claimData.nombreContacto) {
+        console.log('[MailerInterceptor] Enviando confirmación al cliente...');
+        
+        await this.mailerService.sendClaimConfirmationToClient(
+          claimData.emailContacto,
+          claimData.nombreContacto,
+          claimData.titulo,
+          claimData.reclamo_id || 0, // ID del reclamo recién creado
+        );
+        
+        console.log('[MailerInterceptor] Confirmación enviada al cliente.');
+      } else {
+        console.log('[MailerInterceptor] No se envió confirmación al cliente: faltan datos de contacto');
+      }
     } catch (err) {
       console.error(
         '[MailerInterceptor] Error enviando notificación de reclamo:',

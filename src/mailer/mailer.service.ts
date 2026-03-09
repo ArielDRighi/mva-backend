@@ -407,6 +407,84 @@ export class MailerService {
     }
   }
 
+  // Confirmación de reclamo al cliente
+  async sendClaimConfirmationToClient(
+    clientEmail: string,
+    clientName: string,
+    claimTitle: string,
+    claimId: number,
+  ): Promise<void> {
+    const subject = '✅ Hemos recibido tu reclamo - MVA';
+
+    const body = `
+      <p style="font-size: 16px;">Hola <strong>${clientName}</strong>,</p>
+      
+      <p style="font-size: 16px;">
+        Gracias por contactarnos. Queremos confirmar que hemos recibido tu reclamo 
+        y que nuestro equipo de MVA ya está trabajando en solucionarlo.
+      </p>
+      
+      <div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #007bff; margin: 20px 0;">
+        <p style="font-size: 16px; margin: 0;"><strong>📋 Resumen de tu reclamo:</strong></p>
+        <p style="font-size: 14px; margin: 10px 0 0 0;">
+          <strong>Número de referencia:</strong> #${claimId}<br>
+          <strong>Asunto:</strong> ${claimTitle}
+        </p>
+      </div>
+      
+      <p style="font-size: 16px;">
+        <strong>¿Qué sucederá ahora?</strong>
+      </p>
+      <ul style="font-size: 16px;">
+        <li>Nuestro equipo revisará tu reclamo con atención</li>
+        <li>Evaluaremos la situación y las posibles soluciones</li>
+        <li>Nos pondremos en contacto contigo a la brevedad</li>
+      </ul>
+      
+      <p style="font-size: 16px;">
+        Valoramos mucho tu confianza en MVA y trabajaremos para resolver 
+        tu inconveniente de la mejor manera posible.
+      </p>
+      
+      <div style="background-color: #e7f3ff; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <p style="font-size: 14px; margin: 0;">
+          <strong>📞 ¿Necesitas contactarnos?</strong><br>
+          Si tienes alguna pregunta adicional, puedes responder a este correo 
+          o contactarnos directamente a <strong>info@mvasrl.com</strong>
+        </p>
+      </div>
+      
+      <p style="font-size: 16px;">
+        Gracias por tu paciencia y comprensión.
+      </p>
+      
+      <p style="font-size: 16px;">
+        Atentamente,<br>
+        <strong>Equipo MVA</strong>
+      </p>
+    `;
+
+    const htmlContent = this.generateEmailContent(
+      'Confirmación de Reclamo - MVA',
+      body,
+    );
+
+    const mailOptions: MailOptions = {
+      from: process.env.EMAIL_USER || 'notificacion@mva.com',
+      to: clientEmail,
+      subject,
+      html: htmlContent,
+    };
+
+    try {
+      console.log(`📧 Enviando confirmación de reclamo a ${clientEmail}...`);
+      await this.sendMail(mailOptions);
+      console.log(`✅ Confirmación de reclamo enviada a ${clientEmail}`);
+    } catch (error) {
+      console.error('❌ Error al enviar confirmación de reclamo al cliente', error);
+    }
+  }
+
   async getAdminEmails(): Promise<string[]> {
     const admins = await this.userRepository.find({
       where: {

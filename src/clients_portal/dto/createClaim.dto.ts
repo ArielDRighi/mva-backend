@@ -15,6 +15,21 @@ export class CreateClaimDto {
   cliente: string;
 
   @IsString()
+  @IsOptional()
+  @Length(1, 255)
+  nombreContacto?: string;
+
+  @IsString()
+  @IsOptional()
+  @Length(1, 255)
+  emailContacto?: string;
+
+  @IsString()
+  @IsOptional()
+  @Length(1, 50)
+  telefonoContacto?: string;
+
+  @IsString()
   @Length(5, 150)
   titulo: string;
 

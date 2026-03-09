@@ -38,6 +38,15 @@ export class Claim {
   @Column({ name: 'cliente' })
   cliente: string;
 
+  @Column({ name: 'nombre_contacto', type: 'varchar', length: 255, nullable: true })
+  nombreContacto: string;
+
+  @Column({ name: 'email_contacto', type: 'varchar', length: 255, nullable: true })
+  emailContacto: string;
+
+  @Column({ name: 'telefono_contacto', type: 'varchar', length: 50, nullable: true })
+  telefonoContacto: string;
+
   @Column({ name: 'titulo', length: 150 })
   titulo: string;
 
