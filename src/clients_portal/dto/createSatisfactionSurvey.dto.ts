@@ -1,4 +1,5 @@
 import {
+  IsArray,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -14,10 +15,15 @@ export class CreateSatisfactionSurveyDto {
   @MaxLength(150)
   nombre_empresa: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   @MaxLength(150)
-  lugar_proyecto: string;
+  lugar_proyecto?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  servicios?: string[];
 
   @IsOptional()
   @IsString()
@@ -37,8 +43,14 @@ export class CreateSatisfactionSurveyDto {
   @IsNotEmpty()
   @IsInt()
   @Min(1)
-  @Max(5) // Asumiendo que la calificación es del 1 al 5, ajústalo según tu escala
+  @Max(5)
   calificacion_atencion: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  calificacion_servicio?: number;
 
   @IsNotEmpty()
   @IsString()

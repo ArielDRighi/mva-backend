@@ -60,13 +60,26 @@ export class ClientsPortalService {
   }
 
   async createSatisfactionSurvey(surveyData: CreateSatisfactionSurveyDto) {
+    // Si se proporciona un array de servicios, convertirlo a string
+    // Si no, usar lugar_proyecto si está disponible
+    const serviciosString = surveyData.servicios
+      ? Array.isArray(surveyData.servicios)
+        ? surveyData.servicios.join(', ')
+        : surveyData.servicios
+      : null;
+
+    const lugarProyecto =
+      surveyData.lugar_proyecto || serviciosString || 'No especificado';
+
     const survey = this.satisfactionSurveyRepository.create({
       nombre_empresa: surveyData.nombre_empresa,
-      lugar_proyecto: surveyData.lugar_proyecto,
+      lugar_proyecto: lugarProyecto,
+      servicios: serviciosString,
       contacto: surveyData.contacto, // opcional
       medio_contacto: surveyData.medio_contacto,
       tiempo_respuesta: surveyData.tiempo_respuesta,
       calificacion_atencion: surveyData.calificacion_atencion,
+      calificacion_servicio: surveyData.calificacion_servicio, // nuevo campo
       accesibilidad_comercial: surveyData.accesibilidad_comercial,
       relacion_precio_valor: surveyData.relacion_precio_valor,
       recomendaria: surveyData.recomendaria,

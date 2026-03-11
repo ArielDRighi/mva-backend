@@ -13,8 +13,11 @@ export class SatisfactionSurvey {
   @Column({ name: 'nombre_empresa', length: 150 })
   nombre_empresa: string;
 
-  @Column({ name: 'lugar_proyecto', length: 150 })
+  @Column({ name: 'lugar_proyecto', length: 150, nullable: true })
   lugar_proyecto: string;
+
+  @Column({ name: 'servicios', type: 'text', nullable: true })
+  servicios: string;
 
   @Column({ name: 'contacto', length: 150, nullable: true })
   contacto: string;
@@ -27,6 +30,9 @@ export class SatisfactionSurvey {
 
   @Column({ name: 'calificacion_atencion', type: 'int' })
   calificacion_atencion: number;
+
+  @Column({ name: 'calificacion_servicio', type: 'int', nullable: true })
+  calificacion_servicio: number;
 
   @Column({ name: 'accesibilidad_comercial', length: 50 })
   accesibilidad_comercial: string;

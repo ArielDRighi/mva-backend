@@ -610,11 +610,21 @@ export class MailerInterceptor implements NestInterceptor {
 
       console.log('[MailerInterceptor] Enviando encuesta a:', targetEmail);
 
+      // Procesar los servicios (puede ser array o string)
+      const serviciosTexto = surveyData.servicios
+        ? Array.isArray(surveyData.servicios)
+          ? surveyData.servicios.join(', ')
+          : surveyData.servicios
+        : 'No especificado';
+
       // Mapear correctamente los campos del formulario frontend
       const detallesCompletos = `
         Contacto: ${surveyData.contacto || 'No especificado'}
+        Servicios evaluados: ${serviciosTexto}
         Medio de contacto: ${surveyData.medio_contacto || 'No especificado'}
         Tiempo de respuesta: ${surveyData.tiempo_respuesta || 'No especificado'}
+        Calificación de atención: ${surveyData.calificacion_atencion || 0}/5
+        Calificación del servicio: ${surveyData.calificacion_servicio || 0}/5
         Accesibilidad comercial: ${surveyData.accesibilidad_comercial || 'No especificado'}
         Relación precio-valor: ${surveyData.relacion_precio_valor || 'No especificado'}
         ¿Nos recomendaría?: ${surveyData.recomendaria || 'No especificado'}
@@ -623,12 +633,12 @@ export class MailerInterceptor implements NestInterceptor {
       await this.mailerService.sendSurveyNotification(
         targetEmail,
         [], // No enviar a supervisors
-        surveyData.nombre_empresa || 'Cliente desconocido',        // Correcto: nombre_empresa del frontend
-        null,                                                      // No hay fecha de mantenimiento en este formulario
-        surveyData.calificacion_atencion || 0,                     // Correcto: calificacion_atencion del frontend
-        surveyData.comentario_adicional || 'Sin comentarios',     // Correcto: comentario_adicional del frontend
-        surveyData.lugar_proyecto || 'Sin proyecto especificado', // Usar lugar_proyecto como asunto
-        detallesCompletos, // Todos los detalles de la evaluación
+        surveyData.nombre_empresa || 'Cliente desconocido',
+        null,
+        surveyData.calificacion_atencion || 0,
+        surveyData.comentario_adicional || 'Sin comentarios',
+        surveyData.lugar_proyecto || serviciosTexto,
+        detallesCompletos,
       );
     } catch (err) {
       console.error(
