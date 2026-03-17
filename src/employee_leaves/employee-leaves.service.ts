@@ -273,6 +273,35 @@ export class EmployeeLeavesService {
     return leaveCount === 0;
   }
 
+  /**
+   * Obtiene la información de la licencia de un empleado para una fecha específica
+   * @param employeeId ID del empleado
+   * @param fecha Fecha a verificar
+   * @returns La licencia activa o null si no tiene
+   */
+  async getEmployeeLeaveForDate(
+    employeeId: number,
+    fecha: Date,
+  ): Promise<EmployeeLeave | null> {
+    const startOfDay = new Date(fecha);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(fecha);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const leave = await this.leaveRepository.findOne({
+      where: {
+        employeeId,
+        fechaInicio: LessThanOrEqual(endOfDay),
+        fechaFin: MoreThanOrEqual(startOfDay),
+        aprobado: true,
+      },
+      relations: ['employee'],
+    });
+
+    return leave || null;
+  }
+
   // Obtener todas las licencias activas/programadas para una fecha específica
   async getActiveLeaves(fecha: Date): Promise<EmployeeLeave[]> {
     const startOfDay = new Date(fecha);

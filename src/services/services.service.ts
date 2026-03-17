@@ -1282,14 +1282,28 @@ export class ServicesService {
         const disponibles: Empleado[] = [];
 
         for (const emp of candidatos) {
-          const enLicencia =
-            !(await this.employeeLeavesService.isEmployeeAvailable(
+          // Obtener información detallada de la licencia si existe
+          const licencia =
+            await this.employeeLeavesService.getEmployeeLeaveForDate(
               emp.id,
               fechaServicio,
-            ));
-          if (enLicencia) {
+            );
+
+          if (licencia) {
+            // Mapear el tipo de licencia a un nombre legible
+            const tipoLicenciaMap: Record<string, string> = {
+              VACACIONES: 'de vacaciones',
+              ENFERMEDAD: 'de licencia por enfermedad',
+              FALLECIMIENTO_FAMILIAR: 'de licencia por fallecimiento familiar',
+              CASAMIENTO: 'de licencia por casamiento',
+              NACIMIENTO: 'de licencia por nacimiento',
+            };
+
+            const tipoLicenciaTexto =
+              tipoLicenciaMap[licencia.tipoLicencia] || 'de licencia';
+
             throw new BadRequestException(
-              `El empleado ${emp.id} está en licencia o capacitación en la fecha del servicio.`,
+              `El empleado ${emp.nombre} ${emp.apellido} está ${tipoLicenciaTexto} desde el ${new Date(licencia.fechaInicio).toLocaleDateString('es-AR')} hasta el ${new Date(licencia.fechaFin).toLocaleDateString('es-AR')}.`,
             );
           }
 
