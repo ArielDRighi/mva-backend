@@ -150,11 +150,22 @@ export class ServicesController {
 
   @Get()
   async findAll(
-    @Query() filterDto: FilterServicesDto, // Recibe los filtros como parámetros de consulta
-    @Query('page') page: number = 1, // Recibe el número de página desde los parámetros de consulta
-    @Query('limit') limit: number = 10, // Recibe el límite de registros por página desde los parámetros de consulta
+    @Query('search') search?: string,
+    @Query('estado') estado?: ServiceState,
+    @Query('tipoServicio') tipoServicio?: ServiceType,
+    @Query('clienteId') clienteId?: number,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
   ): Promise<any> {
     try {
+      // Construir el DTO de filtros
+      const filterDto: FilterServicesDto = {
+        search,
+        estado,
+        tipoServicio,
+        clienteId,
+      };
+      
       // Llama al servicio con los filtros, página y límite
       return await this.servicesService.findAll(filterDto, page, limit);
     } catch (error: unknown) {

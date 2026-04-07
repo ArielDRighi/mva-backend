@@ -381,7 +381,7 @@ export class ServicesService {
         .leftJoinAndSelect('asignacion.vehiculo', 'vehiculo')
         .leftJoinAndSelect('asignacion.bano', 'bano');
 
-      const { search } = filters;
+      const { search, estado, tipoServicio, clienteId } = filters;
 
       if (search) {
         const term = `%${search.toLowerCase()}%`;
@@ -398,6 +398,21 @@ export class ServicesService {
             'cliente IS NOT NULL AND LOWER(cliente.nombre_empresa) LIKE :term',
             { term },
           );
+      }
+
+      // Aplicar filtros específicos
+      if (estado) {
+        queryBuilder.andWhere('service.estado = :estado', { estado });
+      }
+
+      if (tipoServicio) {
+        queryBuilder.andWhere('service.tipo_servicio = :tipoServicio', { 
+          tipoServicio 
+        });
+      }
+
+      if (clienteId) {
+        queryBuilder.andWhere('service.cliente_id = :clienteId', { clienteId });
       }
 
       queryBuilder.orderBy('service.fechaProgramada', 'ASC');
